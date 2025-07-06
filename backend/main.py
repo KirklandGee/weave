@@ -1,4 +1,4 @@
-from services.neo4j import verify, query
+from backend.services.neo4j import verify, query
 
 
 def main():
