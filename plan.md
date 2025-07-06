@@ -79,17 +79,17 @@ This project is a web-based campaign management tool for D&D (or similar TTRPGs)
 ```
 /frontend
 /components
-Editor.tsx
-GraphView.tsx
-EntitySidebar.tsx
-ChatPanel.tsx
+  Editor.tsx
+  GraphView.tsx
+  EntitySidebar.tsx
+  ChatPanel.tsx
 /pages
 /docs/[id].tsx
 /sessions/[id].tsx
 /api/*
 /lib
-wikilinkParser.ts
-embeddingClient.- 
+  wikilinkParser.ts
+  embeddingClient.- 
 ```
 
 ### Backend
@@ -99,19 +99,19 @@ embeddingClient.-
 /app
 /routes
 /api
-create_document.py
-get_context.py
-query_graph.py
+  create_document.py
+  get_context.py
+  query_graph.py
 /services
-neo4j_service.py
-embedding_service.py
-rag_service.py
+  neo4j_service.py
+  embedding_service.py
+  rag_service.py
 /tasks
-generate_embedding.py
-auto_link_nodes.py
+  generate_embedding.py
+  auto_link_nodes.py
 /graph
-schema.md         # Documented schema & constraints
-seed.cypher       # Initial campaign structure
+  schema.md         # Documented schema & constraints
+  seed.cypher       # Initial campaign structure
 ```
 
 ---
