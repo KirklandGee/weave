@@ -4,7 +4,7 @@ from backend.models.components import MarkdownNodeBase
 
 def build_create_query(node: MarkdownNodeBase) -> tuple[LiteralString | Query, dict[str, Any]]:
     label = node.get_label()
-    props = node.to_cypher_dict()
+    props = node.create_props()
     
     # Create different queries for each label type based on seed data
     match label:
