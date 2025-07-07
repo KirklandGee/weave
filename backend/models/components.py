@@ -29,3 +29,18 @@ class MarkdownNodeBase(BaseModel):
     def get_label(self) -> str:
       # Default fallback, will be overridden in subclasses
       return self.__class__.__name__
+
+class Change(BaseModel):
+    op: str                       # create | update | delete
+    nodeId: str
+    payload: dict[str, Any]
+    ts: int                       # epoch ms
+
+class SidebarNode(BaseModel):
+    id: str
+    type: str
+    title: str
+    markdown: str | None = None
+    attributes: dict[str, Any] = {}
+    updatedAt: int
+    createdAt: int

@@ -1,30 +1,37 @@
 'use client'
 
-import { useEffect } from "react";
-import { EditorContent, JSONContent, useEditor } from '@tiptap/react'
+import { useRef, useEffect } from 'react'
+import { EditorContent, useEditor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
-import { mdToHtml, htmlToMd } from '@/lib/md'
+import { htmlToMd } from '@/lib/md'
 import StarterKit from '@tiptap/starter-kit'
+import debounce from 'lodash.debounce'
 import React from 'react'
-
 
 export default function Tiptap({
   content,
   onContentChange,
 }: {
   content: string;
-  onContentChange: (markdown: string) => void;
+  onContentChange: (md: string) => void;
 }) {
+  const localUpdate = useRef(false)
 
+  /* 400 ms idle-time before we hit Dexie */
+  const debouncedSave = debounce(
+    (html: string) => onContentChange(htmlToMd(html)),
+    1000,
+  )
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [StarterKit],
     content,
-
     onUpdate({ editor }) {
-      const htmlOut = editor.getHTML()
-      const markdownOut = htmlToMd(htmlOut)
-      onContentChange(markdownOut);   // ⬅️ send the content back up in matkdown
+      if (localUpdate.current) {            // ← ignore our own reset
+        localUpdate.current = false
+        return
+      }
+      debouncedSave(editor.getHTML())      // <-- debounce here
     },
     editorProps: {
       attributes: {
@@ -32,19 +39,19 @@ export default function Tiptap({
           "text-white prose prose-invert max-w-2xl min-h-[400px] focus:outline-none",
       },
     },
+    shouldRerenderOnTransaction: false,
   });
 
-  // sync external changes (e.g., switching files)
   useEffect(() => {
-
-    if (editor && editor.getHTML() !== content) {
-      // assume you already have `markdownString`
-      (async () => {
-        const html = await mdToHtml(content)
-        editor.commands.setContent(html)
-      })()
+    if (!editor) return
+    if (content !== editor.getHTML()) {
+      localUpdate.current = true            // suppress onUpdate
+      editor.commands.setContent(content, { emitUpdate: false }) // v3 sig
     }
-  }, [content, editor]);
+  }, [content, editor])
+
+
+  if (!editor) return null;
 
   return (
     <>
@@ -96,5 +103,3 @@ export default function Tiptap({
     </>
   );
 }
-
-export type { JSONContent };

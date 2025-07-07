@@ -10,15 +10,15 @@ NEO4J_PASS=${NEO4J_PASS:-secretgraph}
 NEO4J_BOLT=${NEO4J_BOLT:-bolt://localhost:7687}
 
 FILES=(
-  constraints.cql
-  campaigns.cql
-  locations.cql
-  maps.cql
-  characters.cql
-  npcs.cql
-  sessions.cql
-  notes.cql
-  relationships.cql
+  seed_data/constraints.cql
+  seed_data/campaigns.cql
+  seed_data/locations.cql
+  seed_data/maps.cql
+  seed_data/characters.cql
+  seed_data/npcs.cql
+  seed_data/sessions.cql
+  seed_data/notes.cql
+  seed_data/relationships.cql
 )
 # ---------------------------------------------------------------------------
 

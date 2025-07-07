@@ -5,14 +5,15 @@ import rehypeStringify from 'rehype-stringify'
 import TurndownService from 'turndown'
 import rehypeSanitize from 'rehype-sanitize'
 
-export async function mdToHtml(md: string): Promise<string> {
-  const file = await unified()
-    .use(remarkParse)
-    .use(remarkRehype, { allowDangerousHtml: true }) // keep raw HTML
-    .use(rehypeSanitize)                             // strip unsafe stuff
-    .use(rehypeStringify)
-    .process(md)
-  return String(file)
+export function mdToHtml(md: string): string {
+  return String(
+    unified()
+      .use(remarkParse)
+      .use(remarkRehype)
+      .use(rehypeSanitize)
+      .use(rehypeStringify)
+      .processSync(md)
+  )
 }
 
 const td = new TurndownService({

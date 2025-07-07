@@ -1,33 +1,59 @@
-"use client";
+'use client'
+import { useState } from 'react'
+import type { SidebarNode } from '@/types/node'
+import { ChevronDown, ChevronRight } from 'lucide-react' // optional icon lib
 
-import { Node }from '@/app/page'
+export default function Sidebar({
+  nodes,
+  activeId,
+  onSelect,
+}: {
+  nodes: SidebarNode[]
+  activeId: string
+  onSelect: (node: SidebarNode) => void
+}) {
+  /* group by type */
+  const grouped = nodes.reduce((acc, n) => {
+    (acc[n.type] ||= []).push(n)
+    return acc
+  }, {} as Record<string, SidebarNode[]>)
 
-/** ------------------------------------------------------------------ */
-/** Sidebar component                                                  */
-/** ------------------------------------------------------------------ */
-interface SidebarProps {
-  nodes: Node[];
-  activeId: number;
-  onSelect: (node: Node) => void;
-}
+  /* keep open/closed state per bucket */
+  const [open, setOpen] = useState<Record<string, boolean>>({})
 
-export default function Sidebar({ nodes, activeId, onSelect }: SidebarProps) {
   return (
-    <aside className="w-64 shrink-0 border-r border-zinc-800 bg-zinc-900 text-sm text-zinc-100">
-      <ul className="p-2">
-        {nodes.map((node) => (
-          <li key={node.id} className="mb-1 last:mb-0">
+    <aside className="w-60 shrink-0 overflow-y-auto border-r border-zinc-800 px-3 py-4 text-zinc-200">
+      {Object.entries(grouped).map(([type, list]) => {
+        const isOpen = open[type] ?? true
+        return (
+          <section key={type} className="mb-3">
             <button
-              onClick={() => onSelect(node)}
-              className={
-                "w-full rounded px-2 py-1 text-left hover:bg-zinc-800" +
-                (activeId === node.id ? " bg-zinc-800" : "")
-              }            >
-              {node.title}
+              onClick={() => setOpen(o => ({ ...o, [type]: !isOpen }))}
+              className="flex w-full items-center justify-between font-semibold uppercase tracking-wide text-zinc-400 hover:text-zinc-100"
+            >
+              <span>{type}</span>
+              {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
-          </li>
-        ))}
-      </ul>
+
+            {isOpen && (
+              <ul className="mt-1 ml-3 space-y-1">
+                {list.map(n => (
+                  <li key={n.id}>
+                    <button
+                      onClick={() => onSelect(n)}
+                      className={`w-full truncate text-left text-sm hover:text-white ${
+                        n.id === activeId ? 'font-bold text-white' : ''
+                      }`}
+                    >
+                      {n.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )
+      })}
     </aside>
-  );
+  )
 }

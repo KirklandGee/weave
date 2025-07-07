@@ -1,49 +1,56 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import Tiptap from "@/components/Tiptap";
-import Sidebar from "@/components/Sidebar";   // ← default import
+import { useState, useEffect } from 'react'
+import { useCampaignNodes } from '@/lib/hooks/useCampaignNodes'
+import { useActiveNode } from '@/lib/hooks/useActiveNode'
+import Sidebar from '@/components/Sidebar'
+import Inspector from '@/components/Inspector'
+import Tiptap from '@/components/Tiptap'
 
-export type Node = {
-  id: number;
-  title: string;
-  markdown: string;          // store the TipTap JSON, not markdown text
-};
-const mockNodes: Node[] = [
-  { id: 1, title: "Welcome", markdown: "# Welcome \n - this is a list \n **This is bold**" },
-  { id: 2, title: "Page 2", markdown: "## H2 \n - this is a list \n **This is bold**" }
-];
+export default function Home({
+  params,          // assuming /campaign/[title]/[nodeId] route
+}: {
+  params: { title: string; nodeId?: string }
+}) {
+  const { title: campaign } = params
 
-export default function Home() {
-  const [nodes, setNodes] = useState<Node[]>(mockNodes);
-  const [activeId, setActiveId] = useState<number>(nodes[0].id);
-  const activeNode = nodes.find((n) => n.id === activeId)!;
+  /* 1. all nodes for the sidebar */
+  const nodes = useCampaignNodes()
 
-  // receives HTML from the editor and stores it back into the node list
-  function handleContentChange(updatedMarkdown: string) {
-    setNodes((prev) =>
-      prev.map((n) =>
-        n.id === activeId ? { ...n, markdown: updatedMarkdown } : n
-      )
-    );
-    // 🔜  TODO: POST `updatedDoc` to your API here (debounced)
-  }
+  /* 2. which node is open */
+  const [activeId, setActiveId] = useState<string | null>(params.nodeId ?? null)
 
+  /* set a default once nodes load */
+  useEffect(() => {
+    if (!activeId && nodes.length) setActiveId(nodes[0].id)
+  }, [nodes, activeId])
+
+  /* 3. content + updater for the active node */
+  const { htmlContent, updateMarkdown } = useActiveNode(
+    campaign,
+    activeId ?? ''
+  )
+
+  if (!nodes.length || !activeId) return <p className="p-4">Loading…</p>
 
   return (
     <div className="flex h-screen bg-zinc-950">
       <Sidebar
         nodes={nodes}
         activeId={activeId}
-        onSelect={(node) => setActiveId(node.id)}
+        onSelect={node => setActiveId(node.id)}
       />
 
       <main className="flex-1 overflow-auto p-4">
         <Tiptap
-          content={activeNode.markdown}
-          onContentChange={handleContentChange}
+          key={activeId}
+          content={htmlContent}        // <-- plain HTML string
+          onContentChange={updateMarkdown}        
         />
       </main>
+
+      <Inspector node={nodes.find(n => n.id === activeId) ?? null} />
+
     </div>
-  );
+  )
 }
