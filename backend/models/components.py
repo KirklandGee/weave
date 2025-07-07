@@ -18,7 +18,7 @@ class MarkdownNodeBase(BaseModel):
     metadata: Metadata
     content: MarkdownContent
 
-    def to_cypher_dict(self) -> dict[str, Any]:
+    def create_props(self) -> dict[str, Any]:
       return {
           "id": self.metadata.id,
           "createdAt": self.metadata.created_at.isoformat(),
