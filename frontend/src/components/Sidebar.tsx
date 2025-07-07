@@ -1,6 +1,6 @@
 "use client";
 
-import { Node } from '../types/Node'
+import { Node }from '@/app/page'
 
 /** ------------------------------------------------------------------ */
 /** Sidebar component                                                  */
