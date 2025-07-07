@@ -1,20 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Tiptap, { type JSONContent } from "@/components/Tiptap";
+import Tiptap from "@/components/Tiptap";
 import Sidebar from "@/components/Sidebar";   // ← default import
 
 export type Node = {
   id: number;
   title: string;
-  doc: JSONContent;          // store the TipTap JSON, not markdown text
+  markdown: string;          // store the TipTap JSON, not markdown text
 };
 const mockNodes: Node[] = [
-  { id: 1, title: "Welcome", doc: { type: "doc", content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Welcome" }] }] } },
-  { id: 2, title: "Getting Started", doc: { type: "doc", content: [{ type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Getting Started" }] }] } },
-  { id: 3, title: "API Reference", doc: { type: "doc", content: [] } },
-  { id: 4, title: "Changelog", doc: { type: "doc", content: [] } },
-  { id: 5, title: "License", doc: { type: "doc", content: [] } },
+  { id: 1, title: "Welcome", markdown: "# Welcome \n - this is a list \n **This is bold**" },
+  { id: 2, title: "Page 2", markdown: "## H2 \n - this is a list \n **This is bold**" }
 ];
 
 export default function Home() {
@@ -22,11 +19,11 @@ export default function Home() {
   const [activeId, setActiveId] = useState<number>(nodes[0].id);
   const activeNode = nodes.find((n) => n.id === activeId)!;
 
-  // receives JSON from the editor and stores it back into the node list
-  function handleContentChange(updatedDoc: JSONContent) {
+  // receives HTML from the editor and stores it back into the node list
+  function handleContentChange(updatedMarkdown: string) {
     setNodes((prev) =>
       prev.map((n) =>
-        n.id === activeId ? { ...n, doc: updatedDoc } : n
+        n.id === activeId ? { ...n, markdown: updatedMarkdown } : n
       )
     );
     // 🔜  TODO: POST `updatedDoc` to your API here (debounced)
@@ -43,7 +40,7 @@ export default function Home() {
 
       <main className="flex-1 overflow-auto p-4">
         <Tiptap
-          content={activeNode.doc}
+          content={activeNode.markdown}
           onContentChange={handleContentChange}
         />
       </main>

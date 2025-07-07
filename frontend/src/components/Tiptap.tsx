@@ -3,23 +3,28 @@
 import { useEffect } from "react";
 import { EditorContent, JSONContent, useEditor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
+import { mdToHtml, htmlToMd } from '@/lib/md'
 import StarterKit from '@tiptap/starter-kit'
 import React from 'react'
+
 
 export default function Tiptap({
   content,
   onContentChange,
 }: {
-  content: JSONContent;
-  onContentChange: (doc: JSONContent) => void;
+  content: string;
+  onContentChange: (markdown: string) => void;
 }) {
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [StarterKit],
     content,
+
     onUpdate({ editor }) {
-      onContentChange(editor.getJSON());   // ⬅️ send the doc up
+      const htmlOut = editor.getHTML()
+      const markdownOut = htmlToMd(htmlOut)
+      onContentChange(markdownOut);   // ⬅️ send the content back up in matkdown
     },
     editorProps: {
       attributes: {
@@ -31,16 +36,21 @@ export default function Tiptap({
 
   // sync external changes (e.g., switching files)
   useEffect(() => {
-    if (editor && JSON.stringify(editor.getJSON()) !== JSON.stringify(content)) {
-      editor.commands.setContent(content);
+
+    if (editor && editor.getHTML() !== content) {
+      // assume you already have `markdownString`
+      (async () => {
+        const html = await mdToHtml(content)
+        editor.commands.setContent(html)
+      })()
     }
   }, [content, editor]);
 
   return (
     <>
       {editor && (
-        <BubbleMenu 
-          editor={editor} 
+        <BubbleMenu
+          editor={editor}
           options={{ placement: 'bottom', offset: 8 }}
           shouldShow={({ editor, state }) =>
             editor.isFocused && !state.selection.empty
