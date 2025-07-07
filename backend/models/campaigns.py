@@ -1,4 +1,10 @@
-from pydantic import BaseModel
+from typing import override
+from pydantic import Field
+from backend.models.components import MarkdownNodeBase
 
-class Campaign(BaseModel):
-  title: str
+class Campaign(MarkdownNodeBase):
+  type: str  = Field(default='Campaign')
+  
+  @override
+  def get_label(self) -> str:
+    return "Campaign"
