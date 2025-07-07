@@ -9,9 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@tiptap/pm": "^2.25.0",
-    "@tiptap/react": "^2.25.0",
-    "@tiptap/starter-kit": "^2.25.0",
+    "@tiptap/extension-bubble-menu": "^3.0.0-beta.24",
+    "@tiptap/pm": "^3.0.0-beta.24",
+    "@tiptap/react": "^3.0.0-beta.24",
+    "@tiptap/starter-kit": "^3.0.0-beta.24",
     "next": "15.3.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
