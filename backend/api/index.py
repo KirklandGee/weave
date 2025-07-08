@@ -43,37 +43,50 @@ async def get_sidebar_nodes(id: str):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@app.post("/campaign/{id}/sync")
-async def push_changes(id: str, changes: list[Change]):
+@app.post("/campaign/{cid}/sync")
+async def push_changes(cid: str, changes: list[Change]):
+    """
+    `cid`   = campaign id from the URL
+    `nodeId` is inside each Change object
+    """
     try:
         for ch in changes:
+            # ------------------- UPDATE ------------------------
             if ch.op == "update":
                 _ = query(
                     """
-            MATCH (c:Campaign {id:$id})<-[:PART_OF]-(n {id:$id})
+            MATCH (c:Campaign {id:$cid})<-[:PART_OF]-(n {id:$nid})
             SET n += $payload, n.updatedAt=$ts
             """,
-                    id=id,
+                    cid=cid,
+                    nid=ch.nodeId,
                     payload=ch.payload,
                     ts=ch.ts,
                 )
+            # ------------------- CREATE ------------------------
             elif ch.op == "create":
+                label = ch.payload.get("type") or "Node"
+                props = {**ch.payload, "id": ch.nodeId, "updatedAt": ch.ts}
+
                 _ = query(
                     """
-            MATCH (c:Campaign {id:$id})
-            CREATE (n:$type $props)-[:PART_OF]->(c)
-            """,
-                    id=id,
-                    type=ch.payload.get("type"),
-                    props={**ch.payload, "id": ch.nodeId, "updatedAt": ch.ts},
+                      MATCH (c:Campaign {id:$cid})
+                      CALL apoc.create.node([$label], $props) YIELD node
+                      CREATE (node)-[:PART_OF]->(c)
+                      """,
+                    cid=cid,
+                    label=label,
+                    props=props,
                 )
+            # ------------------- DELETE ------------------------
             elif ch.op == "delete":
                 _ = query(
                     """
-            MATCH (c:Campaign {id:$id})<-[:PART_OF]-(n {id:$id})
+            MATCH (c:Campaign {id:$cid})<-[:PART_OF]-(n {id:$nid})
             DETACH DELETE n
             """,
-                    id=id,
+                    cid=cid,
+                    nid=ch.nodeId,
                 )
         return {"status": "ok"}
     except Exception as exc:
