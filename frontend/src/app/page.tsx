@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useCampaignNodes } from '@/lib/hooks/useCampaignNodes'
 import { useActiveNode } from '@/lib/hooks/useActiveNode'
-import { createNode } from '@/lib/hooks/useNodeOps'
+import { createNode, deleteNode, renameNode } from '@/lib/hooks/useNodeOps'
 import Sidebar from '@/components/Sidebar'
 import Inspector from '@/components/Inspector'
 import Nav from '@/components/Nav'
@@ -61,18 +61,21 @@ useEffect(() => {
       createdAt: ts,
       attributes: {}
     }
-    createNode(newRow)
+    await createNode(newRow)
     setActiveId(id)
     setNodes(prev => [newRow, ...prev])
   }
 
-  // async function handleDelete() {
-  //   if (!activeId) return
-  //   await deleteNode(activeId)
+  async function handleDelete(node: SidebarNode) {
 
-  //   const remaining = nodes.filter(n => n.id !== activeId)
-  //   setActiveId(remaining[0]?.id ?? null)
-  // }
+    await deleteNode(node.id)
+
+    setNodes(prev => prev.filter(n => n.id !== node.id))
+
+    setActiveId(prev =>
+      prev === node.id ? (nodes.find(n => n.id !== node.id)?.id ?? null) : prev,
+    )
+  }
   
   if (!nodes.length) return <p className="p-4">Loading…</p>
   if (!activeId) return <p className="p-4">Loading…</p>
@@ -89,7 +92,10 @@ useEffect(() => {
           activeId={activeId}
           onSelect={node => setActiveId(node.id)}
           onCreate={handleCreate}
-        // onDelete={handleDelete}
+          onDelete={handleDelete}
+          onRename={async (id, title) => {
+            await renameNode(id, title)
+          }}
         />
 
         <main className="flex-1 overflow-auto p-4">
