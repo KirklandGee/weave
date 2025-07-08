@@ -7,10 +7,14 @@ export default function Sidebar({
   nodes,
   activeId,
   onSelect,
+  onCreate,
+  onDelete
 }: {
   nodes: SidebarNode[]
   activeId: string
   onSelect: (node: SidebarNode) => void
+  onCreate: () => void
+  onDelete: () => void
 }) {
   /* group by type */
   const grouped = nodes.reduce((acc, n) => {
@@ -23,6 +27,9 @@ export default function Sidebar({
 
   return (
     <aside className="w-60 shrink-0 overflow-y-auto border-r border-zinc-800 px-3 py-4 text-zinc-200">
+      <button onClick={onCreate} className="mb-3 w-full text-white bg-blue-500 hover:bg-blue-700 text-sm font-bold py-2 px-4 rounded">
+        Add Note
+      </button>
       {Object.entries(grouped).map(([type, list]) => {
         const isOpen = open[type] ?? true
         return (

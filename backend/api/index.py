@@ -6,6 +6,7 @@ from backend.models.notes import Note
 from backend.services.neo4j import query
 from backend.services.neo4j.queries import build_create_query
 from backend.models import *
+import json
 
 app = FastAPI()
 
@@ -67,6 +68,9 @@ async def push_changes(cid: str, changes: list[Change]):
             elif ch.op == "create":
                 label = ch.payload.get("type") or "Node"
                 props = {**ch.payload, "id": ch.nodeId, "updatedAt": ch.ts}
+                attrs = props.get("attributes")
+                if isinstance(attrs, dict):
+                    props["attributes"] = json.dumps(attrs) if attrs else None
 
                 _ = query(
                     """
@@ -232,3 +236,5 @@ async def delete_note(note_id: str):
 
     except HTTPException as exc:
         raise exc
+
+

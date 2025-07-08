@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { htmlToMd } from '@/lib/md'
@@ -15,13 +15,14 @@ export default function Tiptap({
   content: string;
   onContentChange: (md: string) => void;
 }) {
-  const localUpdate = useRef(false)
+  const localUpdate = useRef<boolean>(false)
 
-  /* 400 ms idle-time before we hit Dexie */
-  const debouncedSave = debounce(
-    (html: string) => onContentChange(htmlToMd(html)),
-    1000,
+  // create a fresh debouncer every time the callback changes (i.e. node switch)
+  const debouncedSave = useMemo(
+    () => debounce((html: string) => onContentChange(htmlToMd(html)), 400),
+    [onContentChange],
   )
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [StarterKit],
@@ -42,16 +43,31 @@ export default function Tiptap({
     shouldRerenderOnTransaction: false,
   });
 
+  /* ---------- 3. Dexie -> editor sync ---------- */
   useEffect(() => {
     if (!editor) return
     if (content !== editor.getHTML()) {
-      localUpdate.current = true            // suppress onUpdate
-      editor.commands.setContent(content, { emitUpdate: false }) // v3 sig
+      localUpdate.current = true
+      editor.commands.setContent(content, { emitUpdate: false })
     }
   }, [content, editor])
 
+  /* ---------- 4. clean up ---------- */
+  useEffect(() => {
+    if (!editor) return
 
-  if (!editor) return null;
+    const updateHandler = () => {
+      // this branch only runs if localUpdate was false
+      debouncedSave(editor.getHTML())
+    }
+
+    editor.on('update', updateHandler)
+
+    return () => {
+      editor.off('update', updateHandler) // remove listener
+      debouncedSave.cancel()              // kill any pending save
+    }
+  }, [editor, debouncedSave])
 
   return (
     <>
@@ -98,7 +114,7 @@ export default function Tiptap({
       )}
       <EditorContent
         editor={editor}
-        className="prose prose-invert max-w-none"
+        className="prose prose-invert max-w-none whitespace-pre-wrap"
       />
     </>
   );
