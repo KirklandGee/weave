@@ -13,14 +13,37 @@ export function useActiveNode(campaign: string, nodeId: string) {
 
   async function updateMarkdown(md: string) {
     const ts = Date.now()
+
     await db.transaction('rw', db.nodes, db.changes, async () => {
-      await db.nodes.update(nodeId, { markdown: md, updatedAt: ts })
+
+      const patch = { markdown: md, updatedAt: ts }
+
+      const touched = await db.nodes.update(nodeId, patch)
+
+      if (touched === 0) {
+        await db.nodes.put({
+          id: nodeId,
+          createdAt: ts,
+          title: 'Untitled',
+          ...patch,
+          type: 'Note',
+          attributes: {}
+        })
+      
       await db.changes.add({
         op: 'update',
         nodeId,
-        payload: { markdown: md, updatedAt: ts },
+        payload: patch,
         ts,
       })
+    } else {
+      await db.changes.add({
+        op: 'create',
+        nodeId,
+        payload: patch,
+        ts,
+      })
+    }
     })
   }
 

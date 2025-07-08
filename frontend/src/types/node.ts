@@ -5,6 +5,7 @@ export type SidebarNode = {
   markdown?: string
   attributes: Record<string, unknown>
   updatedAt: number
+  createdAt?: number
 }
 
 export type Change = {

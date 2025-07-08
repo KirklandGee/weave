@@ -74,15 +74,16 @@ async def push_changes(cid: str, changes: list[Change]):
 
                 _ = query(
                     """
-                      MATCH (c:Campaign {id:$cid})
-                      CALL apoc.create.node([$label], $props) YIELD node
-                      CREATE (node)-[:PART_OF]->(c)
-                      """,
+                    CALL apoc.merge.node([$label], {id:$nid}, $props) YIELD node
+                    WITH node
+                    MATCH (c:Campaign {id:$cid})
+                    MERGE (node)-[:PART_OF]->(c)
+                    """,
                     cid=cid,
+                    nid=ch.nodeId,
                     label=label,
                     props=props,
-                )
-            # ------------------- DELETE ------------------------
+                )            # ------------------- DELETE ------------------------
             elif ch.op == "delete":
                 _ = query(
                     """

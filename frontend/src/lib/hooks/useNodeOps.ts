@@ -1,6 +1,7 @@
 import { SidebarNode } from "@/types/node";
 import { nanoid } from 'nanoid'
 import { db } from "../db/campaignDB";
+// import { Change } from "@/types/node";
 
 
 export async function createNode(defaults: Partial<SidebarNode> = {}) {
@@ -44,3 +45,23 @@ export async function deleteNode(nodeId: string) {
 
 
 }
+
+// Something to consider to improve logging and prevent duplicates:
+
+// async function logChange(change: Change) {
+//   await db.transaction('rw', db.changes, async () => {
+//     const existing = await db.changes
+//       .where({ nodeId: change.nodeId, op: 'create' })
+//       .first()
+
+//     if (existing) {
+//       // already have a create → just mutate its payload / ts
+//       await db.changes.update(existing.id!, {
+//         payload: { ...existing.payload, ...change.payload },
+//         ts:     change.ts,
+//       })
+//     } else {
+//       await db.changes.add(change) // 'update' or first 'create'
+//     }
+//   })
+// }

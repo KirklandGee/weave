@@ -22,17 +22,23 @@ export default function Home({
 
   /* 1. local working copy that we can mutate optimistically */
   const [nodes, setNodes] = useState<SidebarNode[]>([])
-  /* 2. keep it in sync when Dexie changes */
-  useEffect(() => {
-    setNodes(dbNodes)            // overwrite with truth from DB
-  }, [dbNodes])
 
+// keep DB truth, but don’t drop optimistic rows that Dexie hasn’t emitted yet
+useEffect(() => {
+  setNodes(prev => {
+    const byId = new Map(prev.map(n => [n.id, n]))
+    dbNodes.forEach(n => byId.set(n.id, n))
+    return Array.from(byId.values())
+  })
+}, [dbNodes])
   /* 2. which node is open */
   const [activeId, setActiveId] = useState<string | null>(params.nodeId ?? null)
 
   /* set a default once nodes load */
   useEffect(() => {
-    if (!activeId && nodes.length) setActiveId(nodes[0].id)
+    if (!activeId && nodes.length) {
+      setActiveId(nodes[0].id)
+    }
   }, [nodes, activeId])
 
   /* 3. content + updater for the active node */
@@ -67,12 +73,11 @@ export default function Home({
   //   const remaining = nodes.filter(n => n.id !== activeId)
   //   setActiveId(remaining[0]?.id ?? null)
   // }
-
-  if (!nodes.length || !activeId) return <p className="p-4">Loading…</p>
   
+  if (!nodes.length) return <p className="p-4">Loading…</p>
+  if (!activeId) return <p className="p-4">Loading…</p>
   const node = nodes.find(n => n.id === activeId)
-  if (!node) return <p className="p-4">Loading…</p>
-
+  if (!node) return <p className="p-4">Node not found.</p>
   return (
     <div>
       <Nav

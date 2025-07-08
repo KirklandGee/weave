@@ -8,13 +8,13 @@ export default function Sidebar({
   activeId,
   onSelect,
   onCreate,
-  onDelete
+  // onDelete
 }: {
   nodes: SidebarNode[]
   activeId: string
   onSelect: (node: SidebarNode) => void
   onCreate: () => void
-  onDelete: () => void
+  // onDelete: () => void
 }) {
   /* group by type */
   const grouped = nodes.reduce((acc, n) => {
