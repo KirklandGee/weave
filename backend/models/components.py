@@ -53,10 +53,9 @@ class Target(BaseModel):
 
 class Edge(BaseModel):
     id: str
-    from_: str = Field(..., alias="from")
+    from_: str = Field(..., alias="from")   # keeps JSON key "from"
     to: str
-    direction: str
     relType: str
     updatedAt: int
-    props: dict[str, Any]
-    target: Target
+    createdAt: int | None         # present in some rows, None in others
+    attributes: dict[str, Any] = {}         # what you return as "attributes"

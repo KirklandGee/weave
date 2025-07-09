@@ -23,20 +23,22 @@ export async function pushPull() {
       return                     // keep changes for the next attempt
     }
   }
+  // 1. pull fresh nodes
+  const lastNode = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0;
+  const freshNodes = await fetch(
+    `${API}/${CAMPAIGN_SLUG}/nodes/since/${lastNode}`,
+    { headers: { 'Content-Type':'application/json','X-User-Id':USER_ID } }
+  ).then(r => r.json());
+  if (freshNodes.length) await db.nodes.bulkPut(freshNodes);
 
-  // 2. pull fresh nodes since last known update
-  const last = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0
-  const fresh = await fetch(
-    `${API}/${CAMPAIGN_SLUG}/since/${last}`,
-    {
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-User-Id': USER_ID
-      },
-    }
-  ).then(r => r.json())
+  // 2. pull fresh edges
+  const lastEdge = (await db.edges.orderBy('updatedAt').last())?.updatedAt ?? 0;
+  const freshEdges = await fetch(
+    `${API}/${CAMPAIGN_SLUG}/edges/since/${lastEdge}`,
+    { headers: { 'Content-Type':'application/json','X-User-Id':USER_ID } }
+  ).then(r => r.json());
 
-  if (fresh.length) await db.nodes.bulkPut(fresh)
+  if (freshEdges.length) await db.edges.bulkPut(freshEdges);
 }
 
 // TODO: Implement something like the below

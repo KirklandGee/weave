@@ -1,5 +1,5 @@
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Header, HTTPException
 from backend.models.components import SidebarNode, Change, Edge
@@ -56,64 +56,106 @@ async def push_changes(
 ):
     try:
         for ch in changes:
-
-            # ---------- UPDATE ----------
-            if ch.op == "update":
-                _ = query(
+            if ch.entity == "edge":
+                if ch.op == "create":
+                    params = {
+                    "from": ch.payload["from"],
+                    "to":   ch.payload["to"],
+                    "rid":  ch.entityId,
+                    "props": {k:v for k,v in ch.payload.items()
+                            if k not in ("from","to","relType")},
+                    "ts":   ch.ts,
+                }
+                    cypher = """
+                    MATCH (a {id:$from_id}), (b {id:$to_id})
+                    CALL apoc.merge.relationship(a, $relType, {}, {}, b) YIELD rel AS r
+                    SET  r += $props,
+                        r.createdAt = coalesce(r.createdAt,$ts),
+                        r.updatedAt = $ts
                     """
-                    MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
-                          <-[:PART_OF]-(n {id:$nid})
-                    SET   n += $payload,
-                          n.updatedAt = $ts
-                    """,
-                    uid=uid,
-                    cid=cid,
-                    nid=ch.entityId,
-                    payload=ch.payload,
-                    ts=ch.ts,
-                )
-
-            # ---------- CREATE ----------
-            elif ch.op == "create":
-                label = ch.payload.get("type") or "Node"
-                props = {**ch.payload, "updatedAt": ch.ts}
-                attrs = props.get("attributes")
-                if isinstance(attrs, dict):
-                    props["attributes"] = json.dumps(attrs) if attrs else None
-
-                _ = query(
-                    """
-                    CALL apoc.merge.node([$label], {id:$nid}, $props) YIELD node
-                    SET  node.createdAt = coalesce(node.createdAt, $ts),
-                         node.updatedAt = $ts
-                    WITH node
-                    MATCH (u:User {id:$uid})
-                    OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})
-                    FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
-                      MERGE (node)-[:PART_OF]->(c)
+                    _ = query(
+                        cypher,
+                        **params
                     )
-                    MERGE (u)-[:PART_OF]->(node)
-                    """,
-                    uid=uid,
-                    cid=cid,
-                    nid=ch.entityId,
-                    label=label,
-                    ts=ch.ts,
-                    props=props,
-                )
+                # ---------- UPDATE ----------
+                elif ch.op == "update":
+                    _ = query(
+                        """
+                        MATCH ()-[r {id:$rid}]->()
+                        SET   r += $props,
+                            r.updatedAt = $ts
+                        """,
+                        rid=ch.entityId,
+                        props=ch.payload,
+                        ts=ch.ts,
+                    )
+                # ---------- DELETE ----------
+                else:  # delete
+                    _ = query(
+                        """
+                        MATCH ()-[r {id:$rid}]->() DELETE r
+                        """,
+                        rid=ch.entityId,
+                    )
+            if ch.entity == "node":
 
-            # ---------- DELETE ----------
-            elif ch.op == "delete":
-                _ = query(
-                    """
-                    MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
-                          <-[:PART_OF]-(n {id:$nid})
-                    DETACH DELETE n
-                    """,
-                    uid=uid,
-                    cid=cid,
-                    nid=ch.entityId,
-                )
+                # ---------- UPDATE ----------
+                if ch.op == "update":
+                    _ = query(
+                        """
+                        MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
+                            <-[:PART_OF]-(n {id:$nid})
+                        SET   n += $payload,
+                            n.updatedAt = $ts
+                        """,
+                        uid=uid,
+                        cid=cid,
+                        nid=ch.entityId,
+                        payload=ch.payload,
+                        ts=ch.ts,
+                    )
+
+                # ---------- CREATE ----------
+                elif ch.op == "create":
+                    label = ch.payload.get("type") or "Node"
+                    props = {**ch.payload, "updatedAt": ch.ts}
+                    attrs = props.get("attributes")
+                    if isinstance(attrs, dict):
+                        props["attributes"] = json.dumps(attrs) if attrs else None
+
+                    _ = query(
+                        """
+                        CALL apoc.merge.node([$label], {id:$nid}, $props) YIELD node
+                        SET  node.createdAt = coalesce(node.createdAt, $ts),
+                            node.updatedAt = $ts
+                        WITH node
+                        MATCH (u:User {id:$uid})
+                        OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})
+                        FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
+                        MERGE (node)-[:PART_OF]->(c)
+                        )
+                        MERGE (u)-[:PART_OF]->(node)
+                        """,
+                        uid=uid,
+                        cid=cid,
+                        nid=ch.entityId,
+                        label=label,
+                        ts=ch.ts,
+                        props=props,
+                    )
+
+                # ---------- DELETE ----------
+                elif ch.op == "delete":
+                    _ = query(
+                        """
+                        MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
+                            <-[:PART_OF]-(n {id:$nid})
+                        DETACH DELETE n
+                        """,
+                        uid=uid,
+                        cid=cid,
+                        nid=ch.entityId,
+                    )
 
         return {"status": "ok"}
 
@@ -122,7 +164,7 @@ async def push_changes(
 
 
 # ───────────────────────────────────────────── incremental updates ──
-@router.get("/{cid}/since/{ts}", response_model=list[SidebarNode])
+@router.get("/{cid}/nodes/since/{ts}", response_model=list[SidebarNode])
 async def get_updates(
     cid: str,
     ts: int,
@@ -158,6 +200,52 @@ async def get_updates(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# ────────────────────────────────────────── incremental REL updates ──
+@router.get("/{cid}/edges/since/{ts}", response_model=list[Edge])
+async def get_edges(
+    cid: str,
+    ts: int,
+    uid: UserIdHeader,
+):
+    """
+    Return every relationship touching this user’s nodes/campaign whose
+    r.updatedAt > ts.  Works no matter what the rel-type is (:MENTIONS, etc.).
+    """
+    records = query(
+        """
+        MATCH (u:User {id:$uid})
+
+        // campaign-scoped nodes the user owns
+        OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(a)
+        // global nodes the user is linked to
+        OPTIONAL MATCH (u)-[:PART_OF]->(b)
+        WITH collect(a)+collect(b) AS nodes
+
+        UNWIND nodes AS n
+        MATCH (n)-[r]->(m)
+        WHERE r.updatedAt > $ts          // ← incremental filter
+        WITH DISTINCT r,                // dedup if two paths reach same rel
+             startNode(r)  AS s,
+             endNode(r)    AS e,
+             properties(r) AS props
+        RETURN {
+          id:         props.id,         // you store this when creating
+          from:       s.id,
+          to:         e.id,
+          relType:    type(r),
+          updatedAt:  props.updatedAt,
+          createdAt:  props.createdAt,
+          attributes: apoc.map.removeKeys(
+                         props,
+                         ['id','updatedAt','createdAt']
+                      )
+        } AS edge
+        """,
+        uid=uid,
+        cid=None if cid == "global" else cid,
+        ts=ts,
+    )
+    return [r["edge"] for r in records]
 # ─────────────────────────────────────────────── edges for a node ──
 @router.get("/{cid}/node/{nid}/edges", response_model=list[Edge])
 async def get_campaign_edges(
