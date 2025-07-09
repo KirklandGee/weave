@@ -1,16 +1,19 @@
 import { db } from './campaignDB'
 import type { Change } from '@/types/node'
-import { CAMPAIGN_SLUG } from '@/lib/constants'
+import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
 
-const API = '/api/campaign'   // adjust to your FastAPI proxy
+const API = '/api/sync'   // adjust to your FastAPI proxy
 
 export async function pushPull() {
   // 1. push local changes
   const changes: Change[] = await db.changes.toArray()
   if (changes.length) {
-    const res = await fetch(`${API}/${CAMPAIGN_SLUG}/sync`, {
+    const res = await fetch(`${API}/${CAMPAIGN_SLUG}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-User-Id': USER_ID
+      },
       body: JSON.stringify(changes),
     })
     if (res.ok) {
@@ -24,13 +27,19 @@ export async function pushPull() {
   // 2. pull fresh nodes since last known update
   const last = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0
   const fresh = await fetch(
-    `${API}/${CAMPAIGN_SLUG}/since/${last}`
+    `${API}/${CAMPAIGN_SLUG}/since/${last}`,
+    {
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-User-Id': USER_ID
+      },
+    }
   ).then(r => r.json())
 
   if (fresh.length) await db.nodes.bulkPut(fresh)
 }
 
-// TODO: Implement the below
+// TODO: Implement something like the below
 // export async function pull() {
 //   // 1. read the last sync cursor (server time!) from a tiny meta table
 //   const meta = await db.table('meta').get('lastSync')

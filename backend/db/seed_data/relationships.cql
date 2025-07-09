@@ -1,65 +1,91 @@
 // ==========================================================================
-// RELATIONSHIPS
+// RELATIONSHIPS (with UUID + updatedAt on every edge)
 // ==========================================================================
+
 // 1. Attach ALL nodes to their campaigns
 // --------------------------------------------------------------------------
-MATCH (c:Campaign{id:'camp-faerun-crisis'}),
-      (n) WHERE n.id IN [
-        // sessions
-        'sess-fc-1','sess-fc-2','sess-fc-3',
-        // characters
-        'char-elira','char-talia','char-dorgan','char-fenric',
-        // NPCs (10)
-        'npc-ivar','npc-sera','npc-bork','npc-keld','npc-lira','npc-haggra',
-        'npc-garrik','npc-zenya','npc-thom','npc-vyktor',
-        // locations
-        'loc-faerun','loc-cormyr','loc-suzail','loc-wyvernrest','loc-shadowcrypt',
-        // maps
-        'map-faerun','map-cormyr','map-suzail',
-        // notes (7)
-        'note-001','note-002','note-003','note-004','note-005','note-006','note-007'
-      ]
-MERGE (n)-[:PART_OF]->(c);
+MATCH (c:Campaign {id:'camp-faerun-crisis'})
+UNWIND [
+  'sess-fc-1','sess-fc-2','sess-fc-3',
+  'char-elira','char-talia','char-dorgan','char-fenric',
+  'npc-ivar','npc-sera','npc-bork','npc-keld','npc-lira','npc-haggra',
+  'npc-garrik','npc-zenya','npc-thom','npc-vyktor',
+  'loc-faerun','loc-cormyr','loc-suzail','loc-wyvernrest','loc-shadowcrypt',
+  'map-faerun','map-cormyr','map-suzail',
+  'note-001','note-002','note-003','note-004','note-005','note-006','note-007'
+] AS nid
+MATCH (n {id:nid})
+MERGE (n)-[r:PART_OF]->(c)
+  ON CREATE SET r.id = randomUUID(),
+                r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
 
-MATCH (c:Campaign{id:'camp-storm-lords'}),
-      (n) WHERE n.id IN [
-        // sessions
-        'sess-sc-1','sess-sc-2','sess-sc-3',
-        // characters
-        'char-elira','char-talia','char-magnus','char-kaelin',
-        // NPCs (10)
-        'npc-volo','npc-reya','npc-krieg','npc-marish','npc-selene','npc-orryk',
-        'npc-cruach','npc-loralei','npc-bartleby','npc-viessa',
-        // locations
-        'loc-swordcoast','loc-waterdeep','loc-neverwinterw','loc-triboartrail','loc-yawningportal',
-        // maps
-        'map-swordcoast','map-waterdeep','map-yawning',
-        // notes (8)
-        'note-008','note-009','note-010','note-011','note-012','note-013','note-014','note-015'
-      ]
-MERGE (n)-[:PART_OF]->(c);
+MATCH (c:Campaign {id:'camp-storm-lords'})
+UNWIND [
+  'sess-sc-1','sess-sc-2','sess-sc-3',
+  'char-elira','char-talia','char-magnus','char-kaelin',
+  'npc-volo','npc-reya','npc-krieg','npc-marish','npc-selene','npc-orryk',
+  'npc-cruach','npc-loralei','npc-bartleby','npc-viessa',
+  'loc-swordcoast','loc-waterdeep','loc-neverwinterw','loc-triboartrail','loc-yawningportal',
+  'map-swordcoast','map-waterdeep','map-yawning',
+  'note-008','note-009','note-010','note-011','note-012','note-013','note-014','note-015'
+] AS nid
+MATCH (n {id:nid})
+MERGE (n)-[r:PART_OF]->(c)
+  ON CREATE SET r.id = randomUUID(),
+                r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
 
 // ==========================================================================
 // 2. Session chronology (FOLLOWS chains)
 // --------------------------------------------------------------------------
-MATCH (a:Session{id:'sess-fc-2'}),(b:Session{id:'sess-fc-1'}) MERGE (a)-[:FOLLOWS]->(b);
-MATCH (a:Session{id:'sess-fc-3'}),(b:Session{id:'sess-fc-2'}) MERGE (a)-[:FOLLOWS]->(b);
-MATCH (a:Session{id:'sess-sc-2'}),(b:Session{id:'sess-sc-1'}) MERGE (a)-[:FOLLOWS]->(b);
-MATCH (a:Session{id:'sess-sc-3'}),(b:Session{id:'sess-sc-2'}) MERGE (a)-[:FOLLOWS]->(b);
+MATCH (a:Session {id:'sess-fc-2'}), (b:Session {id:'sess-fc-1'})
+MERGE (a)-[r1:FOLLOWS]->(b)
+  ON CREATE SET r1.id = randomUUID(), r1.updatedAt = timestamp()
+  ON MATCH  SET r1.updatedAt = timestamp();
+
+MATCH (a:Session {id:'sess-fc-3'}), (b:Session {id:'sess-fc-2'})
+MERGE (a)-[r2:FOLLOWS]->(b)
+  ON CREATE SET r2.id = randomUUID(), r2.updatedAt = timestamp()
+  ON MATCH  SET r2.updatedAt = timestamp();
+
+MATCH (a:Session {id:'sess-sc-2'}), (b:Session {id:'sess-sc-1'})
+MERGE (a)-[r3:FOLLOWS]->(b)
+  ON CREATE SET r3.id = randomUUID(), r3.updatedAt = timestamp()
+  ON MATCH  SET r3.updatedAt = timestamp();
+
+MATCH (a:Session {id:'sess-sc-3'}), (b:Session {id:'sess-sc-2'})
+MERGE (a)-[r4:FOLLOWS]->(b)
+  ON CREATE SET r4.id = randomUUID(), r4.updatedAt = timestamp()
+  ON MATCH  SET r4.updatedAt = timestamp();
 
 // ==========================================================================
-// 3. Character origins
+// 3. Character origins (FROM)
 // --------------------------------------------------------------------------
-MATCH (ch:Character{id:'char-dorgan'}),(l:Location{id:'loc-suzail'})       MERGE (ch)-[:FROM]->(l);
-MATCH (ch:Character{id:'char-fenric'}),(l:Location{id:'loc-wyvernrest'})   MERGE (ch)-[:FROM]->(l);
-MATCH (ch:Character{id:'char-magnus'}),(l:Location{id:'loc-waterdeep'})    MERGE (ch)-[:FROM]->(l);
-MATCH (ch:Character{id:'char-elira'}),(l:Location{id:'loc-neverwinterw'})  MERGE (ch)-[:FROM]->(l);
+MATCH (ch:Character {id:'char-dorgan'}), (l:Location {id:'loc-suzail'})
+MERGE (ch)-[r:FROM]->(l)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
+
+MATCH (ch:Character {id:'char-fenric'}), (l:Location {id:'loc-wyvernrest'})
+MERGE (ch)-[r:FROM]->(l)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
+
+MATCH (ch:Character {id:'char-magnus'}), (l:Location {id:'loc-waterdeep'})
+MERGE (ch)-[r:FROM]->(l)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
+
+MATCH (ch:Character {id:'char-elira'}), (l:Location {id:'loc-neverwinterw'})
+MERGE (ch)-[r:FROM]->(l)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
 
 // ==========================================================================
-// 4. NPC residences
+// 4. NPC residences (LIVES_IN)
 // --------------------------------------------------------------------------
 UNWIND [
-  // Faerûn NPCs
   ['npc-ivar','loc-suzail'],
   ['npc-sera','loc-cormyr'],
   ['npc-bork','loc-shadowcrypt'],
@@ -82,8 +108,10 @@ UNWIND [
   ['npc-bartleby','loc-yawningportal'],
   ['npc-viessa','loc-neverwinterw']
 ] AS pair
-MATCH (n:NPC{id:pair[0]}),(l:Location{id:pair[1]})
-MERGE (n)-[:LIVES_IN]->(l);
+MATCH (n:NPC {id:pair[0]}), (l:Location {id:pair[1]})
+MERGE (n)-[r:LIVES_IN]->(l)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
 
 // ==========================================================================
 // 5. Session → Location (OCCURS_IN)
@@ -96,9 +124,10 @@ UNWIND [
   ['sess-sc-2','loc-neverwinterw'],
   ['sess-sc-3','loc-yawningportal']
 ] AS pair
-MATCH (s:Session{id:pair[0]}),(l:Location{id:pair[1]})
-MERGE (s)-[:OCCURS_IN]->(l);
-
+MATCH (s:Session {id:pair[0]}), (l:Location {id:pair[1]})
+MERGE (s)-[r:OCCURS_IN]->(l)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
 // ==========================================================================
 // 6. Session casts (INVOLVES characters & NPCs)
 // --------------------------------------------------------------------------
@@ -123,8 +152,11 @@ UNWIND [
   ['sess-sc-3','char-magnus'],  ['sess-sc-3','char-kaelin'],
   ['sess-sc-3','npc-krieg'],    ['sess-sc-3','npc-bartleby'],['sess-sc-3','npc-viessa']
 ] AS pair
-MATCH (s:Session{id:pair[0]}),(p {id:pair[1]})
-MERGE (s)-[:INVOLVES]->(p);
+MATCH (s:Session {id:pair[0]}), (p {id:pair[1]})
+MERGE (s)-[r:INVOLVES]->(p)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
+
 
 // ==========================================================================
 // 7. Social graph (KNOWS edges)
@@ -140,8 +172,11 @@ UNWIND [
   ['npc-selene','npc-volo'],
   ['char-kaelin','npc-selene']
 ] AS pair
-MATCH (a {id:pair[0]}),(b {id:pair[1]})
-MERGE (a)-[:KNOWS]->(b);
+MATCH (a {id:pair[0]}), (b {id:pair[1]})
+MERGE (a)-[r:KNOWS]->(b)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();
+
 
 // ==========================================================================
 // 8. Notes → entity mentions
@@ -166,5 +201,7 @@ UNWIND [
   ['note-014','npc-vyktor'],         ['note-014','npc-volo'], ['note-014','loc-waterdeep'],
   ['note-015','npc-cruach'],         ['note-015','loc-swordcoast']
 ] AS ref
-MATCH (n:Note{id:ref[0]}),(t {id:ref[1]})
-MERGE (n)-[:MENTIONS]->(t);
+MATCH (n:Note {id:ref[0]}), (t {id:ref[1]})
+MERGE (n)-[r:MENTIONS]->(t)
+  ON CREATE SET r.id = randomUUID(), r.updatedAt = timestamp()
+  ON MATCH  SET r.updatedAt = timestamp();

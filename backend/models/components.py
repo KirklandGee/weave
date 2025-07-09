@@ -1,6 +1,6 @@
 from typing import Any
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Metadata(BaseModel):
@@ -44,3 +44,18 @@ class SidebarNode(BaseModel):
     attributes: dict[str, Any] = {}
     updatedAt: int
     createdAt: int
+
+class Target(BaseModel):
+    id: str
+    title: str
+    type: str
+
+class Edge(BaseModel):
+    id: str
+    from_: str = Field(..., alias="from")
+    to: str
+    direction: str
+    relType: str
+    updatedAt: int
+    props: dict[str, Any]
+    target: Target

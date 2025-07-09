@@ -3,17 +3,15 @@
 - Setup initial FastAPI endpoint for cURL testing of just getting all the nodes
 
 ## BUGS
-- Every time, even with debounce, that the db saves, it moves the cursor around and deletes any whitespace/incomplete nodes. We'll need to eventually switch to storing the JSON in Dexie, and then translating to markdown on the backend—or maybe even just finding a way to store it all in Neo4j, or store that somewhere ELSE and then reference it in the graph—not sure yet
-
-- Need to get the node/note creation working. 
-
-
+- Every time, even with debounce, that the db saves, it moves the cursor around and deletes any whitespace/incomplete nodes. We'll need to eventually switch to storing the JSON in Dexie, and then translating to markdown on the backend—or maybe even just finding a way to store it all in Neo4j, or store that somewhere ELSE and then reference it in the graph—not sure yet.
 
 ## TODO
 
 For now, I started building out some models and endpoints for basic CRUD of these pieces of data. I need to 
 
-- [ ] Create note creation flow. Button currently is just a loading screen
+- [x] Create note creation flow. Button currently is just a loading screen
+- [ ] Search notes ny title, then markdown. Elastic?
+- [ ] Show relationships in UI with sttributes, linking to those notes
 - [ ] Create endpoints for common graph traversals
 - [ ] Create endpoints for creating relationships between nodes when someone adds a link. I will make the user choose the relationship when they link? Or just infer based on which node is linking to what. Create some sort of mapping system for this behind the scenes.
   THIS IS IN PROGRESS ^

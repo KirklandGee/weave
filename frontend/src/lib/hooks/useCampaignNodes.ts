@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect } from 'react'
 import { db } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
-import { CAMPAIGN_SLUG } from '../constants'
+import { CAMPAIGN_SLUG, USER_ID } from '../constants'
 
 export const useCampaignNodes = () => {
   const nodes = useLiveQuery(() => db.nodes.toArray(), [], [])
@@ -14,7 +14,12 @@ export const useCampaignNodes = () => {
     if (nodes.length === 0) {
       (async () => {
         const fresh = await fetch(
-          `/api/campaign/${CAMPAIGN_SLUG}/sidebar`
+          `/api/sync/${CAMPAIGN_SLUG}/sidebar`,
+          {
+            headers: {
+              'X-User-Id': USER_ID
+            }
+          }
         ).then(r => r.json())
         if (fresh.length) await db.nodes.bulkPut(fresh)
       })()
