@@ -1,11 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/lib/db/campaignDB'
+import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
 import { mdToHtml } from '@/lib/md'
 import { useEffect } from 'react'
 import { USER_ID, CAMPAIGN_SLUG } from '@/lib/constants'
 
 export function useActiveNode(campaign: string, nodeId: string) {
+  const db = getDb()
+  
   const node = useLiveQuery(() =>
     db.nodes.get(nodeId), [nodeId])
 

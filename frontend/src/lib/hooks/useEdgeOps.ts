@@ -1,11 +1,12 @@
 import { Relationship } from "@/types/node";
 import { nanoid } from 'nanoid'
-import { db } from "../db/campaignDB";
+import { getDb } from "../db/campaignDB";
 import { Change } from "@/types/node";
 import { USER_ID, CAMPAIGN_SLUG } from "../constants";
 
 const currentUserId = USER_ID
 const activeCampaignId = CAMPAIGN_SLUG
+const db = getDb()
 
 export async function createEdge(defaults: Partial<Relationship> = {}) {
   const id = nanoid()
@@ -15,8 +16,10 @@ export async function createEdge(defaults: Partial<Relationship> = {}) {
     id,
     ownerId: currentUserId,
     campaignId: activeCampaignId,
-    from: defaults.from ?? '',
-    to: defaults.to ?? '',
+    fromId: defaults.fromId ?? '',
+    toId: defaults.toId ?? '',
+    fromTitle: defaults.fromTitle ?? '',
+    toTitle: defaults.toTitle ?? '',
     relType: defaults.relType ?? 'MENTIONS',
     updatedAt: ts,
     attributes: defaults.attributes ?? {}

@@ -230,8 +230,10 @@ async def get_edges(
              properties(r) AS props
         RETURN {
           id:         props.id,         // you store this when creating
-          from:       s.id,
-          to:         e.id,
+          from_id:    s.id,
+          to_id:      e.id,
+          from_title: s.title,
+          to_title:   e.title,
           relType:    type(r),
           updatedAt:  props.updatedAt,
           createdAt:  props.createdAt,

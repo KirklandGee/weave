@@ -1,8 +1,25 @@
-import { db } from './campaignDB'
+import { getDb } from './campaignDB'
 import type { Change } from '@/types/node'
 import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
 
 const API = '/api/sync'   // adjust to your FastAPI proxy
+
+const db = getDb()
+
+// Fix typing here
+function edgeSnakeToCamel(edge: any) {
+  return {
+    id: edge.id,
+    fromId: edge.from_id,
+    toId: edge.to_id,
+    fromTitle: edge.from_title,
+    toTitle: edge.to_title,
+    relType: edge.relType,
+    updatedAt: edge.updatedAt,
+    createdAt: edge.createdAt,
+    attributes: edge.attributes ?? {},
+  };
+}
 
 export async function pushPull() {
   // 1. push local changes
@@ -30,7 +47,7 @@ export async function pushPull() {
     { headers: { 'Content-Type':'application/json','X-User-Id':USER_ID } }
   ).then(r => r.json());
   if (freshNodes.length) await db.nodes.bulkPut(freshNodes);
-
+  
   // 2. pull fresh edges
   const lastEdge = (await db.edges.orderBy('updatedAt').last())?.updatedAt ?? 0;
   const freshEdges = await fetch(
@@ -38,7 +55,10 @@ export async function pushPull() {
     { headers: { 'Content-Type':'application/json','X-User-Id':USER_ID } }
   ).then(r => r.json());
 
-  if (freshEdges.length) await db.edges.bulkPut(freshEdges);
+  const camelEdges = freshEdges.map(edgeSnakeToCamel);
+
+
+  if (freshEdges.length) await db.edges.bulkPut(camelEdges);
 }
 
 // TODO: Implement something like the below

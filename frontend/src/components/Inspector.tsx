@@ -1,27 +1,23 @@
 // components/Inspector.tsx
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/lib/db/campaignDB'
+import { getDb } from '@/lib/db/campaignDB'
 import type { SidebarNode, Relationship } from '@/types/node'
 
 export default function Inspector({ node }: { node: SidebarNode | null }) {
+
+  const db = getDb()
   // Always call hooks first
   const edges = useLiveQuery<
     { outgoing: Relationship[]; incoming: Relationship[] }
   >(
-    () => node?.id
-      ? db.edges
-          .where('from')
-          .equals(node.id)
-          .toArray()
-          .then(outgoing =>
-            db.edges
-              .where('to')
-              .equals(node.id)
-              .toArray()
-              .then(incoming => ({ outgoing, incoming }))
-          )
-      : Promise.resolve({ outgoing: [], incoming: [] }),
-    [node?.id]
+    () => {
+    if (!node?.id) return { outgoing: [], incoming: [] };
+    return Promise.all([
+      db.edges.where('fromId').equals(node.id).toArray(), // <- fromId
+      db.edges.where('toId').equals(node.id).toArray()    // <- toId
+    ]).then(([outgoing, incoming]) => ({ outgoing, incoming }));
+  },
+  [node?.id]
   )
 
   if (!node) return null
@@ -44,7 +40,7 @@ export default function Inspector({ node }: { node: SidebarNode | null }) {
         {edges?.outgoing?.map(edge => (
           <li key={edge.id} className="flex items-center justify-between">
             <span>
-              <span className="text-zinc-400">{edge.relType}</span> → <span className="text-zinc-200">{edge.to}</span>
+              <span className="text-zinc-400">{edge.relType}</span> → <span className="text-zinc-200">{edge.toTitle}</span>
             </span>
           </li>
         ))}
@@ -52,7 +48,7 @@ export default function Inspector({ node }: { node: SidebarNode | null }) {
         {edges?.incoming?.map(edge => (
           <li key={edge.id} className="flex items-center justify-between">
             <span>
-              <span className="text-zinc-200">{edge.from}</span> <span className="text-zinc-400">← {edge.relType}</span>
+              <span className="text-zinc-200">{edge.fromTitle}</span> <span className="text-zinc-400">← {edge.relType}</span>
             </span>
           </li>
         ))}

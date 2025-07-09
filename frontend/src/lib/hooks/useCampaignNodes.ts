@@ -2,11 +2,12 @@
 
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect } from 'react'
-import { db } from '@/lib/db/campaignDB'
+import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
 import { CAMPAIGN_SLUG, USER_ID } from '../constants'
 
 export const useCampaignNodes = () => {
+  const db = getDb()
   const nodes = useLiveQuery(() => db.nodes.toArray(), [], [])
 
   // 1. First-load seed

@@ -26,8 +26,10 @@ export type Relationship = {
   ownerId: string
   campaignId: string | null    
   updatedAt: number
-  from: string
-  to: string, 
+  fromId: string
+  toId: string, 
+  fromTitle: string,
+  toTitle: string,
   relType: RelationshipType
   attributes?: Record<string, unknown>
 }

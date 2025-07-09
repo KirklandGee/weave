@@ -1,11 +1,12 @@
 import { SidebarNode } from "@/types/node";
 import { nanoid } from 'nanoid'
-import { db } from "../db/campaignDB";
+import { getDb } from "../db/campaignDB";
 import { Change } from "@/types/node";
 import { CAMPAIGN_SLUG, USER_ID } from "../constants";
 
 const currentUserId = USER_ID
 const activeCampaignId = CAMPAIGN_SLUG
+const db = getDb()
 
 export async function createNode(defaults: Partial<SidebarNode> = {}) {
   const id = defaults.id ?? nanoid()     // keep caller’s id if provided  

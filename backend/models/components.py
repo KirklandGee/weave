@@ -53,8 +53,10 @@ class Target(BaseModel):
 
 class Edge(BaseModel):
     id: str
-    from_: str = Field(..., alias="from")   # keeps JSON key "from"
-    to: str
+    from_id: str
+    to_id: str
+    from_title: str
+    to_title: str
     relType: str
     updatedAt: int
     createdAt: int | None         # present in some rows, None in others
