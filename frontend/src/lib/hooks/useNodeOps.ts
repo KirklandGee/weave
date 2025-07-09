@@ -2,7 +2,10 @@ import { SidebarNode } from "@/types/node";
 import { nanoid } from 'nanoid'
 import { db } from "../db/campaignDB";
 import { Change } from "@/types/node";
+import { CAMPAIGN_SLUG, USER_ID } from "../constants";
 
+const currentUserId = USER_ID
+const activeCampaignId = CAMPAIGN_SLUG
 
 export async function createNode(defaults: Partial<SidebarNode> = {}) {
   const id = nanoid()
@@ -10,18 +13,22 @@ export async function createNode(defaults: Partial<SidebarNode> = {}) {
 
   const node: SidebarNode = {
     id: id,
+    ownerId: currentUserId,
+    campaignId: activeCampaignId,
     type: defaults.type ?? 'Note',
     title: defaults.type ?? 'Untitled',
     markdown: defaults.markdown ?? '',
     updatedAt: ts,
+    createdAt: ts,
     attributes: defaults.attributes ?? {},
   }
 
   await db.transaction('rw', db.nodes, db.changes, async () => {
     await db.nodes.add(node)
-    await db.changes.add({
-      op: 'create',
-      nodeId: id,
+    await logChange({
+      op: 'update',
+      entity: 'node',
+      entityId: id,
       payload: node,
       ts,
     })
@@ -30,16 +37,17 @@ export async function createNode(defaults: Partial<SidebarNode> = {}) {
   return id
 }
 
-export async function deleteNode(nodeId: string) {
+export async function deleteNode(id: string) {
 
   const ts = Date.now()
   await db.transaction('rw', db.nodes, db.changes, async () => {
-    await db.nodes.delete(nodeId)
-    await db.changes.add({
-      op: 'delete',
-      nodeId,
+    await db.nodes.delete(id)
+    await logChange({
+      op: 'update',
+      entity: 'node',
+      entityId: id,
       payload: {},
-      ts
+      ts,
     })
   })
 }
@@ -50,7 +58,8 @@ export async function renameNode(id: string, title: string) {
     await db.nodes.update(id, { title, updatedAt: ts })
     await logChange({
       op: 'update',
-      nodeId: id,
+      entity: 'node',
+      entityId: id,
       payload: { title, updatedAt: ts },
       ts,
     })
@@ -61,14 +70,14 @@ export async function renameNode(id: string, title: string) {
 async function logChange(change: Change) {
   await db.transaction('rw', db.changes, async () => {
     const existing = await db.changes
-      .where({ nodeId: change.nodeId, op: 'create' })
+      .where({ entity: 'node', entityId: change.entityId, op: 'create' })
       .first()
 
     if (existing) {
       // already have a create → just mutate its payload / ts
       await db.changes.update(existing.id!, {
         payload: { ...existing.payload, ...change.payload },
-        ts:     change.ts,
+        ts: change.ts,
       })
     } else {
       await db.changes.add(change) // 'update' or first 'create'
