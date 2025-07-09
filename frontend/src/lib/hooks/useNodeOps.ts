@@ -8,15 +8,18 @@ const currentUserId = USER_ID
 const activeCampaignId = CAMPAIGN_SLUG
 
 export async function createNode(defaults: Partial<SidebarNode> = {}) {
-  const id = nanoid()
+  const id = defaults.id ?? nanoid()     // keep caller’s id if provided  
   const ts = Date.now()
+
+  console.log("Defaults:")
+  console.log(defaults)
 
   const node: SidebarNode = {
     id: id,
     ownerId: currentUserId,
     campaignId: activeCampaignId,
     type: defaults.type ?? 'Note',
-    title: defaults.type ?? 'Untitled',
+    title: defaults.title ?? 'Untitled',
     markdown: defaults.markdown ?? '',
     updatedAt: ts,
     createdAt: ts,
@@ -26,9 +29,9 @@ export async function createNode(defaults: Partial<SidebarNode> = {}) {
   await db.transaction('rw', db.nodes, db.changes, async () => {
     await db.nodes.add(node)
     await logChange({
-      op: 'update',
+      op: 'create',
       entity: 'node',
-      entityId: id,
+      entityId: node.id,
       payload: node,
       ts,
     })

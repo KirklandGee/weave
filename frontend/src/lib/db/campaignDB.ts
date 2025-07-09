@@ -21,6 +21,12 @@ class CampaignDB extends Dexie {
       changes: '++id, nodeId, op, ts'
     })
 
+    this.version(3).stores({
+      nodes:   'id, ownerId, campaignId, type, updatedAt, [ownerId+campaignId]',
+      edges:   'id, ownerId, campaignId, from, to, relType, updatedAt, [ownerId+campaignId]',
+      changes: '++id, entity, entityId, op, ts'
+    })
+
   }
 }
 export const db = new CampaignDB()

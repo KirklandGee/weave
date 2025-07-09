@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -32,7 +32,8 @@ class MarkdownNodeBase(BaseModel):
 
 class Change(BaseModel):
     op: str                       # create | update | delete
-    nodeId: str
+    entity: Literal["node", "edge"]
+    entityId: str
     payload: dict[str, Any]
     ts: int                       # epoch ms
 

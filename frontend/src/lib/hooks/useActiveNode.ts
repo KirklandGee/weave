@@ -3,6 +3,7 @@ import { db } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
 import { mdToHtml } from '@/lib/md'
 import { useEffect } from 'react'
+import { USER_ID, CAMPAIGN_SLUG } from '@/lib/constants'
 
 export function useActiveNode(campaign: string, nodeId: string) {
   const node = useLiveQuery(() =>
@@ -27,19 +28,23 @@ export function useActiveNode(campaign: string, nodeId: string) {
           title: 'Untitled',
           ...patch,
           type: 'Note',
-          attributes: {}
+          attributes: {},
+          ownerId: USER_ID,
+          campaignId: CAMPAIGN_SLUG
         })
       
       await db.changes.add({
         op: 'update',
-        nodeId,
+        entityId: nodeId,
+        entity: 'node',
         payload: patch,
         ts,
       })
     } else {
       await db.changes.add({
-        op: 'create',
-        nodeId,
+        op: 'update',
+        entityId: nodeId,
+        entity: 'node',
         payload: patch,
         ts,
       })

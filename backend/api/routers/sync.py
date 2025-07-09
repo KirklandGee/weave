@@ -32,8 +32,8 @@ async def get_sidebar_nodes(
               type:      props.type,
               title:     props.title,
               markdown:  props.markdown,
-              updatedAt: props.updatedAt.epochMillis,
-              createdAt: props.createdAt.epochMillis,
+              updatedAt: props.updatedAt,
+              createdAt: props.createdAt,
               attributes: apoc.map.removeKeys(
                  props,['id','type','title','markdown','updatedAt','createdAt']
               )
@@ -68,7 +68,7 @@ async def push_changes(
                     """,
                     uid=uid,
                     cid=cid,
-                    nid=ch.nodeId,
+                    nid=ch.entityId,
                     payload=ch.payload,
                     ts=ch.ts,
                 )
@@ -76,7 +76,7 @@ async def push_changes(
             # ---------- CREATE ----------
             elif ch.op == "create":
                 label = ch.payload.get("type") or "Node"
-                props = {**ch.payload, "id": ch.nodeId, "updatedAt": ch.ts}
+                props = {**ch.payload, "updatedAt": ch.ts}
                 attrs = props.get("attributes")
                 if isinstance(attrs, dict):
                     props["attributes"] = json.dumps(attrs) if attrs else None
@@ -84,6 +84,8 @@ async def push_changes(
                 _ = query(
                     """
                     CALL apoc.merge.node([$label], {id:$nid}, $props) YIELD node
+                    SET  node.createdAt = coalesce(node.createdAt, $ts),
+                         node.updatedAt = $ts
                     WITH node
                     MATCH (u:User {id:$uid})
                     OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})
@@ -94,8 +96,9 @@ async def push_changes(
                     """,
                     uid=uid,
                     cid=cid,
-                    nid=ch.nodeId,
+                    nid=ch.entityId,
                     label=label,
+                    ts=ch.ts,
                     props=props,
                 )
 
@@ -109,7 +112,7 @@ async def push_changes(
                     """,
                     uid=uid,
                     cid=cid,
-                    nid=ch.nodeId,
+                    nid=ch.entityId,
                 )
 
         return {"status": "ok"}
@@ -132,15 +135,15 @@ async def get_updates(
             OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(n1)
             OPTIONAL MATCH (u)-[:PART_OF]->(n2)
             WITH coalesce(n1,n2) AS n
-            WHERE n.updatedAt.epochMillis > $ts
+            WHERE n.updatedAt > $ts
             WITH n, properties(n) AS props
             RETURN {
               id:        props.id,
               type:      props.type,
               title:     props.title,
               markdown:  props.markdown,
-              updatedAt: props.updatedAt.epochMillis,
-              createdAt: props.createdAt.epochMillis,
+              updatedAt: props.updatedAt,
+              createdAt: props.createdAt,
               attributes: apoc.map.removeKeys(
                  props,['id','type','title','markdown','updatedAt','createdAt']
               )
@@ -174,7 +177,7 @@ async def get_campaign_edges(
               to:        endNode(r).id,
               direction: CASE WHEN startNode(r).id = $nid THEN 'out' ELSE 'in' END,
               relType:   type(r),
-              updatedAt: r.updatedAt.epochMillis,
+              updatedAt: r.updatedAt,
               props:     apoc.map.removeKeys(properties(r),['id','updatedAt']),
               target: {
                 id:    m.id,

@@ -10,6 +10,7 @@ import Nav from '@/components/Nav'
 import Tiptap from '@/components/Tiptap'
 import { nanoid } from 'nanoid'
 import { SidebarNode } from '@/types/node'
+import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
 
 export default function Home({
   params,          // assuming /campaign/[title]/[nodeId] route
@@ -23,14 +24,14 @@ export default function Home({
   /* 1. local working copy that we can mutate optimistically */
   const [nodes, setNodes] = useState<SidebarNode[]>([])
 
-// keep DB truth, but don’t drop optimistic rows that Dexie hasn’t emitted yet
-useEffect(() => {
-  setNodes(prev => {
-    const byId = new Map(prev.map(n => [n.id, n]))
-    dbNodes.forEach(n => byId.set(n.id, n))
-    return Array.from(byId.values())
-  })
-}, [dbNodes])
+  // keep DB truth, but don’t drop optimistic rows that Dexie hasn’t emitted yet
+  useEffect(() => {
+    setNodes(prev => {
+      const byId = new Map(prev.map(n => [n.id, n]))
+      dbNodes.forEach(n => byId.set(n.id, n))
+      return Array.from(byId.values())
+    })
+  }, [dbNodes])
   /* 2. which node is open */
   const [activeId, setActiveId] = useState<string | null>(params.nodeId ?? null)
 
@@ -53,17 +54,19 @@ useEffect(() => {
     const id = nanoid()
 
     const newRow = {
-      id, 
+      id,
       type: 'Note',
       title: 'Untitled',
-      markdown: '', 
-      updatedAt: ts, 
+      markdown: '',
+      updatedAt: ts,
       createdAt: ts,
-      attributes: {}
+      attributes: {},
+      ownerId: USER_ID,
+      campaignId: CAMPAIGN_SLUG
     }
-    await createNode(newRow)
-    setActiveId(id)
-    setNodes(prev => [newRow, ...prev])
+    const nodeId = await createNode(newRow);   // use the real id
+    setActiveId(nodeId);
+    setNodes(prev => [{ ...newRow, nodeId }, ...prev]);
   }
 
   async function handleDelete(node: SidebarNode) {
@@ -76,7 +79,7 @@ useEffect(() => {
       prev === node.id ? (nodes.find(n => n.id !== node.id)?.id ?? null) : prev,
     )
   }
-  
+
   if (!nodes.length) return <p className="p-4">Loading…</p>
   if (!activeId) return <p className="p-4">Loading…</p>
   const node = nodes.find(n => n.id === activeId)
