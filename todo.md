@@ -12,12 +12,13 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [x] Create note creation flow. Button currently is just a loading screen
 - [ ] Search notes ny title, then markdown. Elastic?
 - [ ] Show relationships in UI with sttributes, linking to those notes
+  - [ ] This is close—just need to actually fill the Dexie DB with edge in @sync.ts
 - [ ] Create endpoints for common graph traversals
 - [ ] Create endpoints for creating relationships between nodes when someone adds a link. I will make the user choose the relationship when they link? Or just infer based on which node is linking to what. Create some sort of mapping system for this behind the scenes.
   THIS IS IN PROGRESS ^
 - [ ] Define Cypher schema for DB for LLMs
   THIS IS IN PROGRESS ^ 
-- [ ] Create types/interfaces for the API and for the frontend to consume
+- [x] Create types/interfaces for the API and for the frontend to consume
   THIS IS IN PROGRESS
   - [ ] Explore how an AI can write the Cypher queries, based on my schema
 - [ ] Implement AI RAG pipeline to traverse the graph based on some parameters and send additional context to an LLM, parsing out the relevant context
