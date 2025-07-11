@@ -44,20 +44,41 @@ export function useLLMContext(campaign: string, nodeId: string) {
       const markdown = htmlToMd(htmlContent)
       context += `${markdown}\n\n`
     }
-    
-    // Add related notes with their full content
+
     if (relatedNodes.length > 0) {
-      context += `Related Notes:\n\n`
-      
       relatedNodes.forEach(node => {
-        if (node.title && node.title !== '(untitled)') {
-          context += `## ${node.title}\n`
-          
-          if (node.markdown) {
-            context += `${node.markdown}\n\n`
+        if (!node.title || node.title === '(untitled)') return;
+
+        // 1) sanitize title into a valid XML tag (no spaces or invalid chars)
+        const tagName = node.title
+          .trim()
+          .replace(/\s+/g, '_')        // spaces → underscores
+          .replace(/[^\w\-]/g, '');    // strip anything but letters, numbers, _ or -
+
+        // 2) find all edges connecting the active note ↔ this node
+        const connectingEdges = edges.filter(e =>
+          (e.fromId === nodeId && e.toId === node.id) ||
+          (e.toId   === nodeId && e.fromId === node.id)
+        );
+
+        if (connectingEdges.length === 0) return;
+
+        // 3) build one or more relation lines
+        const relationLines = connectingEdges.map(e => {
+          // if fromId matches nodeId, current node is the source; else it's the target
+          if (e.fromId === nodeId) {
+            return `${title} -> ${e.relType} -> ${node.title}`;
+          } else {
+            return `${node.title} -> ${e.relType} -> ${title}`;
           }
-        }
-      })
+        }).join('\n');
+
+        // 4) append your XML block
+        context += `<${tagName}>\n`;
+        context += `${relationLines}\n\n`;
+        context += `${node.markdown?.trim() || ''}\n`;
+        context += `</${tagName}>\n\n`;
+      });
     }
     
     return context.trim()
