@@ -11,8 +11,12 @@ except ImportError:
 @contextmanager
 def trace_span(name, **kwargs):
     if langfuse:
-        with langfuse.start_as_current_span(name=name, **kwargs) as span:
-            yield span
+        print(f'TRACING {name}')
+        for k, v in kwargs.items():
+            print(f'  {k}: {v}')
+        # Will replace with real tracing at some point, but for now just going to print. 
+        # with langfuse.start_as_current_span(name=name, **kwargs) as span:
+        #     yield span
     else:
         yield None
 
