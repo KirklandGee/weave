@@ -42,7 +42,7 @@ export function useLLMContext(campaign: string, nodeId: string) {
     
     if (htmlContent) {
       const markdown = htmlToMd(htmlContent)
-      context += `${markdown}\n\n`
+      context += `<currentNote>${markdown}\n</currentNote>`
     }
 
     if (relatedNodes.length > 0) {
