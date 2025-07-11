@@ -17,7 +17,7 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Split out ChatService, EmbeddingService, CostService interfaces for modularity  
 
 **LLMS**
-- [ ] Create common endpoints for getting a node + all of it's edges for when the AI calls
+- [x] Create common endpoints for getting a node + all of it's edges for when the AI calls
 - [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed
 - [ ] Define Cypher schema for DB for LLMs
 - [ ] Create embeddings generator, embed all seed entries
@@ -34,12 +34,7 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Dedupe relationships in DB
 
 ### Frontend
-- [ ] Wire up streaming chat component with partial-chunk rendering and spinner  
 - [ ] Add “summarize history” trigger to collapse older messages into a summary  
-- [ ] Visualize the campaign graph (embed Neo4j browser or custom D3 view)  
-- [ ] Implement sidebar search (by title & markdown content)  
-- [ ] Organize notes in sidebar by type and support filtering  
-- [ ] Improve note-creation flow: select note type & suggest relationships  
 
 ### Infrastructure & Observability
 - [ ] Add request-scoped logging middleware (timings, errors, token counts)  
@@ -47,7 +42,6 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Validate environment variables for quotas & Langfuse (or disable if unused)  
 
 ### UI
-- [ ] Build basic chat interface for LLM that calls my "chat" endpoint with streaming
 - [ ] Campaign-based knowledge graph visualzation, same as neo4j browser basically
 - [ ] Search notes by title, then markdown. Elastic?
 - [ ] Organize sidebar by note type
@@ -66,3 +60,5 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [x] Create types/interfaces for the API and for the frontend to consume
 - [x] Stream the response through a HTTP streaming
 - [x] Build LLM interface for various models (start local with Ollama for testing, then OpenAI)
+- [x] Wire up streaming chat component with partial-chunk rendering and spinner  
+- [x] Build basic chat interface for LLM that calls my "chat" endpoint with streaming

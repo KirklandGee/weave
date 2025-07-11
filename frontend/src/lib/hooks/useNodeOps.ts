@@ -47,7 +47,7 @@ export async function deleteNode(id: string) {
   await db.transaction('rw', db.nodes, db.changes, async () => {
     await db.nodes.delete(id)
     await logChange({
-      op: 'update',
+      op: 'delete',
       entity: 'node',
       entityId: id,
       payload: {},
