@@ -11,6 +11,7 @@ import Tiptap from '@/components/Tiptap'
 import { nanoid } from 'nanoid'
 import { SidebarNode } from '@/types/node'
 import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
+import LLMChatEmbedded from '@/components/LLMChatEmbedded'
 
 export default function Home({
   params,          // assuming /campaign/[title]/[nodeId] route
@@ -100,15 +101,14 @@ export default function Home({
             await renameNode(id, title)
           }}
         />
-
-        <main className="flex-1 overflow-auto p-4">
+        <main className="flex-1 overflow-auto p-4 relative">
           <Tiptap
             key={activeId}
-            content={htmlContent}        // <-- plain HTML string
+            content={htmlContent}
             onContentChange={updateMarkdown}
           />
+          <LLMChatEmbedded />
         </main>
-
         <Inspector node={nodes.find(n => n.id === activeId) ?? null} />
 
       </div>

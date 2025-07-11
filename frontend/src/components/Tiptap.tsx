@@ -114,7 +114,7 @@ export default function Tiptap({
       )}
       <EditorContent
         editor={editor}
-        className="prose prose-invert max-w-none whitespace-pre-wrap"
+        className="overflow-auto prose prose-invert max-w-none whitespace-pre-wrap"
       />
     </>
   );
