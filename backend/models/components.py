@@ -17,25 +17,35 @@ class MarkdownContent(BaseModel):
 class MarkdownNodeBase(BaseModel):
     metadata: Metadata
     content: MarkdownContent
+    embedding: list[float] | None = None
 
     def create_props(self) -> dict[str, Any]:
-      return {
-          "id": self.metadata.id,
-          "createdAt": self.metadata.created_at.isoformat(),
-          "updatedAt": self.metadata.updated_at.isoformat(),
-          "title": self.content.title,
-          "markdown": self.content.markdown,
-      }
+        props = {
+            "id": self.metadata.id,
+            "createdAt": self.metadata.created_at.isoformat(),
+            "updatedAt": self.metadata.updated_at.isoformat(),
+            "title": self.content.title,
+            "markdown": self.content.markdown,
+        }
+
+        # Only include embedding if it exists
+        if self.embedding is not None:
+            props["embedding"] = self.embedding
+
+        return props
+
     def get_label(self) -> str:
-      # Default fallback, will be overridden in subclasses
-      return self.__class__.__name__
+        # Default fallback, will be overridden in subclasses
+        return self.__class__.__name__
+
 
 class Change(BaseModel):
-    op: str                       # create | update | delete
+    op: str  # create | update | delete
     entity: Literal["node", "edge"]
     entityId: str
     payload: dict[str, Any]
-    ts: int                       # epoch ms
+    ts: int  # epoch ms
+
 
 class SidebarNode(BaseModel):
     id: str
@@ -46,10 +56,12 @@ class SidebarNode(BaseModel):
     updatedAt: int
     createdAt: int
 
+
 class Target(BaseModel):
     id: str
     title: str
     type: str
+
 
 class Edge(BaseModel):
     id: str
@@ -59,5 +71,5 @@ class Edge(BaseModel):
     to_title: str
     relType: str
     updatedAt: int
-    createdAt: int | None         # present in some rows, None in others
-    attributes: dict[str, Any] = {}         # what you return as "attributes"
+    createdAt: int | None  # present in some rows, None in others
+    attributes: dict[str, Any] = {}  # what you return as "attributes"

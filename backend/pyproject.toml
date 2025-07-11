@@ -13,5 +13,6 @@ dependencies = [
     "neo4j>=5.28.1",
     "ollama>=0.5.1",
     "pydantic>=2.11.7",
+    "sentence-transformers>=5.0.0",
     "tenacity>=9.1.2",
 ]
