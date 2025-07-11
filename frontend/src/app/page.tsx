@@ -107,12 +107,18 @@ export default function Home({
             content={htmlContent}
             onContentChange={updateMarkdown}
           />
-          <LLMChatEmbedded 
-          campaign={CAMPAIGN_SLUG}
-          activeNodeId={activeId}
+          <LLMChatEmbedded
+            campaign={CAMPAIGN_SLUG}
+            activeNodeId={activeId}
           />
         </main>
-        <Inspector node={nodes.find(n => n.id === activeId) ?? null} />
+        <Inspector 
+          node={node}
+          onNavigateToNote={(noteId) => {
+            // Handle navigation to the note
+            setActiveId(noteId);
+          }}
+        />
 
       </div>
     </div>

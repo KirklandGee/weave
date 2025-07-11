@@ -58,15 +58,23 @@ async def push_changes(
         for ch in changes:
             if ch.entity == "edge":
                 if ch.op == "create":
+                    # Serialize attributes if it's a dict
+                    props = {
+                        k: v
+                        for k, v in ch.payload.items()
+                        if k not in ("fromId", "toId", "relType")
+                    }
+                    
+                    # Handle attributes serialization
+                    if "attributes" in props and isinstance(props["attributes"], dict):
+                        props["attributes"] = json.dumps(props["attributes"]) if props["attributes"] else None
+                    
                     params = {
-                        "from": ch.payload["from"],
-                        "to": ch.payload["to"],
+                        "from_id": ch.payload["fromId"],
+                        "to_id": ch.payload["toId"],
                         "rid": ch.entityId,
-                        "props": {
-                            k: v
-                            for k, v in ch.payload.items()
-                            if k not in ("from", "to", "relType")
-                        },
+                        "relType": ch.payload['relType'],
+                        "props": props,
                         "ts": ch.ts,
                     }
                     cypher = """
@@ -79,6 +87,11 @@ async def push_changes(
                     _ = query(cypher, **params)
                 # ---------- UPDATE ----------
                 elif ch.op == "update":
+                    props = ch.payload.copy()
+                    # Handle attributes serialization for updates too
+                    if "attributes" in props and isinstance(props["attributes"], dict):
+                        props["attributes"] = json.dumps(props["attributes"]) if props["attributes"] else None
+                    
                     _ = query(
                         """
                         MATCH ()-[r {id:$rid}]->()
@@ -86,9 +99,9 @@ async def push_changes(
                             r.updatedAt = $ts
                         """,
                         rid=ch.entityId,
-                        props=ch.payload,
+                        props=props,
                         ts=ch.ts,
-                    )
+                    )                
                 # ---------- DELETE ----------
                 else:  # delete
                     _ = query(

@@ -43,7 +43,7 @@ export async function deleteEdge(id: string) {
 
   const ts = Date.now()
   await db.transaction('rw', db.nodes, db.changes, async () => {
-    await db.nodes.delete(id)
+    await db.edges.delete(id)
     await logChange({
       op: 'delete',
       entity: 'edge',
