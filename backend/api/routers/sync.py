@@ -59,13 +59,16 @@ async def push_changes(
             if ch.entity == "edge":
                 if ch.op == "create":
                     params = {
-                    "from": ch.payload["from"],
-                    "to":   ch.payload["to"],
-                    "rid":  ch.entityId,
-                    "props": {k:v for k,v in ch.payload.items()
-                            if k not in ("from","to","relType")},
-                    "ts":   ch.ts,
-                }
+                        "from": ch.payload["from"],
+                        "to": ch.payload["to"],
+                        "rid": ch.entityId,
+                        "props": {
+                            k: v
+                            for k, v in ch.payload.items()
+                            if k not in ("from", "to", "relType")
+                        },
+                        "ts": ch.ts,
+                    }
                     cypher = """
                     MATCH (a {id:$from_id}), (b {id:$to_id})
                     CALL apoc.merge.relationship(a, $relType, {}, {}, b) YIELD rel AS r
@@ -73,10 +76,7 @@ async def push_changes(
                         r.createdAt = coalesce(r.createdAt,$ts),
                         r.updatedAt = $ts
                     """
-                    _ = query(
-                        cypher,
-                        **params
-                    )
+                    _ = query(cypher, **params)
                 # ---------- UPDATE ----------
                 elif ch.op == "update":
                     _ = query(
@@ -248,9 +248,11 @@ async def get_edges(
         ts=ts,
     )
     return [r["edge"] for r in records]
+
+
 # ─────────────────────────────────────────────── edges for a node ──
 @router.get("/{cid}/node/{nid}/edges", response_model=list[Edge])
-async def get_campaign_edges(
+async def get_node_edges(
     cid: str,
     nid: str,
     uid: UserIdHeader,
@@ -259,27 +261,30 @@ async def get_campaign_edges(
         records = query(
             """
             MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
-                  <-[:PART_OF]-(n {id:$nid})
+                <-[:PART_OF]-(n {id:$nid})
             MATCH (n)-[r]-(m)
             RETURN {
-              id:        r.id,
-              from:      startNode(r).id,
-              to:        endNode(r).id,
-              direction: CASE WHEN startNode(r).id = $nid THEN 'out' ELSE 'in' END,
-              relType:   type(r),
-              updatedAt: r.updatedAt,
-              props:     apoc.map.removeKeys(properties(r),['id','updatedAt']),
-              target: {
+            id:        r.id,
+            from_id:   startNode(r).id,
+            to_id:     endNode(r).id,
+            from_title:startNode(r).title,
+            to_title:  endNode(r).title,
+            direction: CASE WHEN startNode(r).id = $nid THEN 'out' ELSE 'in' END,
+            relType:   type(r),
+            createdAt: properties(r).createdAt,
+            updatedAt: r.updatedAt,
+            props:     apoc.map.removeKeys(properties(r), ['id','createdAt','updatedAt']),
+            target: {
                 id:    m.id,
                 title: m.title,
                 type:  m.type
-              }
+            }
             } AS edge
             """,
             uid=uid,
             cid=cid,
             nid=nid,
         )
-        return [r["edge"] for r in records]   # <-- alias is edge
+        return [r["edge"] for r in records]  # <-- alias is edge
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

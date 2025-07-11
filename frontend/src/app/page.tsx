@@ -107,7 +107,10 @@ export default function Home({
             content={htmlContent}
             onContentChange={updateMarkdown}
           />
-          <LLMChatEmbedded />
+          <LLMChatEmbedded 
+          campaign={CAMPAIGN_SLUG}
+          activeNodeId={activeId}
+          />
         </main>
         <Inspector node={nodes.find(n => n.id === activeId) ?? null} />
 

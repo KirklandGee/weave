@@ -2,6 +2,7 @@
 	-	Ideally we have streaming, sub-500ms to start streaming in, with reasonable speed as it goes (model dependent)
   - Primary task is going to be general chatting about the context of the workspace, helping draft sections, create NPCs, etc.—rarely doing "rules adjudication", but we will need some documents/rules to verify details for certain games. 
     - That's more of a long-term play. For now we can trust it'll be good enough. At some point, we can do RAG on some large document like the 5e player's handbook. Just have to figure out **licensing**
+  - Will need some kind of spinner UX for startup on chat. Bubbles, a spinner, something. OpenAI has latency and need to account for that. 
 
 2. Task taxonomy & model selection
   - Generating graph DB edges/relationships between notes—probably on save, or maybe from the UI rather than making it automatic. It will look at a given node, compare it to the embeddings of the others, and suggest similar ones. 
@@ -11,6 +12,9 @@
   - For all of these, I think they'll need at least gpt-4 level to be reliably good. Maybe some could use o4-mini, instead, for like extracting quick facts/retrieval of simple questions, but that might be more complex than it's worth compared to just using gpt-4o for everything.
   - I doubt local models will really work, since this is a web app. 
   - We can set the model in some service, and then route it from there, no need to change the API or the frontend in those cases.
+  - Should consider **hosted GGUF models (via something like Fireworks, Together, or GroqCloud)**? You’d retain web compatibility but get fast inference and potentially big cost savings over OpenAI.
+  - Implement small routing layer (like a service or LangChain Router) to dynamically switch models based on prompt metadata?
+
 
 
 3. Context budget strategy
@@ -20,7 +24,8 @@
   - SUmmarization will always be done by LLM. Maybe we use a bigger model for summaries—o3 or something—to be able to catch more details.
 
 4. Retrieval (RAG) pipeline
-  - We'll need a vector DB. I think neo4j supports this, so we can just embed all of the nodes. We don't nee to "embed" the relationships I don't think? We can EITHER query on relationships or on embeddings, not both.
+  - Embeddings will based on the "markdown" field
+  - We'll need a vector DB. I think neo4j supports this, so we can just embed all of the nodes. We don't nee to "embed" the relationships I don't think? We could do hybrid queries like: “Give me all nodes with a relationship to X or nodes whose embeddings match query Y above threshold Z.” Neo4j + vector + Cypher can support this hybrid fairly cleanly.
   - We can update the embeddings not on every sync, but every time there's a substantial enough change. Maybe X characters changes in a note, we update the embedding just for that note?
   - Merging retrieved chunks will get put into the system prompt of the newest message. We should look into some prompt caching (which i know is a thing, but not how it works) to cache all the system prompt context instead of resending it on every user message.
   - Rarely will we ever just answer from the DB. Almost everything will need to go through an LLM for stuff like this, I think. 

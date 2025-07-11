@@ -13,6 +13,7 @@ export function useActiveNode(campaign: string, nodeId: string) {
 
   // Convert markdown → html for the editor
   const htmlContent = node ? mdToHtml(node.markdown ?? '') : ''
+  const title = node?.title ?? 'Untitled'
 
   async function updateMarkdown(md: string) {
     const ts = Date.now()
@@ -60,5 +61,5 @@ export function useActiveNode(campaign: string, nodeId: string) {
     return () => clearInterval(id)
   }, [campaign])
 
-  return { htmlContent, updateMarkdown }
+  return { title, htmlContent, updateMarkdown }
 }

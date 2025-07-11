@@ -10,10 +10,13 @@ export type ChatRequest = {
   messages: LLMMessage[];
   metadata: Record<string, unknown>;
   model?: string;
+  context?: string
 }
 
 export type LLMChatEmbeddedProps = {
   className?: string;
   title?: string;
   placeholder?: string;
+  campaign: string;
+  activeNodeId: string;
 }

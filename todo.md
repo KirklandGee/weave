@@ -13,19 +13,38 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 
 ### BACKEND
 
+- [ ] Integrate vector store (Neo4j + vector plugin) and embedding pipeline on note-save  
+- [ ] Split out ChatService, EmbeddingService, CostService interfaces for modularity  
+
 **LLMS**
-- [ ] Build LLM interface for various models (start local with Ollama for testing, then OpenAI)
-  - [ ] Create common endpoints for getting a node + all of it's edges for when the AI calls
-  - [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed
+- [ ] Create common endpoints for getting a node + all of it's edges for when the AI calls
+- [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed
 - [ ] Define Cypher schema for DB for LLMs
 - [ ] Create embeddings generator, embed all seed entries
 - [ ] Create suggested relationships based on vector search of Markdown
+- [ ] Track per-user token usage and enforce quota (billing/cost control) 
 
 **API**
+- [ ] Build a `/summarize` endpoint to auto-compress old chat history
+- [ ] Add simple concurrency metrics (thread-pool utilization) and tune thread-pool size  
+- [ ] Expose a `/retrieve` helper that returns top-K similar notes for RAG 
 - [ ] Create endpoints for creating relationships between nodes when someone adds a link. I will make the user choose the relationship when they link? Or just infer based on which node is linking to what. Create some sort of mapping system for this behind the scenes.
 - [ ] Explore task queue
 - [ ] Authentication
 - [ ] Dedupe relationships in DB
+
+### Frontend
+- [ ] Wire up streaming chat component with partial-chunk rendering and spinner  
+- [ ] Add “summarize history” trigger to collapse older messages into a summary  
+- [ ] Visualize the campaign graph (embed Neo4j browser or custom D3 view)  
+- [ ] Implement sidebar search (by title & markdown content)  
+- [ ] Organize notes in sidebar by type and support filtering  
+- [ ] Improve note-creation flow: select note type & suggest relationships  
+
+### Infrastructure & Observability
+- [ ] Add request-scoped logging middleware (timings, errors, token counts)  
+- [ ] Configure thread-pool/workers in Uvicorn to handle ~20 simultaneous streams  
+- [ ] Validate environment variables for quotas & Langfuse (or disable if unused)  
 
 ### UI
 - [ ] Build basic chat interface for LLM that calls my "chat" endpoint with streaming
@@ -33,6 +52,7 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Search notes by title, then markdown. Elastic?
 - [ ] Organize sidebar by note type
 - [ ] Better note creation flow, including type creation, suggested relationships
+- [ ] Surface a clear “waiting” state (spinner/fallback) before streaming begins  
 
 - [ ] LIne 33 /lib/db/sync.ts Implement something like what's at the bottom to use the max time on the server for pulling to verify time for data so things don't get overwritten.
 
@@ -45,3 +65,4 @@ For now, I started building out some models and endpoints for basic CRUD of thes
   - [x] This is close—just need to actually fill the Dexie DB with edge in @sync.ts
 - [x] Create types/interfaces for the API and for the frontend to consume
 - [x] Stream the response through a HTTP streaming
+- [x] Build LLM interface for various models (start local with Ollama for testing, then OpenAI)

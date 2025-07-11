@@ -1,16 +1,31 @@
-from langchain_core.messages import HumanMessage
+from langchain import PromptTemplate, LLMChain
+from langchain_core.messages import HumanMessage, SystemMessage
 from backend.models.schemas import LLMMessage
 from .llm_providers import get_llm_instance
 from .config import ROLE_MAP, DEFAULT_LLM_CONFIG
-from backend.logging.trace import traced, trace_span
+from backend.logging.trace import traced
 from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
 
 
-def to_langchain_messages(messages):
-    return [
-        ROLE_MAP.get(msg.role, HumanMessage)(content=msg.content) for msg in messages
-    ]
-
+# Alternative: Always ensure there's a system message
+def to_langchain_messages(messages, context=''):
+    langchain_messages = []
+    has_system = any(msg.role == "system" for msg in messages)
+    
+    if context and not has_system:
+        # Add a system message with just the context
+        langchain_messages.append(SystemMessage(content=f"Additional Context:\n{context}"))
+    
+    for msg in messages:
+        if msg.role == "system" and context:
+            enhanced_content = f"{msg.content}\n\nAdditional Context:\n{context}"
+            langchain_messages.append(SystemMessage(content=enhanced_content))
+        else:
+            langchain_messages.append(
+                ROLE_MAP.get(msg.role, HumanMessage)(content=msg.content)
+            )
+    
+    return langchain_messages
 
 @retry(
     stop=stop_after_attempt(3),
@@ -19,7 +34,7 @@ def to_langchain_messages(messages):
 )
 @traced("llm_call")
 async def call_llm(
-    messages: list[LLMMessage], user_id=None, stream: bool = True, **overrides
+    messages: list[LLMMessage], context: str, user_id=None, stream: bool = True, **overrides
 ):
     print("Calling LLM")
     if isinstance(messages, LLMMessage):
@@ -27,7 +42,7 @@ async def call_llm(
     # Merge default config and per-call overrides (overrides win)
     config = {**DEFAULT_LLM_CONFIG, **overrides}
     llm = get_llm_instance(config)
-    messages = to_langchain_messages(messages)
+    messages = to_langchain_messages(messages, context=context)
     print(messages)
 
     try:
