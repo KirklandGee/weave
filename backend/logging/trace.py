@@ -17,8 +17,7 @@ def trace_span(name, **kwargs):
         # Will replace with real tracing at some point, but for now just going to print. 
         # with langfuse.start_as_current_span(name=name, **kwargs) as span:
         #     yield span
-    else:
-        yield None
+    yield None
 
 def traced(name=None, **span_kwargs):
     def decorator(func):

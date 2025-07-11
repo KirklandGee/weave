@@ -8,7 +8,9 @@ LLM_PROVIDERS = {
 }
 
 def get_llm_instance(config):
+    print("Getting LLM providers...")
     model = config["model"]
+    print(model)
     for prefix, builder in LLM_PROVIDERS.items():
         if model.startswith(prefix):
             return builder(config)

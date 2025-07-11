@@ -4,6 +4,7 @@ DEFAULT_LLM_CONFIG = {
     "model": "llama3.1",
     "temperature": 0.5,
     "max_tokens": 4096,
+    "streaming": True
     # ... any other defaults ...
 }
 

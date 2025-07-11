@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from backend.services.llm.ollama import call_ollama_stream
-from backend.models.llm import ChatRequest
+from backend.services.llm.llm_service import call_llm
+from backend.models.schemas import ChatRequest
 
 router = APIRouter(
   prefix='/llm',
@@ -9,10 +9,11 @@ router = APIRouter(
 )
 
 @router.post("/chat/stream")
-async def llm_chat_stream_async(req: ChatRequest):
+async def llm_chat_stream(req: ChatRequest):
   try:
+    print("Calling API")
     return StreamingResponse(
-        call_ollama_stream(req.user, req.system),
+        call_llm(messages=req.messages, stream=True),
         media_type="text/plain"
     )
   except Exception as exc:
