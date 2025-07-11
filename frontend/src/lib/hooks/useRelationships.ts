@@ -43,14 +43,7 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
       const allNotes = await db.nodes
         .toArray();
       
-      // Filter out campaign nodes and apply search
-      const nonCampaignNotes = allNotes.filter(node => node.type !== 'CAMPAIGN');
-      
-      console.log('Search query:', query);
-      console.log('All notes found (excluding campaigns):', nonCampaignNotes.length);
-      
-      const filtered = fuzzySearch(query, nonCampaignNotes);
-      console.log('Filtered results:', filtered.length);
+      const filtered = fuzzySearch(query, allNotes);
       
       return filtered;
     } catch (error) {
@@ -62,10 +55,21 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
   // Get relationships for a specific note
   const getRelationshipsForNote = useCallback(async (noteId: string): Promise<Relationship[]> => {
     try {
-      return await db.edges
+
+      // Need to filter out campaign relations from this for now since we do everything in the UI by campaign
+      const outgoingRelationships = await db.edges
         .where('fromId')
         .equals(noteId)
         .toArray();
+
+      const incomingRelationships = await db.edges
+        .where('toId')
+        .equals(noteId)
+        .toArray();
+
+      const relationships = [...outgoingRelationships, ...incomingRelationships]
+
+      return relationships.filter(rel => rel.relType !== 'PART_OF');
     } catch (error) {
       console.error('Error getting relationships for note:', error);
       return [];
@@ -95,8 +99,6 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
       
       // Get the actual note objects
       const allNotes = await db.nodes
-        .where('campaignId')
-        .equals(CAMPAIGN_SLUG)
         .toArray();
       
       return allNotes.filter(note => twoHopConnections.has(note.id));

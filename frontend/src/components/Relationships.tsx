@@ -98,56 +98,97 @@ export function RelationshipsSection({
         </div>
       )}
 
-      {/* Relationships List */}
+      {/* Relationships List - Split into Outgoing and Incoming */}
       {!isLoading && (
-        <div className="space-y-2">
-          {relationships.length === 0 ? (
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 py-2">
-              No relationships yet
+        <div className="space-y-4">
+          {/* Outgoing Relationships */}
+          <div>
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">Outgoing Relationships</h4>
+            <div className="space-y-2">
+              {relationships.filter(r => currentNote.id === r.fromId).length === 0 ? (
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 py-2">None</div>
+              ) : (
+                relationships.filter(r => currentNote.id === r.fromId).map((relationship) => {
+                  const otherNoteId = relationship.toId;
+                  const otherNoteTitle = relationship.toTitle;
+                  return (
+                    <div
+                      key={relationship.id}
+                      className="group flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${RELATIONSHIP_TYPE_COLORS[relationship.relType]}`}>{relationship.relType.replace('_', ' ')}</span>
+                        <ArrowRight size={12} className="text-zinc-400 flex-shrink-0" />
+                        <button
+                          onClick={() => handleNoteClick(otherNoteId)}
+                          className="text-sm text-zinc-900 dark:text-zinc-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
+                          title={otherNoteTitle}
+                        >
+                          {otherNoteTitle}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveRelationship(relationship.id)}
+                        disabled={isRemoving === relationship.id}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-all"
+                        title="Remove relationship"
+                      >
+                        {isRemoving === relationship.id ? (
+                          <div className="w-3 h-3 border border-zinc-300 border-t-red-500 rounded-full animate-spin"></div>
+                        ) : (
+                          <X size={12} />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
-          ) : (
-            relationships.map((relationship) => (
-              <div
-                key={relationship.id}
-                className="group flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {/* Relationship Type Badge */}
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                    RELATIONSHIP_TYPE_COLORS[relationship.relType]
-                  }`}>
-                    {relationship.relType.replace('_', ' ')}
-                  </span>
-                  
-                  {/* Arrow */}
-                  <ArrowRight size={12} className="text-zinc-400 flex-shrink-0" />
-                  
-                  {/* Target Note */}
-                  <button
-                    onClick={() => handleNoteClick(relationship.toId)}
-                    className="text-sm text-zinc-900 dark:text-zinc-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
-                    title={relationship.toTitle}
-                  >
-                    {relationship.toTitle}
-                  </button>
-                </div>
-
-                {/* Remove Button */}
-                <button
-                  onClick={() => handleRemoveRelationship(relationship.id)}
-                  disabled={isRemoving === relationship.id}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-all"
-                  title="Remove relationship"
-                >
-                  {isRemoving === relationship.id ? (
-                    <div className="w-3 h-3 border border-zinc-300 border-t-red-500 rounded-full animate-spin"></div>
-                  ) : (
-                    <X size={12} />
-                  )}
-                </button>
-              </div>
-            ))
-          )}
+          </div>
+          {/* Incoming Relationships */}
+          <div>
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">Incoming Relationships</h4>
+            <div className="space-y-2">
+              {relationships.filter(r => currentNote.id === r.toId).length === 0 ? (
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 py-2">None</div>
+              ) : (
+                relationships.filter(r => currentNote.id === r.toId).map((relationship) => {
+                  const otherNoteId = relationship.fromId;
+                  const otherNoteTitle = relationship.fromTitle;
+                  return (
+                    <div
+                      key={relationship.id}
+                      className="group flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${RELATIONSHIP_TYPE_COLORS[relationship.relType]}`}>{relationship.relType.replace('_', ' ')}</span>
+                        <ArrowRight size={12} className="text-zinc-400 flex-shrink-0 rotate-180" />
+                        <button
+                          onClick={() => handleNoteClick(otherNoteId)}
+                          className="text-sm text-zinc-900 dark:text-zinc-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
+                          title={otherNoteTitle}
+                        >
+                          {otherNoteTitle}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveRelationship(relationship.id)}
+                        disabled={isRemoving === relationship.id}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-all"
+                        title="Remove relationship"
+                      >
+                        {isRemoving === relationship.id ? (
+                          <div className="w-3 h-3 border border-zinc-300 border-t-red-500 rounded-full animate-spin"></div>
+                        ) : (
+                          <X size={12} />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
       )}
 
