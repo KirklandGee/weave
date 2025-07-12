@@ -52,3 +52,72 @@ CREATE INDEX node_owner_idx     IF NOT EXISTS FOR (n:Note) ON (n.ownerId);
 CREATE FULLTEXT INDEX fulltext_markdown IF NOT EXISTS
 FOR (n:Campaign|Session|NPC|Character|Location|Note)
 ON EACH [n.title, n.markdown];
+
+// Add Vector Index for all relevant labels
+CREATE VECTOR INDEX campaign_embedding_vec_idx IF NOT EXISTS
+FOR (n:Campaign)
+ON n.embedding
+OPTIONS { 
+ indexConfig: {
+   `vector.dimensions`: 384,
+   `vector.similarity_function`: 'cosine'
+ }
+};
+
+CREATE VECTOR INDEX session_embedding_vec_idx IF NOT EXISTS
+FOR (n:Session)
+ON n.embedding
+OPTIONS { 
+ indexConfig: {
+   `vector.dimensions`: 384,
+   `vector.similarity_function`: 'cosine'
+ }
+};
+
+CREATE VECTOR INDEX npc_embedding_vec_idx IF NOT EXISTS
+FOR (n:NPC)
+ON n.embedding
+OPTIONS { 
+ indexConfig: {
+   `vector.dimensions`: 384,
+   `vector.similarity_function`: 'cosine'
+ }
+};
+
+CREATE VECTOR INDEX character_embedding_vec_idx IF NOT EXISTS
+FOR (n:Character)
+ON n.embedding
+OPTIONS { 
+ indexConfig: {
+   `vector.dimensions`: 384,
+   `vector.similarity_function`: 'cosine'
+ }
+};
+
+CREATE VECTOR INDEX location_embedding_vec_idx IF NOT EXISTS
+FOR (n:Location)
+ON n.embedding
+OPTIONS { 
+ indexConfig: {
+   `vector.dimensions`: 384,
+   `vector.similarity_function`: 'cosine'
+ }
+};
+
+CREATE VECTOR INDEX note_embedding_vec_idx IF NOT EXISTS
+FOR (n:Note)
+ON n.embedding
+OPTIONS { 
+ indexConfig: {
+   `vector.dimensions`: 384,
+   `vector.similarity_function`: 'cosine'
+ }
+};
+
+// Indexes for embedding management
+CREATE INDEX embedding_updated_idx     IF NOT EXISTS FOR (n:Campaign) ON (n.embeddedAt);
+CREATE INDEX embedding_updated_idx     IF NOT EXISTS FOR (n:Session) ON (n.embeddedAt);
+CREATE INDEX embedding_updated_idx     IF NOT EXISTS FOR (n:NPC) ON (n.embeddedAt);
+CREATE INDEX embedding_updated_idx     IF NOT EXISTS FOR (n:Character) ON (n.embeddedAt);
+CREATE INDEX embedding_updated_idx     IF NOT EXISTS FOR (n:Location) ON (n.embeddedAt);
+CREATE INDEX embedding_updated_idx     IF NOT EXISTS FOR (n:Note) ON (n.embeddedAt);

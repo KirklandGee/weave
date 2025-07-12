@@ -34,6 +34,16 @@ class MarkdownNodeBase(BaseModel):
 
         return props
 
+    def get_embedding_text(self) -> str:
+        """Get the text that should be embedded for this node."""
+        # Combine title and markdown for embedding
+        parts = []
+        if self.content.title:
+            parts.append(self.content.title)
+        if self.content.markdown:
+            parts.append(self.content.markdown)
+        return "\n".join(parts)
+
     def get_label(self) -> str:
         # Default fallback, will be overridden in subclasses
         return self.__class__.__name__
@@ -55,6 +65,7 @@ class SidebarNode(BaseModel):
     attributes: dict[str, Any] = {}
     updatedAt: int
     createdAt: int
+    embedded_at: datetime | None = None
 
 
 class Target(BaseModel):
