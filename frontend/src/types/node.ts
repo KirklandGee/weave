@@ -1,4 +1,4 @@
-export interface SidebarNode {
+export interface Note {
   id: string
   ownerId: string
   campaignId: string | null        // null == “global”
@@ -7,6 +7,9 @@ export interface SidebarNode {
   markdown: string
   updatedAt: number
   createdAt: number
+  hasEmbedding?: boolean
+  embeddedAt?: number
+  contentHash?: string
   attributes: Record<string, unknown>
 }
 
@@ -15,7 +18,7 @@ export type Change = {
   op: 'create' | 'update' | 'delete'
   entity: 'node' | 'edge'
   entityId: string,
-  payload: Partial<SidebarNode>
+  payload: Partial<Note>
   ts: number                  // epoch ms
 }
 

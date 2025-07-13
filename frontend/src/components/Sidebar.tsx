@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import type { SidebarNode } from '@/types/node'
+import type { Note } from '@/types/node'
 import { ChevronDown, ChevronRight, Trash, Pencil } from 'lucide-react'
 import React from 'react'
 
@@ -13,11 +13,11 @@ export default function Sidebar({
   onRename,
   onHide,
 }: {
-  nodes: SidebarNode[]
+  nodes: Note[]
   activeId: string
-  onSelect: (node: SidebarNode) => void
+  onSelect: (node: Note) => void
   onCreate: () => void
-  onDelete: (node: SidebarNode) => void
+  onDelete: (node: Note) => void
   onRename: (id: string, title: string) => void
   onHide?: () => void
 }) {
@@ -26,7 +26,7 @@ export default function Sidebar({
   const grouped = nodes.reduce((acc, n) => {
     (acc[n.type] ||= []).push(n)
     return acc
-  }, {} as Record<string, SidebarNode[]>)
+  }, {} as Record<string, Note[]>)
   const [open, setOpen] = useState<Record<string, boolean>>({})
 
   /* ---------- context-menu state ---------- */

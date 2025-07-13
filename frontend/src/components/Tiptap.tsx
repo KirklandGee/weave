@@ -75,8 +75,12 @@ export default function Tiptap({
         <BubbleMenu
           editor={editor}
           options={{ placement: 'bottom', offset: 8 }}
-          shouldShow={({ editor, state }) =>
-            editor.isFocused && !state.selection.empty
+          shouldShow={({ editor, state }) => {
+            if (!editor.isFocused) return false
+            if (editor.isDestroyed) return false
+            if (!state.selection || state.selection.empty) return false
+            return true
+          }
           }        >
           <div className="bubble-menu bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg flex p-1">
             <button

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { SidebarNode as Note, Relationship, RelationshipType } from '@/types/node';
+import { Note as Note, Relationship, RelationshipType } from '@/types/node';
 import { getDb } from '../db/campaignDB';
 import { createEdge, deleteEdge } from './useEdgeOps';
 import { USER_ID, CAMPAIGN_SLUG } from '../constants';

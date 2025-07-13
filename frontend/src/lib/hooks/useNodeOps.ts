@@ -1,4 +1,4 @@
-import { SidebarNode } from "@/types/node";
+import { Note } from "@/types/node";
 import { nanoid } from 'nanoid'
 import { getDb } from "../db/campaignDB";
 import { Change } from "@/types/node";
@@ -8,14 +8,14 @@ const currentUserId = USER_ID
 const activeCampaignId = CAMPAIGN_SLUG
 const db = getDb()
 
-export async function createNode(defaults: Partial<SidebarNode> = {}) {
+export async function createNode(defaults: Partial<Note> = {}) {
   const id = defaults.id ?? nanoid()     // keep caller’s id if provided  
   const ts = Date.now()
 
   console.log("Defaults:")
   console.log(defaults)
 
-  const node: SidebarNode = {
+  const node: Note = {
     id: id,
     ownerId: currentUserId,
     campaignId: activeCampaignId,

@@ -1,9 +1,9 @@
 // components/Inspector.tsx
-import type { SidebarNode } from '@/types/node'
+import type { Note } from '@/types/node'
 import { RelationshipsSection } from './Relationships'
 
 type InspectorProps = {
-  node: SidebarNode | null;
+  node: Note | null;
   onNavigateToNote?: (noteId: string) => void;
   onHide?: () => void;
 }

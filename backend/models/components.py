@@ -57,7 +57,7 @@ class Change(BaseModel):
     ts: int  # epoch ms
 
 
-class SidebarNode(BaseModel):
+class Note(BaseModel):
     id: str
     type: str
     title: str

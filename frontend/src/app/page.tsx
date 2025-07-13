@@ -9,7 +9,7 @@ import Inspector from '@/components/Inspector'
 import Nav from '@/components/Nav'
 import Tiptap from '@/components/Tiptap'
 import { nanoid } from 'nanoid'
-import { SidebarNode } from '@/types/node'
+import { Note } from '@/types/node'
 import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
 import LLMChatEmbedded from '@/components/LLMChatEmbedded'
 import { Allotment } from "allotment"
@@ -24,7 +24,7 @@ export default function Home({
   const dbNodes = useCampaignNodes()
 
   /* 1. local working copy that we can mutate optimistically */
-  const [nodes, setNodes] = useState<SidebarNode[]>([])
+  const [nodes, setNodes] = useState<Note[]>([])
 
   // keep DB truth, but don't drop optimistic rows that Dexie hasn't emitted yet
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function Home({
     setNodes(prev => [{ ...newRow, nodeId }, ...prev]);
   }
 
-  async function handleDelete(node: SidebarNode) {
+  async function handleDelete(node: Note) {
     await deleteNode(node.id)
     setNodes(prev => prev.filter(n => n.id !== node.id))
     setActiveId(prev =>

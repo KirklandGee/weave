@@ -2,7 +2,7 @@ import json
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Header, HTTPException
-from backend.models.components import SidebarNode, Change, Edge
+from backend.models.components import Note, Change, Edge
 from backend.services.neo4j import query
 
 router = APIRouter(prefix="/sync", tags=["sync"])
@@ -11,7 +11,7 @@ UserIdHeader = Annotated[str, Header(alias="X-User-Id")]
 
 
 # ───────────────────────────────────────────────────────── sidebar list ──
-@router.get("/{campaign_id}/sidebar", response_model=list[SidebarNode])
+@router.get("/{campaign_id}/sidebar", response_model=list[Note])
 async def get_sidebar_nodes(
     campaign_id: str,
     uid: UserIdHeader,
@@ -31,6 +31,8 @@ async def get_sidebar_nodes(
               id:        props.id,
               type:      props.type,
               title:     props.title,
+              ownerId:   props.ownerId,      // ← ADD THIS
+              campaignId: props.campaignId,  // ← ADD THIS  
               markdown:  props.markdown,
               updatedAt: props.updatedAt,
               createdAt: props.createdAt,
@@ -170,6 +172,14 @@ async def push_changes(
                         nid=ch.entityId,
                     )
 
+            # At the end of push_changes function in sync.py:
+        from backend.services.sync_hooks import get_sync_embedding_hook
+
+        # After processing all changes, add:
+        hook = get_sync_embedding_hook()
+        hook.on_sync_changes(changes)
+
+
         return {"status": "ok"}
 
     except Exception as exc:
@@ -177,7 +187,7 @@ async def push_changes(
 
 
 # ───────────────────────────────────────────── incremental updates ──
-@router.get("/{cid}/nodes/since/{ts}", response_model=list[SidebarNode])
+@router.get("/{cid}/nodes/since/{ts}", response_model=list[Note])
 async def get_updates(
     cid: str,
     ts: int,

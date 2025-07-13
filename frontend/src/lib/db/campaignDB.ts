@@ -1,9 +1,9 @@
 import Dexie, { Table } from 'dexie'
 import { CAMPAIGN_SLUG } from '@/lib/constants'
-import type { SidebarNode, Change, Relationship } from '@/types/node'
+import type { Note, Change, Relationship } from '@/types/node'
 
 class CampaignDB extends Dexie {
-  nodes!: Table<SidebarNode, string>
+  nodes!: Table<Note, string>
   edges!: Table<Relationship, string>
   changes!: Table<Change, number>
   constructor() {
@@ -32,7 +32,11 @@ class CampaignDB extends Dexie {
       changes: '++id, entity, entityId, op, ts'
     })
   
-  
+    this.version(5).stores({
+      nodes:   'id, ownerId, campaignId, type, updatedAt, hasEmbedding, [ownerId+campaignId]',
+      edges: 'id, fromId, toId, relType, updatedAt, [ownerId+campaignId]',
+      changes: '++id, entity, entityId, op, ts'
+    })
   
   }
 }

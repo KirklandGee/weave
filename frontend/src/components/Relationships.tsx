@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, ArrowRight, X } from 'lucide-react';
 import { AddRelationshipModal } from './AddRelationshipsModal';
 import { useRelationships } from '../lib/hooks/useRelationships';
-import { SidebarNode as Note, RelationshipType } from '@/types/node';
+import { Note as Note, RelationshipType } from '@/types/node';
 
 type RelationshipsSectionProps = {
   currentNote: Note;
