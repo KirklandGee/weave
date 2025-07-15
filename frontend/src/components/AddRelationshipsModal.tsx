@@ -10,7 +10,7 @@ type AddRelationshipModalProps = {
   currentNote: Note;
   onAddRelationship: (targetNote: Note, relationshipType: RelationshipType) => void;
   searchNotes: (query: string) => Promise<Note[]>;
-  getTwoHopSuggestions: (noteId: string) => Promise<Note[]>;
+  getSimilarContentSuggestions: (noteId: string, limit: number) => Promise<Note[]>;
   existingRelationships: Relationship[];
 }
 
@@ -33,7 +33,7 @@ export function AddRelationshipModal({
   currentNote,
   onAddRelationship,
   searchNotes,
-  getTwoHopSuggestions,
+  getSimilarContentSuggestions,
   existingRelationships,
 }: AddRelationshipModalProps) {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -87,7 +87,7 @@ export function AddRelationshipModal({
             </label>
             <NodeSearch
               onSearch={searchNotes}
-              onSuggestions={getTwoHopSuggestions}
+              onSuggestions={getSimilarContentSuggestions}
               selectedNote={selectedNote}
               onNoteSelect={setSelectedNote}
               excludeNoteIds={excludeNoteIds}

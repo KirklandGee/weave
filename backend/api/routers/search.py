@@ -1,7 +1,5 @@
-# backend/api/routers/search.py
-
 from fastapi import APIRouter, HTTPException, Header
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 from backend.models.schemas import VectorSearchRequest, VectorSearchResult, RelationshipSuggestion
 from backend.services.embeddings.vector_search import get_vector_search_service
 
@@ -13,11 +11,16 @@ UserIdHeader = Annotated[str, Header(alias="X-User-Id")]
 async def search_content(
     search_request: VectorSearchRequest,
     uid: UserIdHeader,
+    campaign_id: Optional[str] = None,
 ):
     """Search for content similar to the provided text query."""
     try:
         vector_service = get_vector_search_service()
-        results = vector_service.search_similar_nodes(search_request)
+        results = vector_service.search_nodes(
+            search_request.query_text, 
+            user_id=uid,
+            campaign_id=campaign_id
+        )
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
@@ -26,13 +29,20 @@ async def search_content(
 async def get_similar_content(
     node_id: str,
     uid: UserIdHeader,
+    campaign_id: Optional[str] = None,
     limit: int = 5,
     threshold: float = 0.7
 ):
     """Find content similar to a specific node."""
     try:
         vector_service = get_vector_search_service()
-        results = vector_service.find_similar_to_node(node_id, limit, threshold)
+        results = vector_service.find_similar_to_node(
+            node_id=node_id,
+            user_id=uid,
+            campaign_id=campaign_id,
+            limit=limit,
+            threshold=threshold
+        )
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Similar content search failed: {str(e)}")
@@ -47,8 +57,9 @@ async def suggest_relationships(
     try:
         vector_service = get_vector_search_service()
         suggestions = vector_service.suggest_relationships(
-            campaign_id if campaign_id != "global" else None, 
-            threshold
+            user_id=uid,
+            campaign_id=campaign_id if campaign_id != "global" else None, 
+            threshold=threshold
         )
         return suggestions
     except Exception as e:

@@ -34,7 +34,7 @@ export function RelationshipsSection({
     relationships,
     isLoading,
     searchNotes,
-    getTwoHopSuggestions,
+    getSimilarContentSuggestions,
     addRelationship,
     removeRelationship,
     loadRelationships,
@@ -199,7 +199,7 @@ export function RelationshipsSection({
         currentNote={currentNote}
         onAddRelationship={handleAddRelationship}
         searchNotes={searchNotes}
-        getTwoHopSuggestions={getTwoHopSuggestions}
+        getSimilarContentSuggestions={getSimilarContentSuggestions}
         existingRelationships={relationships}
       />
     </div>

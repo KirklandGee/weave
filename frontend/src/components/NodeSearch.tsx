@@ -11,7 +11,7 @@ export interface SearchResult extends Note {
 interface NodeSearchProps {
   // Core search functionality
   onSearch: (query: string) => Promise<Note[]>;
-  onSuggestions?: (currentNoteId: string) => Promise<Note[]>;
+  onSuggestions?: (noteId: string, limit: number) => Promise<Note[]>;
   
   // Selection handling
   selectedNote?: Note | null;
@@ -95,7 +95,7 @@ export function NodeSearch({
   // Load suggestions when component mounts or currentNoteId changes
   useEffect(() => {
     if (showSuggestions && onSuggestions && currentNoteId) {
-      onSuggestions(currentNoteId)
+      onSuggestions(currentNoteId, 5)
         .then(setSuggestions)
         .catch(err => {
           console.error('Failed to load suggestions:', err);
