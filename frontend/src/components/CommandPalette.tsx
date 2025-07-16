@@ -40,7 +40,7 @@ export function CommandPalette({
       label: 'Create Character',
       description: 'Add a new character to your campaign',
       icon: <User size={16} />,
-      onExecute: () => onCreateNote?.('character'),
+      onExecute: () => onCreateNote?.('Character'),
       category: 'creation',
     },
     {
@@ -48,7 +48,7 @@ export function CommandPalette({
       label: 'Create Location',
       description: 'Add a new location to your campaign',
       icon: <Map size={16} />,
-      onExecute: () => onCreateNote?.('location'),
+      onExecute: () => onCreateNote?.('Location'),
       category: 'creation',
     },
     {
@@ -56,7 +56,7 @@ export function CommandPalette({
       label: 'Create Session',
       description: 'Add a new session note',
       icon: <Clock size={16} />,
-      onExecute: () => onCreateNote?.('session'),
+      onExecute: () => onCreateNote?.('Session'),
       category: 'creation',
     },
     {
@@ -64,7 +64,7 @@ export function CommandPalette({
       label: 'Create Lore',
       description: 'Add a new lore entry',
       icon: <FileText size={16} />,
-      onExecute: () => onCreateNote?.('lore'),
+      onExecute: () => onCreateNote?.('Lore'),
       category: 'creation',
     },
     {
@@ -72,7 +72,7 @@ export function CommandPalette({
       label: 'Quick Actions',
       description: 'Open quick actions menu',
       icon: <Zap size={16} />,
-      onExecute: () => onAction?.('quick-actions'),
+      onExecute: () => onAction?.('Quick-actions'),
       category: 'action',
     },
   ], [onCreateNote, onAction]);

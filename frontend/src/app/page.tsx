@@ -8,6 +8,8 @@ import Sidebar from '@/components/Sidebar'
 import Inspector from '@/components/Inspector'
 import Nav from '@/components/Nav'
 import Tiptap from '@/components/Tiptap'
+import DocumentHeader from '@/components/DocumentHeader'
+import { AddNoteModal } from '@/components/AddNoteModal'
 import { nanoid } from 'nanoid'
 import { Note } from '@/types/node'
 import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
@@ -45,10 +47,27 @@ export default function Home({
     }
   }, [nodes, activeId])
 
-  /* 3. content + updater for the active node */
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'n') {
+        e.preventDefault()
+        setIsAddModalOpen(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  /* 3. typing state tracking */
+  const [isTyping, setIsTyping] = useState(false)
+  
+  /* 4. content + updater for the active node */
   const { htmlContent, updateMarkdown } = useActiveNode(
     campaign,
-    activeId ?? ''
+    activeId ?? '',
+    isTyping
   )
 
   // Handle navigation to a note from command palette
@@ -57,14 +76,14 @@ export default function Home({
   }
 
   // Handle creating new notes from command palette  
-  const handleCreateNote = async (type?: string) => {
+  const handleCreateNote = async (type?: string, title?: string) => {
     const ts = Date.now()
     const id = nanoid()
 
     const newRow = {
       id,
       type: type || 'Note', // Use the specified type or default to 'Note'
-      title: 'Untitled',
+      title: title || 'Untitled',
       markdown: '',
       updatedAt: ts,
       createdAt: ts,
@@ -90,20 +109,23 @@ export default function Home({
       case 'toggle-inspector':
         setShowInspector(prev => !prev)
         break
+      case 'add-note':
+        setIsAddModalOpen(true)
+        break
       default:
         console.log('Unknown action:', action)
     }
   }
 
   /* create a blank node and switch to it */
-  async function handleCreate() {
+  async function handleCreate(type?: string, title?: string) {
     const ts = Date.now()
     const id = nanoid()
 
     const newRow = {
       id,
-      type: 'Note',
-      title: 'Untitled',
+      type: type || 'Note',
+      title: title || 'Untitled',
       markdown: '',
       updatedAt: ts,
       createdAt: ts,
@@ -113,7 +135,7 @@ export default function Home({
     }
     const nodeId = await createNode(newRow);   // use the real id
     setActiveId(nodeId);
-    setNodes(prev => [{ ...newRow, nodeId }, ...prev]);
+    setNodes(prev => [{ ...newRow, id: nodeId }, ...prev]);
   }
 
   async function handleDelete(node: Note) {
@@ -126,6 +148,7 @@ export default function Home({
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [showInspector, setShowInspector] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   if (!nodes.length) return <p className="p-4 text-zinc-300">Loading…</p>
   if (!activeId) return <p className="p-4 text-zinc-300">Loading…</p>
@@ -169,23 +192,13 @@ export default function Home({
             <Allotment>
               <Allotment.Pane>
                 <div className="flex-1 min-w-0 relative bg-zinc-950 h-full">
-                  {/* Document Header */}
-                  <div className="bg-zinc-900/50 backdrop-blur-sm border-b border-zinc-800/50 px-6 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                      <h1 className="text-zinc-100 font-medium text-lg truncate">
-                        {node.title}
-                      </h1>
-                      <span className="text-zinc-500 text-sm font-mono">
-                        {node.type}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                      <span>Last updated {new Date(node.updatedAt).toLocaleDateString()}</span>
-                      <div className="w-1 h-1 bg-zinc-600 rounded-full"></div>
-                      <span>{htmlContent.split(' ').length} words</span>
-                    </div>
-                  </div>
+                  <DocumentHeader
+                    node={node}
+                    htmlContent={htmlContent}
+                    onTitleChange={async (id, title) => {
+                      await renameNode(id, title)
+                    }}
+                  />
                   
                   {/* Document Content */}
                   <div className="h-[calc(100%-64px)] overflow-auto">
@@ -194,6 +207,7 @@ export default function Home({
                         key={activeId}
                         content={htmlContent}
                         onContentChange={updateMarkdown}
+                        onTypingStateChange={setIsTyping}
                       />
                     </div>
                   </div>
@@ -248,6 +262,12 @@ export default function Home({
           </Allotment.Pane>
         </Allotment>
       </div>
+      
+      <AddNoteModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onCreate={handleCreateNote}
+      />
     </div>
   )
 }

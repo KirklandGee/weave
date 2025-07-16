@@ -11,11 +11,16 @@ import React from 'react'
 export default function Tiptap({
   content,
   onContentChange,
+  onTypingStateChange,
 }: {
   content: string;
   onContentChange: (md: string) => void;
+  onTypingStateChange?: (isTyping: boolean) => void;
 }) {
   const localUpdate = useRef<boolean>(false)
+  const isTyping = useRef<boolean>(false)
+  const typingTimer = useRef<NodeJS.Timeout | null>(null)
+  const lastContent = useRef<string>('')
 
   // create a fresh debouncer every time the callback changes (i.e. node switch)
   const debouncedSave = useMemo(
@@ -32,6 +37,21 @@ export default function Tiptap({
         localUpdate.current = false
         return
       }
+      
+      // Mark as typing and reset timer
+      if (!isTyping.current) {
+        isTyping.current = true
+        onTypingStateChange?.(true)
+      }
+      
+      if (typingTimer.current) {
+        clearTimeout(typingTimer.current)
+      }
+      typingTimer.current = setTimeout(() => {
+        isTyping.current = false
+        onTypingStateChange?.(false)
+      }, 1000) // Consider typing stopped after 1 second of inactivity
+      
       debouncedSave(editor.getHTML())      // <-- debounce here
     },
     editorProps: {
@@ -46,9 +66,35 @@ export default function Tiptap({
   /* ---------- 3. Dexie -> editor sync ---------- */
   useEffect(() => {
     if (!editor) return
-    if (content !== editor.getHTML()) {
+    
+    // Don't update if user is actively typing
+    if (isTyping.current) {
+      return
+    }
+    
+    // Only update if content actually changed and is different from last known content
+    if (content !== lastContent.current && content !== editor.getHTML()) {
+      // Save cursor position before updating
+      const { from, to } = editor.state.selection
+      const isFocused = editor.isFocused
+      
       localUpdate.current = true
+      lastContent.current = content
       editor.commands.setContent(content, { emitUpdate: false })
+      
+      // Restore cursor position if editor was focused
+      if (isFocused) {
+        setTimeout(() => {
+          const maxPos = editor.state.doc.content.size
+          const safeFrom = Math.min(from, maxPos)
+          const safeTo = Math.min(to, maxPos)
+          
+          if (safeFrom <= maxPos && safeTo <= maxPos) {
+            editor.commands.setTextSelection({ from: safeFrom, to: safeTo })
+            editor.commands.focus()
+          }
+        }, 0)
+      }
     }
   }, [content, editor])
 
@@ -56,16 +102,11 @@ export default function Tiptap({
   useEffect(() => {
     if (!editor) return
 
-    const updateHandler = () => {
-      // this branch only runs if localUpdate was false
-      debouncedSave(editor.getHTML())
-    }
-
-    editor.on('update', updateHandler)
-
     return () => {
-      editor.off('update', updateHandler) // remove listener
       debouncedSave.cancel()              // kill any pending save
+      if (typingTimer.current) {
+        clearTimeout(typingTimer.current)
+      }
     }
   }, [editor, debouncedSave])
 

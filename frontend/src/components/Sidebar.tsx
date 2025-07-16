@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import type { Note } from '@/types/node'
-import { ChevronDown, ChevronRight, Trash, Pencil } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash, Pencil, Plus } from 'lucide-react'
 import React from 'react'
+import { AddNoteModal } from './AddNoteModal'
 
 export default function Sidebar({
   nodes,
@@ -16,11 +17,12 @@ export default function Sidebar({
   nodes: Note[]
   activeId: string
   onSelect: (node: Note) => void
-  onCreate: () => void
+  onCreate: (type?: string, title?: string) => void
   onDelete: (node: Note) => void
   onRename: (id: string, title: string) => void
   onHide?: () => void
 }) {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   /* ---------- group + accordion state ---------- */
   const grouped = nodes.reduce((acc, n) => {
@@ -82,12 +84,16 @@ export default function Sidebar({
       </div>
       
       <div className="flex-shrink-0 p-3 border-b border-zinc-800">
-        <button
-          onClick={onCreate}
-          className="w-full text-white bg-blue-500 hover:bg-blue-700 text-sm font-bold py-2 px-4 rounded transition-colors"
-        >
-          Add Note
-        </button>
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Quick Actions</h4>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-blue-400 hover:bg-blue-900/20 rounded-md transition-colors"
+          >
+            <Plus size={12} />
+            Add Note
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
@@ -194,6 +200,15 @@ export default function Sidebar({
           )
         })}
       </div>
+      
+      <AddNoteModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onCreate={(type, title) => {
+          onCreate(type, title)
+          setIsAddModalOpen(false)
+        }}
+      />
     </aside>
   )
 }

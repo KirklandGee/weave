@@ -6,7 +6,7 @@ import { useEffect } from 'react'
 import { USER_ID, CAMPAIGN_SLUG } from '@/lib/constants'
 import { useAuthFetch } from '@/utils/authFetch.client'
 
-export function useActiveNode(campaign: string, nodeId: string) {
+export function useActiveNode(campaign: string, nodeId: string, isTyping: boolean = false) {
 
   const authFetch = useAuthFetch()
   const db = getDb()
@@ -58,11 +58,15 @@ export function useActiveNode(campaign: string, nodeId: string) {
     })
   }
 
-  // background sync (one per hook instance)
+  // background sync (one per hook instance) - pause when typing
   useEffect(() => {
+    if (isTyping) {
+      return // Don't sync while typing
+    }
+    
     const id = setInterval(() => pushPull(authFetch), 5000)
     return () => clearInterval(id)
-  }, [campaign, authFetch])
+  }, [campaign, authFetch, isTyping])
 
   return { title, htmlContent, updateMarkdown }
 }
