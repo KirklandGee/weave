@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.27.6",
+    "@clerk/nextjs": "^6.25.0",
     "@tiptap/extension-bubble-menu": "^3.0.0-beta.24",
     "@tiptap/pm": "^3.0.0-beta.24",
     "@tiptap/react": "^3.0.0-beta.24",

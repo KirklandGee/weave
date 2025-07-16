@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChatRequest, LLMMessage, LLMChatEmbeddedProps } from '@/types/llm';
 import { Rnd } from 'react-rnd';
 import { useLLMContext } from '@/lib/hooks/useLLMContext';
+import { useAuthFetch } from '@/utils/authFetch.client';
 
 export default function LLMChatEmbedded({
   title = 'AI Assistant',
@@ -20,6 +21,8 @@ export default function LLMChatEmbedded({
   const [panelPos, setPanelPos] = useState({ x: 100, y: 100 });
   const [panelSize, setPanelSize] = useState({ width: 320, height: 360 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const authFetch = useAuthFetch();
 
   // initialize position at bottom-right on first open
   useEffect(() => {
@@ -54,13 +57,13 @@ export default function LLMChatEmbedded({
       console.log('typeof contextString:', typeof contextString);
 
       const chatRequest: ChatRequest = {
-        user_id: 'default-user',
+        user_id: 'demo-user',
         messages: [...messages, userMessage],
         metadata: {},
         context: contextString,
       };
 
-      const response = await fetch('/api/llm/chat/stream', {
+      const response = await authFetch('/api/llm/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(chatRequest),

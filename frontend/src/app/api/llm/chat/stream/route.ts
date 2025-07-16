@@ -1,18 +1,30 @@
 // src/app/api/llm/chat/stream/route.ts
 import { NextResponse } from 'next/server';
-
+import { auth } from '@clerk/nextjs/server';
 export const runtime = 'nodejs';
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
+
+  console.log(`Request ${req}`)
+  const { userId, getToken } = await auth();
+
+  if (!userId) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // Read the raw JSON body
-  const body = await request.text();
+  const body = await req.text();
 
   const backend = process.env.BACKEND_URL ?? 'http://localhost:8000';
-  console.log('📤 proxying to:', `${backend}/llm/chat/stream`);
-
+  // Get the token properly
+  const token = await getToken();
+  
   const upstream = await fetch(`${backend}/llm/chat/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
     body,
   });
 
@@ -26,9 +38,9 @@ export async function POST(request: Request) {
   return new NextResponse(upstream.body, {
     status: upstream.status,
     headers: {
-      'Content-Type':   upstream.headers.get('content-type') || 'text/plain',
-      'Cache-Control':  'no-cache',
-      'Connection':     'keep-alive',
+      'Content-Type': upstream.headers.get('content-type') || 'text/plain',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
     },
   });
 }

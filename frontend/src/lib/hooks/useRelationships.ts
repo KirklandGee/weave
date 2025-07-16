@@ -4,6 +4,7 @@ import { getDb } from '../db/campaignDB';
 import { createEdge, deleteEdge } from './useEdgeOps';
 import { USER_ID, CAMPAIGN_SLUG } from '../constants';
 import { VectorSearchResult } from '@/types/search';
+import { useAuthFetch } from '@/utils/authFetch.client';
 
 type UseRelationshipsProps = {
   currentNote: Note;
@@ -23,6 +24,8 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const db = getDb();
+
+  const authFetch = useAuthFetch()
 
   // Fuzzy search function - you might want to use a proper library like Fuse.js
   const fuzzySearch = useCallback((query: string, notes: Note[]): Note[] => {
@@ -122,7 +125,7 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
   const getSimilarContentSuggestions = useCallback(async (noteId: string, limit: number = 5): Promise<Note[]> => {
     try {
       // Add campaign_id parameter to filter results to current campaign
-      const response = await fetch(
+      const response = await authFetch(
         `/api/search/similar/${noteId}?limit=${limit}&threshold=0.6&campaign_id=${CAMPAIGN_SLUG}`,
         {
           method: 'GET',
