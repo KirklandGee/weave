@@ -92,8 +92,7 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
         {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
-            'X-User-Id': USER_ID
+            'Content-Type': 'application/json'
           },
         }
       );

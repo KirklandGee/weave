@@ -5,8 +5,10 @@ import { useEffect } from 'react'
 import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
 import { CAMPAIGN_SLUG, USER_ID } from '../constants'
+import { useAuthFetch } from '@/utils/authFetch.client'
 
 export const useCampaignNodes = () => {
+  const authFetch = useAuthFetch()
   const db = getDb()
   const nodes = useLiveQuery(() => db.nodes.toArray(), [], [])
 
@@ -14,7 +16,7 @@ export const useCampaignNodes = () => {
   useEffect(() => {
     if (nodes.length === 0) {
       (async () => {
-        const fresh = await fetch(
+        const fresh = await authFetch(
           `/api/sync/${CAMPAIGN_SLUG}/sidebar`,
           {
             headers: {
@@ -32,12 +34,12 @@ export const useCampaignNodes = () => {
     let stop = false
     const loop = async () => {
       if (stop) return
-      await pushPull()      // still hits /since/{last}
+      await pushPull(authFetch)      // still hits /since/{last}
       setTimeout(loop, 5000)
     }
     loop()
     return () => { stop = true }
-  }, [])
+  }, [authFetch])
 
   return nodes
 }

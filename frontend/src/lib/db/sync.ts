@@ -21,15 +21,15 @@ function edgeSnakeToCamel(edge: any) {
   };
 }
 
-export async function pushPull() {
+export async function pushPull(authFetch: (url: string, options?: RequestInit) => Promise<Response>) {
+
   // 1. push local changes
   const changes: Change[] = await db.changes.toArray()
   if (changes.length) {
-    const res = await fetch(`${API}/${CAMPAIGN_SLUG}`, {
+    const res = await authFetch(`${API}/${CAMPAIGN_SLUG}`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'X-User-Id': USER_ID
       },
       body: JSON.stringify(changes),
     })
@@ -42,17 +42,17 @@ export async function pushPull() {
   }
   // 1. pull fresh nodes
   const lastNode = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0;
-  const freshNodes = await fetch(
+  const freshNodes = await authFetch(
     `${API}/${CAMPAIGN_SLUG}/nodes/since/${lastNode}`,
-    { headers: { 'Content-Type':'application/json','X-User-Id':USER_ID } }
+    { headers: { 'Content-Type':'application/json'} }
   ).then(r => r.json());
   if (freshNodes.length) await db.nodes.bulkPut(freshNodes);
   
   // 2. pull fresh edges
   const lastEdge = (await db.edges.orderBy('updatedAt').last())?.updatedAt ?? 0;
-  const freshEdges = await fetch(
+  const freshEdges = await authFetch(
     `${API}/${CAMPAIGN_SLUG}/edges/since/${lastEdge}`,
-    { headers: { 'Content-Type':'application/json','X-User-Id':USER_ID } }
+    { headers: { 'Content-Type':'application/json' } }
   ).then(r => r.json());
 
   const camelEdges = freshEdges.map(edgeSnakeToCamel);

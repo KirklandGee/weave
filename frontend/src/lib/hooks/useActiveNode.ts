@@ -4,8 +4,11 @@ import { pushPull } from '@/lib/db/sync'
 import { mdToHtml } from '@/lib/md'
 import { useEffect } from 'react'
 import { USER_ID, CAMPAIGN_SLUG } from '@/lib/constants'
+import { useAuthFetch } from '@/utils/authFetch.client'
 
 export function useActiveNode(campaign: string, nodeId: string) {
+
+  const authFetch = useAuthFetch()
   const db = getDb()
   
   const node = useLiveQuery(() =>
@@ -57,9 +60,9 @@ export function useActiveNode(campaign: string, nodeId: string) {
 
   // background sync (one per hook instance)
   useEffect(() => {
-    const id = setInterval(() => pushPull(), 5000)
+    const id = setInterval(() => pushPull(authFetch), 5000)
     return () => clearInterval(id)
-  }, [campaign])
+  }, [campaign, authFetch])
 
   return { title, htmlContent, updateMarkdown }
 }

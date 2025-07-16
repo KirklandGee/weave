@@ -1,25 +1,23 @@
 import json
-from typing import Annotated, Literal
-
-from fastapi import APIRouter, Header, HTTPException
+from typing import Annotated
+from fastapi import APIRouter, Header, Depends, HTTPException
 from backend.models.components import Note, Change, Edge
 from backend.services.neo4j import query
+from backend.api.auth import get_current_user
 
 router = APIRouter(prefix="/sync", tags=["sync"])
-
-UserIdHeader = Annotated[str, Header(alias="X-User-Id")]
-
 
 # ───────────────────────────────────────────────────────── sidebar list ──
 @router.get("/{campaign_id}/sidebar", response_model=list[Note])
 async def get_sidebar_nodes(
     campaign_id: str,
-    uid: UserIdHeader,
+    user_id: str = Depends(get_current_user),
 ):
     try:
+        print(f"User ID: {user_id}")
         records = query(
             """
-            MATCH (u:User {id:$uid})
+            MATCH (u:User {id:$user_id})
 
             OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(n1)
             OPTIONAL MATCH (u)-[:PART_OF]->(n2)
@@ -41,9 +39,11 @@ async def get_sidebar_nodes(
               )
             } AS node
             """,
-            uid=uid,
+            user_id=user_id,
             cid=campaign_id if campaign_id != "global" else None,
         )
+        print(f"Sidebar records: {records}")
+
         return [r["node"] for r in records]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -54,7 +54,7 @@ async def get_sidebar_nodes(
 async def push_changes(
     cid: str,
     changes: list[Change],
-    uid: UserIdHeader,
+    user_id: str = Depends(get_current_user),
 ):
     try:
         for ch in changes:
@@ -118,12 +118,12 @@ async def push_changes(
                 if ch.op == "update":
                     _ = query(
                         """
-                        MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
+                        MATCH (u:User {id:$user_id})-[:OWNS]->(c:Campaign {id:$cid})
                             <-[:PART_OF]-(n {id:$nid})
                         SET   n += $payload,
                             n.updatedAt = $ts
                         """,
-                        uid=uid,
+                        user_id=user_id,
                         cid=cid,
                         nid=ch.entityId,
                         payload=ch.payload,
@@ -144,14 +144,14 @@ async def push_changes(
                         SET  node.createdAt = coalesce(node.createdAt, $ts),
                             node.updatedAt = $ts
                         WITH node
-                        MATCH (u:User {id:$uid})
+                        MATCH (u:User {id:$user_id})
                         OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})
                         FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
                         MERGE (node)-[:PART_OF]->(c)
                         )
                         MERGE (u)-[:PART_OF]->(node)
                         """,
-                        uid=uid,
+                        user_id=user_id,
                         cid=cid,
                         nid=ch.entityId,
                         label=label,
@@ -163,11 +163,11 @@ async def push_changes(
                 elif ch.op == "delete":
                     _ = query(
                         """
-                        MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
+                        MATCH (u:User {id:$user_id})-[:OWNS]->(c:Campaign {id:$cid})
                             <-[:PART_OF]-(n {id:$nid})
                         DETACH DELETE n
                         """,
-                        uid=uid,
+                        user_id=user_id,
                         cid=cid,
                         nid=ch.entityId,
                     )
@@ -191,12 +191,12 @@ async def push_changes(
 async def get_updates(
     cid: str,
     ts: int,
-    uid: UserIdHeader,
+    user_id: str = Depends(get_current_user),
 ):
     try:
         records = query(
             """
-            MATCH (u:User {id:$uid})
+            MATCH (u:User {id:$user_id})
             OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(n1)
             OPTIONAL MATCH (u)-[:PART_OF]->(n2)
             WITH coalesce(n1,n2) AS n
@@ -214,7 +214,7 @@ async def get_updates(
               )
             } AS node
             """,
-            uid=uid,
+            user_id=user_id,
             cid=cid if cid != "global" else None,
             ts=ts,
         )
@@ -228,7 +228,7 @@ async def get_updates(
 async def get_edges(
     cid: str,
     ts: int,
-    uid: UserIdHeader,
+    user_id: str = Depends(get_current_user),
 ):
     """
     Return every relationship touching this user’s nodes/campaign whose
@@ -236,7 +236,7 @@ async def get_edges(
     """
     records = query(
         """
-        MATCH (u:User {id:$uid})
+        MATCH (u:User {id:$user_id})
 
         // campaign-scoped nodes the user owns
         OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(a)
@@ -266,7 +266,7 @@ async def get_edges(
                       )
         } AS edge
         """,
-        uid=uid,
+        user_id=user_id,
         cid=None if cid == "global" else cid,
         ts=ts,
     )
@@ -278,12 +278,12 @@ async def get_edges(
 async def get_node_edges(
     cid: str,
     nid: str,
-    uid: UserIdHeader,
+    user_id: str = Depends(get_current_user),
 ):
     try:
         records = query(
             """
-            MATCH (u:User {id:$uid})-[:OWNS]->(c:Campaign {id:$cid})
+            MATCH (u:User {id:$user_id})-[:OWNS]->(c:Campaign {id:$cid})
                 <-[:PART_OF]-(n {id:$nid})
             MATCH (n)-[r]-(m)
             RETURN {
@@ -304,7 +304,7 @@ async def get_node_edges(
             }
             } AS edge
             """,
-            uid=uid,
+            user_id=user_id,
             cid=cid,
             nid=nid,
         )
