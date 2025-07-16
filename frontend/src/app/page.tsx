@@ -51,6 +51,50 @@ export default function Home({
     activeId ?? ''
   )
 
+  // Handle navigation to a note from command palette
+  const handleNavigateToNote = (note: Note) => {
+    setActiveId(note.id)
+  }
+
+  // Handle creating new notes from command palette  
+  const handleCreateNote = async (type?: string) => {
+    const ts = Date.now()
+    const id = nanoid()
+
+    const newRow = {
+      id,
+      type: type || 'Note', // Use the specified type or default to 'Note'
+      title: 'Untitled',
+      markdown: '',
+      updatedAt: ts,
+      createdAt: ts,
+      attributes: {},
+      ownerId: USER_ID,
+      campaignId: CAMPAIGN_SLUG
+    }
+    
+    const nodeId = await createNode(newRow)
+    setActiveId(nodeId)
+    setNodes(prev => [{ ...newRow, id: nodeId }, ...prev])
+  }
+
+  // Handle other actions from command palette
+  const handleAction = (action: string) => {
+    switch (action) {
+      case 'quick-actions':
+        console.log('Opening quick actions')
+        break
+      case 'toggle-sidebar':
+        setShowSidebar(prev => !prev)
+        break
+      case 'toggle-inspector':
+        setShowInspector(prev => !prev)
+        break
+      default:
+        console.log('Unknown action:', action)
+    }
+  }
+
   /* create a blank node and switch to it */
   async function handleCreate() {
     const ts = Date.now()
@@ -90,8 +134,12 @@ export default function Home({
   
   return (
     <div className="h-screen bg-zinc-900 text-zinc-100">
-      <Nav campaignName='Storm Of Whatever' />
-      
+    <Nav 
+      campaignName='Storm Of Whatever'
+      onNavigateToNote={handleNavigateToNote}
+      onCreateNote={handleCreateNote}
+      onAction={handleAction}
+    />      
       <div 
         className="h-[calc(100vh-64px)] bg-zinc-950"
         style={{

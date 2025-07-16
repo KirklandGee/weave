@@ -3,6 +3,7 @@ import { Plus, ArrowRight, X } from 'lucide-react';
 import { AddRelationshipModal } from './AddRelationshipsModal';
 import { useRelationships } from '../lib/hooks/useRelationships';
 import { Note as Note, RelationshipType } from '@/types/node';
+import { searchNotes } from '@/lib/search';
 
 type RelationshipsSectionProps = {
   currentNote: Note;
@@ -33,7 +34,6 @@ export function RelationshipsSection({
   const {
     relationships,
     isLoading,
-    searchNotes,
     getSimilarContentSuggestions,
     addRelationship,
     removeRelationship,

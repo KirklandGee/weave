@@ -5,6 +5,7 @@ import { createEdge, deleteEdge } from './useEdgeOps';
 import { USER_ID, CAMPAIGN_SLUG } from '../constants';
 import { VectorSearchResult } from '@/types/search';
 import { useAuthFetch } from '@/utils/authFetch.client';
+// import {} from '@/lib/search'
 
 type UseRelationshipsProps = {
   currentNote: Note;
@@ -25,46 +26,7 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const db = getDb();
 
-  const authFetch = useAuthFetch()
-
-  // Fuzzy search function - you might want to use a proper library like Fuse.js
-  const fuzzySearch = useCallback((query: string, notes: Note[]): Note[] => {
-    const lowercaseQuery = query.toLowerCase();
-    return notes.filter(note =>
-      note.title.toLowerCase().includes(lowercaseQuery)
-    ).sort((a, b) => {
-      // Prioritize exact matches and starts-with matches
-      const aTitle = a.title.toLowerCase();
-      const bTitle = b.title.toLowerCase();
-
-      if (aTitle.startsWith(lowercaseQuery) && !bTitle.startsWith(lowercaseQuery)) {
-        return -1;
-      }
-      if (!aTitle.startsWith(lowercaseQuery) && bTitle.startsWith(lowercaseQuery)) {
-        return 1;
-      }
-
-      return aTitle.localeCompare(bTitle);
-    });
-  }, []);
-
-  // Search notes function
-  const searchNotes = useCallback(async (query: string): Promise<Note[]> => {
-    if (!query.trim()) return [];
-
-    try {
-      // Get all notes in campaign, excluding campaign nodes
-      const allNotes = await db.nodes
-        .toArray();
-
-      const filtered = fuzzySearch(query, allNotes);
-
-      return filtered;
-    } catch (error) {
-      console.error('Error searching notes:', error);
-      return [];
-    }
-  }, [db, fuzzySearch]);
+  const authFetch = useAuthFetch() 
 
   // Get relationships for a specific note
   const getRelationshipsForNote = useCallback(async (noteId: string): Promise<Relationship[]> => {
@@ -279,7 +241,6 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
     relationships,
     relationshipsByType,
     isLoading,
-    searchNotes,
     getSimilarContentSuggestions,
     getTwoHopSuggestions,
     addRelationship,
