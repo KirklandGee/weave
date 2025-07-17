@@ -8,7 +8,7 @@ export function useLLMContext(campaign: string, nodeId: string) {
   const { htmlContent, title } = useActiveNode(campaign, nodeId)
 
   // 2. edges from Dexie (already in camelCase)
-  const db = getDb()
+  const db = getDb(campaign)
   const edges = useLiveQuery(() => 
     db.edges.where('fromId').equals(nodeId)
       .or('toId').equals(nodeId)

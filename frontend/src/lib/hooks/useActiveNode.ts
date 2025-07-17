@@ -3,13 +3,13 @@ import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
 import { mdToHtml } from '@/lib/md'
 import { useEffect } from 'react'
-import { USER_ID, CAMPAIGN_SLUG } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
 import { useAuthFetch } from '@/utils/authFetch.client'
 
 export function useActiveNode(campaign: string, nodeId: string, isTyping: boolean = false) {
 
   const authFetch = useAuthFetch()
-  const db = getDb()
+  const db = getDb(campaign)
   
   const node = useLiveQuery(() =>
     db.nodes.get(nodeId), [nodeId])
@@ -36,7 +36,8 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
           type: 'Note',
           attributes: {},
           ownerId: USER_ID,
-          campaignId: CAMPAIGN_SLUG
+          campaignId: campaign,
+          campaignIds: [campaign]
         })
       
       await db.changes.add({
@@ -64,7 +65,7 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
       return // Don't sync while typing
     }
     
-    const id = setInterval(() => pushPull(authFetch), 5000)
+    const id = setInterval(() => pushPull(authFetch, campaign), 5000)
     return () => clearInterval(id)
   }, [campaign, authFetch, isTyping])
 

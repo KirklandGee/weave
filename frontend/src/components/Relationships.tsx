@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, ArrowRight, X } from 'lucide-react';
 import { AddRelationshipModal } from './AddRelationshipsModal';
 import { useRelationships } from '../lib/hooks/useRelationships';
 import { Note as Note, RelationshipType } from '@/types/node';
 import { searchNotes } from '@/lib/search';
+import { useCampaign } from '@/contexts/CampaignContext';
 
 type RelationshipsSectionProps = {
   currentNote: Note;
@@ -28,6 +29,7 @@ export function RelationshipsSection({
   currentNote,
   onNavigateToNote,
 }: RelationshipsSectionProps) {
+  const { currentCampaign } = useCampaign();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
 
@@ -74,6 +76,14 @@ export function RelationshipsSection({
       onNavigateToNote(noteId);
     }
   };
+
+  // Create campaign-aware search function
+  const campaignSearchNotes = useCallback(async (query: string) => {
+    if (!currentCampaign) {
+      return [];
+    }
+    return searchNotes(query, currentCampaign.slug);
+  }, [currentCampaign]);
 
   return (
     <div className="space-y-3">
@@ -198,7 +208,7 @@ export function RelationshipsSection({
         onClose={() => setIsModalOpen(false)}
         currentNote={currentNote}
         onAddRelationship={handleAddRelationship}
-        searchNotes={searchNotes}
+        searchNotes={campaignSearchNotes}
         getSimilarContentSuggestions={getSimilarContentSuggestions}
         existingRelationships={relationships}
       />

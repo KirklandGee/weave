@@ -1,7 +1,8 @@
 export interface Note {
   id: string
   ownerId: string
-  campaignId: string | null        // null == “global”
+  campaignId: string | null        // null == "global" (legacy field for backward compatibility)
+  campaignIds: string[]            // array of campaign IDs this node belongs to
   type: string
   title: string
   markdown: string
@@ -27,7 +28,8 @@ export type RelationshipType = 'DEPICTS' | 'FOLLOWS' | 'FROM' | 'INVOLVES' | 'KN
 export type Relationship = {
   id: string
   ownerId: string
-  campaignId: string | null    
+  campaignId: string | null    // legacy field for backward compatibility
+  campaignIds: string[]        // array of campaign IDs this relationship belongs to
   updatedAt: number
   fromId: string
   toId: string, 

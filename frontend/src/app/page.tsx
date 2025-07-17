@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useCampaignNodes } from '@/lib/hooks/useCampaignNodes'
 import { useActiveNode } from '@/lib/hooks/useActiveNode'
-import { createNode, deleteNode, renameNode } from '@/lib/hooks/useNodeOps'
+import { createNodeOps } from '@/lib/hooks/useNodeOps'
+import { useCampaign } from '@/contexts/CampaignContext'
 import Sidebar from '@/components/Sidebar'
 import Inspector from '@/components/Inspector'
 import Nav from '@/components/Nav'
@@ -12,33 +13,44 @@ import DocumentHeader from '@/components/DocumentHeader'
 import { AddNoteModal } from '@/components/AddNoteModal'
 import { nanoid } from 'nanoid'
 import { Note } from '@/types/node'
-import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
 import LLMChatEmbedded from '@/components/LLMChatEmbedded'
 import { Allotment } from "allotment"
 import "allotment/dist/style.css"
 
-export default function Home({
-  params,          // assuming /campaign/[title]/[nodeId] route
-}: {
-  params: { title: string; nodeId?: string }
-}) {
-  const { title: campaign } = params
-  const dbNodes = useCampaignNodes()
+export default function Home() {
+  const { currentCampaign } = useCampaign()
+  // Only load nodes if we have a campaign - this prevents loading from 'default' database
+  const dbNodes = useCampaignNodes(currentCampaign?.slug)
+  const nodeOps = currentCampaign ? createNodeOps(currentCampaign.slug) : null
 
   /* 1. local working copy that we can mutate optimistically */
   const [nodes, setNodes] = useState<Note[]>([])
 
   // keep DB truth, but don't drop optimistic rows that Dexie hasn't emitted yet
   useEffect(() => {
-    setNodes(prev => {
-      const byId = new Map(prev.map(n => [n.id, n]))
-      dbNodes.forEach(n => byId.set(n.id, n))
-      return Array.from(byId.values())
+    if (!dbNodes) {
+      // If dbNodes is undefined, clear the nodes
+      setNodes([])
+      return
+    }
+    
+    // For campaign switches, replace entirely. For same campaign, merge optimistically.
+    setNodes(() => {
+      // If we have dbNodes, use them as the source of truth
+      const newNodes = dbNodes.filter(n => n && typeof n === 'object' && 'id' in n)
+      return newNodes
     })
   }, [dbNodes])
+
+  // Clear state when campaign changes
+  useEffect(() => {
+    setNodes([])
+    setActiveId(null)
+  }, [currentCampaign?.id])
   
   /* 2. which node is open */
-  const [activeId, setActiveId] = useState<string | null>(params.nodeId ?? null)
+  const [activeId, setActiveId] = useState<string | null>(null)
 
   /* set a default once nodes load */
   useEffect(() => {
@@ -65,7 +77,7 @@ export default function Home({
   
   /* 4. content + updater for the active node */
   const { htmlContent, updateMarkdown } = useActiveNode(
-    campaign,
+    currentCampaign?.slug ?? '',
     activeId ?? '',
     isTyping
   )
@@ -89,10 +101,12 @@ export default function Home({
       createdAt: ts,
       attributes: {},
       ownerId: USER_ID,
-      campaignId: CAMPAIGN_SLUG
+      campaignId: currentCampaign?.id || null,
+    campaignIds: currentCampaign ? [currentCampaign.id] : []
     }
     
-    const nodeId = await createNode(newRow)
+    if (!nodeOps) return
+    const nodeId = await nodeOps.createNode(newRow)
     setActiveId(nodeId)
     setNodes(prev => [{ ...newRow, id: nodeId }, ...prev])
   }
@@ -131,15 +145,18 @@ export default function Home({
       createdAt: ts,
       attributes: {},
       ownerId: USER_ID,
-      campaignId: CAMPAIGN_SLUG
+      campaignId: currentCampaign?.id || null,
+      campaignIds: currentCampaign ? [currentCampaign.id] : []
     }
-    const nodeId = await createNode(newRow);   // use the real id
+    if (!nodeOps) return
+    const nodeId = await nodeOps.createNode(newRow);   // use the real id
     setActiveId(nodeId);
     setNodes(prev => [{ ...newRow, id: nodeId }, ...prev]);
   }
 
   async function handleDelete(node: Note) {
-    await deleteNode(node.id)
+    if (!nodeOps) return
+    await nodeOps.deleteNode(node.id)
     setNodes(prev => prev.filter(n => n.id !== node.id))
     setActiveId(prev =>
       prev === node.id ? (nodes.find(n => n.id !== node.id)?.id ?? null) : prev,
@@ -150,15 +167,23 @@ export default function Home({
   const [showInspector, setShowInspector] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  if (!nodes.length) return <p className="p-4 text-zinc-300">Loading…</p>
-  if (!activeId) return <p className="p-4 text-zinc-300">Loading…</p>
+  if (!currentCampaign) return <p className="p-4 text-zinc-300">Loading campaigns…</p>
+  
+  // Show loading if we have no nodes and dbNodes is still undefined (still fetching)
+  if (!nodes.length && dbNodes === undefined) return <p className="p-4 text-zinc-300">Loading nodes…</p>
+  
+  // If we have no nodes but dbNodes is defined (finished fetching), allow empty state
+  if (!nodes.length && dbNodes !== undefined) {
+    return <p className="p-4 text-zinc-300">No nodes found. Create your first note!</p>
+  }
+  
+  if (!activeId) return <p className="p-4 text-zinc-300">Loading active node…</p>
   const node = nodes.find(n => n.id === activeId)
   if (!node) return <p className="p-4 text-zinc-300">Node not found.</p>
   
   return (
     <div className="h-screen bg-zinc-900 text-zinc-100">
     <Nav 
-      campaignName='Storm Of Whatever'
       onNavigateToNote={handleNavigateToNote}
       onCreateNote={handleCreateNote}
       onAction={handleAction}
@@ -180,7 +205,7 @@ export default function Home({
                   onCreate={handleCreate}
                   onDelete={handleDelete}
                   onRename={async (id, title) => {
-                    await renameNode(id, title)
+                    if (nodeOps) await nodeOps.renameNode(id, title)
                   }}
                   onHide={() => setShowSidebar(false)}
                 />
@@ -196,7 +221,7 @@ export default function Home({
                     node={node}
                     htmlContent={htmlContent}
                     onTitleChange={async (id, title) => {
-                      await renameNode(id, title)
+                      if (nodeOps) await nodeOps.renameNode(id, title)
                     }}
                   />
                   
@@ -213,7 +238,7 @@ export default function Home({
                   </div>
                   
                   <LLMChatEmbedded
-                    campaign={CAMPAIGN_SLUG}
+                    campaign={currentCampaign.slug}
                     activeNodeId={activeId}
                   />
                   

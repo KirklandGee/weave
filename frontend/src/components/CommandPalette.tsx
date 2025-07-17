@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, ArrowRight, Hash, FileText, User, Map, Clock, Zap } from 'lucide-react';
 import { Note } from '@/types/node';
 import { searchNotes } from '@/lib/search';
+import { useCampaign } from '@/contexts/CampaignContext';
 
 interface Command {
   id: string;
@@ -28,6 +29,7 @@ export function CommandPalette({
   onCreateNote,
   onAction,
 }: CommandPaletteProps) {
+  const { currentCampaign } = useCampaign();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Note[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -79,14 +81,14 @@ export function CommandPalette({
 
   // Search notes using improved search function
   const handleSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
+    if (!searchQuery.trim() || !currentCampaign) {
       setSearchResults([]);
       return;
     }
 
     setIsLoading(true);
     try {
-      const results = await searchNotes(searchQuery, {
+      const results = await searchNotes(searchQuery, currentCampaign.slug, {
         limit: 10,
         excludeIds: [], // Add any notes you want to exclude
       });
@@ -98,7 +100,7 @@ export function CommandPalette({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentCampaign]);
 
   // Handle search query changes
   useEffect(() => {

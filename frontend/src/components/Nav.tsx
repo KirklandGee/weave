@@ -8,10 +8,10 @@ import {   SignInButton,
   UserButton,
 } from '@clerk/nextjs'
 import { CommandPalette, useCommandPalette } from './CommandPalette'
+import CampaignSelector from './CampaignSelector'
 import { Note } from '@/types/node'
 
 interface NavProps {
-  campaignName: string
   onNewNote?: () => void
   onNavigateToNote?: (note: Note) => void
   onCreateNote?: (type?: string) => void
@@ -19,7 +19,6 @@ interface NavProps {
 }
 
 export default function Nav({ 
-  campaignName, 
   onNavigateToNote,
   onCreateNote,
   onAction
@@ -28,12 +27,10 @@ export default function Nav({
 
   return (
     <>
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900 backdrop-blur-sm">
-        {/* Campaign Name */}
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900 backdrop-blur-sm relative z-50">
+        {/* Campaign Selector */}
         <div className="flex items-center">
-          <h1 className="text-xl font-semibold text-white truncate max-w-xs">
-            {campaignName}
-          </h1>
+          <CampaignSelector />
         </div>
 
         {/* Search and Actions */}

@@ -4,42 +4,65 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect } from 'react'
 import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
-import { CAMPAIGN_SLUG, USER_ID } from '../constants'
 import { useAuthFetch } from '@/utils/authFetch.client'
 
-export const useCampaignNodes = () => {
+export const useCampaignNodes = (campaignSlug?: string) => {
   const authFetch = useAuthFetch()
-  const db = getDb()
-  const nodes = useLiveQuery(() => db.nodes.toArray(), [], [])
+  
+  // Always create db instance but use null slug if not provided
+  const db = getDb(campaignSlug || 'default')
+  
+  // Always call useLiveQuery, but return empty array if no campaign slug
+  const nodes = useLiveQuery(() => {
+    if (!campaignSlug) {
+      return Promise.resolve([])
+    }
+    return db.nodes.toArray()
+  }, [db], [campaignSlug, db])
 
   // 1. First-load seed
   useEffect(() => {
-    if (nodes.length === 0) {
-      (async () => {
-        const fresh = await authFetch(
-          `/api/sync/${CAMPAIGN_SLUG}/sidebar`,
-          {
-            headers: {
-              'X-User-Id': USER_ID
-            }
-          }
-        ).then(r => r.json())
-        if (fresh.length) await db.nodes.bulkPut(fresh)
-      })()
+    if (!campaignSlug) {
+      return
     }
-  }, [nodes])
+    
+    if (nodes && nodes.length > 0) {
+      return
+    }
+    
+    ;(async () => {
+      try {
+        const fresh = await authFetch(
+          `/api/sync/${campaignSlug}/sidebar`
+        ).then(r => r.json())
+        if (fresh.length) {
+          // Ensure nodes have the new campaignIds field
+          const processedNodes = fresh.map((node: any) => ({
+            ...node,
+            campaignIds: node.campaignIds || (node.campaignId ? [node.campaignId] : [])
+          }))
+          await db.nodes.bulkPut(processedNodes)
+        }
+      } catch (error) {
+        console.error('Error fetching nodes:', error)
+      }
+    })()
+  }, [nodes, authFetch, db.nodes, campaignSlug])
 
-  // 2. Background delta sync (unchanged)
+  // 2. Background delta sync 
   useEffect(() => {
+    if (!campaignSlug) return
+    
     let stop = false
     const loop = async () => {
       if (stop) return
-      await pushPull(authFetch)      // still hits /since/{last}
+      await pushPull(authFetch, campaignSlug)
       setTimeout(loop, 5000)
     }
     loop()
     return () => { stop = true }
-  }, [authFetch])
+  }, [authFetch, campaignSlug])
 
-  return nodes
+  // Return undefined if no campaign slug, otherwise return nodes
+  return campaignSlug ? nodes : undefined
 }

@@ -1,13 +1,11 @@
 import { getDb } from './campaignDB'
 import type { Change } from '@/types/node'
-import { CAMPAIGN_SLUG, USER_ID } from '@/lib/constants'
 
 const API = '/api/sync'   // adjust to your FastAPI proxy
 
-const db = getDb()
-
 // Fix typing here
-function edgeSnakeToCamel(edge: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function edgeSnakeToCamel(edge: any): any {
   return {
     id: edge.id,
     fromId: edge.from_id,
@@ -21,12 +19,16 @@ function edgeSnakeToCamel(edge: any) {
   };
 }
 
-export async function pushPull(authFetch: (url: string, options?: RequestInit) => Promise<Response>) {
+export async function pushPull(
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>,
+  campaignSlug: string
+) {
+  const db = getDb(campaignSlug)
 
   // 1. push local changes
   const changes: Change[] = await db.changes.toArray()
   if (changes.length) {
-    const res = await authFetch(`${API}/${CAMPAIGN_SLUG}`, {
+    const res = await authFetch(`${API}/${campaignSlug}`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -43,7 +45,7 @@ export async function pushPull(authFetch: (url: string, options?: RequestInit) =
   // 1. pull fresh nodes
   const lastNode = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0;
   const freshNodes = await authFetch(
-    `${API}/${CAMPAIGN_SLUG}/nodes/since/${lastNode}`,
+    `${API}/${campaignSlug}/nodes/since/${lastNode}`,
     { headers: { 'Content-Type':'application/json'} }
   ).then(r => r.json());
   if (freshNodes.length) await db.nodes.bulkPut(freshNodes);
@@ -51,7 +53,7 @@ export async function pushPull(authFetch: (url: string, options?: RequestInit) =
   // 2. pull fresh edges
   const lastEdge = (await db.edges.orderBy('updatedAt').last())?.updatedAt ?? 0;
   const freshEdges = await authFetch(
-    `${API}/${CAMPAIGN_SLUG}/edges/since/${lastEdge}`,
+    `${API}/${campaignSlug}/edges/since/${lastEdge}`,
     { headers: { 'Content-Type':'application/json' } }
   ).then(r => r.json());
 
@@ -68,7 +70,7 @@ export async function pushPull(authFetch: (url: string, options?: RequestInit) =
 //   const since = meta?.value ?? 0
 
 //   // 2. ask server for *changes* since that cursor
-//   const res = await fetch(`${API}/${CAMPAIGN_SLUG}/since/${since}`)
+//   const res = await fetch(`${API}/${campaignSlug}/since/${since}`)
 //   if (!res.ok) {
 //     console.error('Pull failed', await res.text())
 //     return

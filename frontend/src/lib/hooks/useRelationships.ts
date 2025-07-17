@@ -1,16 +1,18 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Note as Note, Relationship, RelationshipType } from '@/types/node';
 import { getDb } from '../db/campaignDB';
-import { createEdge, deleteEdge } from './useEdgeOps';
-import { USER_ID, CAMPAIGN_SLUG } from '../constants';
+import { createEdgeOps } from './useEdgeOps';
 import { VectorSearchResult } from '@/types/search';
 import { useAuthFetch } from '@/utils/authFetch.client';
+import { useUser } from '@clerk/nextjs';
 // import {} from '@/lib/search'
 
 type UseRelationshipsProps = {
   currentNote: Note;
+  campaignSlug?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function nodeSnakeToCamel(node: any): VectorSearchResult {
   return {
     nodeId: node.node_id,
@@ -21,10 +23,12 @@ function nodeSnakeToCamel(node: any): VectorSearchResult {
   };
 }
 
-export function useRelationships({ currentNote }: UseRelationshipsProps) {
+export function useRelationships({ currentNote, campaignSlug }: UseRelationshipsProps) {
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const db = getDb();
+  const db = getDb(campaignSlug);
+  const { user } = useUser();
+  const edgeOps = campaignSlug ? createEdgeOps(campaignSlug) : null;
 
   const authFetch = useAuthFetch() 
 
@@ -88,7 +92,7 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
     try {
       // Add campaign_id parameter to filter results to current campaign
       const response = await authFetch(
-        `/api/search/similar/${noteId}?limit=${limit}&threshold=0.6&campaign_id=${CAMPAIGN_SLUG}`,
+        `/api/search/similar/${noteId}?limit=${limit}&threshold=0.6&campaign_id=${campaignSlug}`,
         {
           method: 'GET',
           headers: {
@@ -138,15 +142,16 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
 
     // Fallback to 2-hop suggestions
     return getTwoHopSuggestions(noteId);
-  }, [getRelationshipsForNote, db, getTwoHopSuggestions]); // Added getTwoHopSuggestions to dependencies
+  }, [getRelationshipsForNote, db, getTwoHopSuggestions, authFetch, campaignSlug]); // Added missing dependencies
 
 
 
   // Add relationship using your createEdge function
   const addRelationship = useCallback(async (targetNote: Note, relationshipType: RelationshipType) => {
     try {
+      if (!edgeOps) throw new Error('Campaign not selected')
 
-      const relationshipId = await createEdge({
+      const relationshipId = await edgeOps.createEdge({
         fromId: currentNote.id,
         toId: targetNote.id,
         fromTitle: currentNote.title,
@@ -154,11 +159,16 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
         relType: relationshipType,
       });
 
+      if (!user) {
+       throw new Error('User must be authenticated to create relationships');
+      }
+
       // Create the relationship object for local state
       const newRelationship: Relationship = {
         id: relationshipId,
-        ownerId: USER_ID,
-        campaignId: CAMPAIGN_SLUG,
+        ownerId: user.id,
+        campaignId: campaignSlug || null,
+        campaignIds: campaignSlug ? [campaignSlug] : [],
         updatedAt: Date.now(),
         fromId: currentNote.id,
         toId: targetNote.id,
@@ -176,18 +186,19 @@ export function useRelationships({ currentNote }: UseRelationshipsProps) {
       console.error('Error adding relationship:', error);
       throw error;
     }
-  }, [currentNote]);
+  }, [currentNote, user, campaignSlug, edgeOps]);
 
   // Remove relationship using your deleteEdge function
   const removeRelationship = useCallback(async (relationshipId: string) => {
     try {
-      await deleteEdge(relationshipId);
+      if (!edgeOps) throw new Error('Campaign not selected')
+      await edgeOps.deleteEdge(relationshipId);
       setRelationships(prev => prev.filter(rel => rel.id !== relationshipId));
     } catch (error) {
       console.error('Error removing relationship:', error);
       throw error;
     }
-  }, []);
+  }, [edgeOps]);
 
   // Load relationships for current note
   const loadRelationships = useCallback(async () => {

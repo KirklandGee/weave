@@ -41,6 +41,7 @@ function fuzzySearch(query: string, notes: Note[]): Note[] {
  */
 export async function searchNotes(
   query: string,
+  currentCampaign: string,
   options: SearchOptions = {}
 ): Promise<Note[]> {
   if (!query.trim()) {
@@ -54,7 +55,7 @@ export async function searchNotes(
   } = options
 
   try {
-    const db = getDb()
+    const db = getDb(currentCampaign)
 
     // Get all notes in campaign
     let allNotes = await db.nodes.toArray()
@@ -77,21 +78,4 @@ export async function searchNotes(
     console.error('Search failed:', error)
     return []
   }
-
-  /**
-   * Get recent notes for suggestions
-   */
-  // export async function getRecentNotes(limit: number = 5): Promise<Note[]> {
-  //   try {
-  //     const db = getDb()
-  //     return await db.nodes
-  //       .orderBy('updatedAt')
-  //       .reverse()
-  //       .limit(limit)
-  //       .toArray()
-  //   } catch (error) {
-  //     console.error('Failed to get recent notes:', error)
-  //     return []
-  //   }
-  // }
 }
