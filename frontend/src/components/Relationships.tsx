@@ -42,6 +42,7 @@ export function RelationshipsSection({
     loadRelationships,
   } = useRelationships({
     currentNote,
+    campaignSlug: currentCampaign?.id
   });
 
   // Load relationships when component mounts or note changes
