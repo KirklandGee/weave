@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, ArrowRight, X } from 'lucide-react';
 import { AddRelationshipModal } from './AddRelationshipsModal';
 import { useRelationships } from '../lib/hooks/useRelationships';
@@ -33,6 +33,9 @@ export function RelationshipsSection({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
 
+  // Ref to AddRelationshipModal
+  const addModalRef = useRef<{ focusSearch: () => void }>(null);
+
   const {
     relationships,
     isLoading,
@@ -49,6 +52,23 @@ export function RelationshipsSection({
   useEffect(() => {
     loadRelationships();
   }, [loadRelationships]);
+
+  // Keyboard shortcut: open modal with Ctrl+K (or Cmd+K on Mac)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl+K or Cmd+K
+      if ((e.metaKey) && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        setIsModalOpen(true);
+        // Focus the search input after modal opens
+        setTimeout(() => {
+          addModalRef.current?.focusSearch();
+        }, 0);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleAddRelationship = async (targetNote: Note, relationshipType: RelationshipType) => {
     try {
@@ -205,6 +225,7 @@ export function RelationshipsSection({
 
       {/* Add Relationship Modal */}
       <AddRelationshipModal
+        ref={addModalRef}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         currentNote={currentNote}

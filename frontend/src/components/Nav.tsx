@@ -30,7 +30,9 @@ export default function Nav({
       <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900 backdrop-blur-sm relative z-50">
         {/* Campaign Selector */}
         <div className="flex items-center">
-          <CampaignSelector />
+          <div className="inline-flex min-w-0 w-auto">
+            <CampaignSelector />
+          </div>
         </div>
 
         {/* Search and Actions */}

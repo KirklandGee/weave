@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import type { Note } from '@/types/node'
-import { ChevronDown, ChevronRight, Trash, Pencil, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar } from 'lucide-react'
 import React from 'react'
 import { AddNoteModal } from './AddNoteModal'
 
@@ -25,11 +25,29 @@ export default function Sidebar({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   /* ---------- group + accordion state ---------- */
-  const grouped = nodes.reduce((acc, n) => {
-    (acc[n.type] ||= []).push(n)
+  // Define section groupings
+  const sections = {
+    'World Building': {
+      icon: Map,
+      types: ['Location', 'Quest', 'Event', 'Lore', 'Rule', 'Item', 'Note']
+    },
+    'Characters & NPCs': {
+      icon: Users,
+      types: ['Character', 'NPC']
+    },
+    'Sessions': {
+      icon: Calendar,
+      types: ['Session']
+    }
+  }
+
+  // Group nodes by section instead of type
+  const grouped = Object.entries(sections).reduce((acc, [sectionName, section]) => {
+    acc[sectionName] = nodes.filter(n => section.types.includes(n.type))
     return acc
   }, {} as Record<string, Note[]>)
-  const [open, setOpen] = useState<Record<string, boolean>>({})
+  
+  const [open, setOpen] = useState<Record<string, boolean>>({'Sessions': true})
 
   /* ---------- context-menu state ---------- */
   const [menu, setMenu] = useState<{
@@ -70,47 +88,52 @@ export default function Sidebar({
     <aside className="h-full flex flex-col overflow-hidden text-zinc-200">
       <div className="flex-shrink-0 p-3 border-b border-zinc-800 flex items-center justify-between">
         <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Notes</h3>
-        {onHide && (
-          <button
-            onClick={onHide}
-            className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded hover:bg-zinc-800"
-            aria-label="Hide sidebar"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        )}
-      </div>
-      
-      <div className="flex-shrink-0 p-3 border-b border-zinc-800">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Quick Actions</h4>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-blue-400 hover:bg-blue-900/20 rounded-md transition-colors"
+            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-blue-400 hover:bg-blue-900/20 rounded-md transition-colors group"
+            title="Add Note (⌘N)"
           >
-            <Plus size={12} />
-            Add Note
+            <Plus size={14} />
           </button>
+          {onHide && (
+            <button
+              onClick={onHide}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded hover:bg-zinc-800"
+              aria-label="Hide sidebar"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
-        {Object.entries(grouped).map(([type, list]) => {
-          const isOpen = open[type] ?? true
+        {Object.entries(grouped).map(([sectionName, list]) => {
+          const isOpen = open[sectionName] ?? false
+          const section = sections[sectionName as keyof typeof sections]
+          const IconComponent = section.icon
           return (
-            <section key={type} className="mb-4">
+            <section key={sectionName} className="mb-4">
               <button
-                onClick={() => setOpen(o => ({ ...o, [type]: !isOpen }))}
-                className="flex w-full items-center justify-between font-semibold uppercase tracking-wide text-zinc-400 hover:text-zinc-100 transition-colors"
+                onClick={() => setOpen(o => ({ ...o, [sectionName]: !isOpen }))}
+                className="flex w-full items-center justify-between font-semibold uppercase tracking-wide text-zinc-400 hover:text-zinc-100 transition-colors mb-2"
               >
-                <span className="text-xs">{type}</span>
+                <div className="flex items-center gap-2">
+                  <IconComponent size={14} />
+                  <span className="text-xs">{sectionName}</span>
+                </div>
                 {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </button>
 
-              {isOpen && (
-                <ul className="mt-2 ml-2 space-y-1">
+              <div 
+                className={`overflow-hidden transition-all duration-300 ease-out ${
+                  isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                <ul className="ml-5 space-y-1 py-1">
                   {list.map(n => (
                     <li key={n.id} className="relative">
                       {/* ---------- normal / rename view ---------- */}
@@ -138,11 +161,10 @@ export default function Sidebar({
                           onClick={() => onSelect(n)}
                           onContextMenu={e => {
                             e.preventDefault()
-                            const rect = e.currentTarget.getBoundingClientRect()
                             setMenu({
                               id: n.id,
-                              top: rect.top + rect.height / 2,
-                              left: rect.right,
+                              top: e.clientY,
+                              left: e.clientX,
                             })
                           }}
                           className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors ${
@@ -161,33 +183,32 @@ export default function Sidebar({
                           className="fixed z-50"
                           style={{
                             top: `${menu.top}px`,
-                            left: `${menu.left + 8}px`,
-                            transform: 'translateY(-50%)',
+                            left: `${menu.left}px`,
                           }}
                           /* stop both click & mousedown so outside-click
                              handler won't run before our buttons */
                           onMouseDown={e => e.stopPropagation()}
                           onClick={e => e.stopPropagation()}
                         >
-                          <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg p-2">
+                          <div className="flex flex-col bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[120px]">
                             {/* rename */}
                             <button
-                              title="Rename"
                               onClick={() => triggerRename(n.id)}
-                              className="hover:bg-zinc-700 rounded-full p-1 transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
                             >
-                              <Pencil size={16} className="text-zinc-300" />
+                              <Pencil size={14} />
+                              Rename
                             </button>
                             {/* delete */}
                             <button
-                              title="Delete"
                               onClick={() => {
                                 onDelete(n)
                                 setMenu(null)
                               }}
-                              className="hover:bg-red-600 rounded-full p-1 transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
                             >
-                              <Trash size={16} className="text-red-400" />
+                              <Trash size={14} />
+                              Delete
                             </button>
                           </div>
                         </div>
@@ -195,7 +216,7 @@ export default function Sidebar({
                     </li>
                   ))}
                 </ul>
-              )}
+              </div>
             </section>
           )
         })}

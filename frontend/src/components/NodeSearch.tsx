@@ -1,5 +1,5 @@
 // src/components/NodeSearch.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
 import { Search } from 'lucide-react';
 import { Note } from '@/types/node';
 
@@ -32,7 +32,7 @@ interface NodeSearchProps {
   currentNoteId?: string;
 }
 
-export function NodeSearch({
+export const NodeSearch = forwardRef<HTMLInputElement, NodeSearchProps>(function NodeSearch({
   onSearch,
   onSuggestions,
   selectedNote,
@@ -45,11 +45,14 @@ export function NodeSearch({
   suggestionsTitle = "Suggestions",
   className = "",
   currentNoteId
-}: NodeSearchProps) {
+}, ref) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Note[]>([]);
   const [suggestions, setSuggestions] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => inputRef.current as HTMLInputElement, []);
 
   // Filter results based on props
   const filteredSearchResults = useMemo(() => {
@@ -127,6 +130,7 @@ export function NodeSearch({
       <div className="relative">
         <Search size={16} className="absolute left-3 top-3 text-zinc-400" />
         <input
+          ref={inputRef}
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -192,7 +196,7 @@ export function NodeSearch({
       )}
     </div>
   );
-}
+});
 
 // Reusable result item component
 interface SearchResultItemProps {

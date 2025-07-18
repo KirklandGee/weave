@@ -1,5 +1,5 @@
 // src/components/AddRelationshipsModal.tsx (Updated to use NodeSearch)
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { X } from 'lucide-react';
 import { Note, RelationshipType, Relationship } from '@/types/node';
 import { NodeSearch } from './NodeSearch';
@@ -27,7 +27,7 @@ const RELATIONSHIP_TYPES: { value: RelationshipType; label: string }[] = [
   { value: 'WITHIN', label: 'Within' },
 ];
 
-export function AddRelationshipModal({
+export const AddRelationshipModal = forwardRef(function AddRelationshipModal({
   isOpen,
   onClose,
   currentNote,
@@ -35,9 +35,21 @@ export function AddRelationshipModal({
   searchNotes,
   getSimilarContentSuggestions,
   existingRelationships,
-}: AddRelationshipModalProps) {
+}: AddRelationshipModalProps, ref) {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [selectedRelType, setSelectedRelType] = useState<RelationshipType>('MENTIONS');
+
+  // Ref for NodeSearch input
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Expose focusSearch method to parent
+  useImperativeHandle(ref, () => ({
+    focusSearch: () => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }
+  }), []);
 
   // Create exclusion list: current note + existing relationships
   const excludeNoteIds = useMemo(() => {
@@ -50,6 +62,10 @@ export function AddRelationshipModal({
     if (!isOpen) {
       setSelectedNote(null);
       setSelectedRelType('MENTIONS');
+    }
+    // Focus the search input when modal opens
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
     }
   }, [isOpen]);
 
@@ -86,6 +102,7 @@ export function AddRelationshipModal({
               Search for note
             </label>
             <NodeSearch
+              ref={searchInputRef}
               onSearch={searchNotes}
               onSuggestions={getSimilarContentSuggestions}
               selectedNote={selectedNote}
@@ -147,4 +164,4 @@ export function AddRelationshipModal({
       </div>
     </div>
   );
-}
+});

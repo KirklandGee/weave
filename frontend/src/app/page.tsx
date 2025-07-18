@@ -62,7 +62,7 @@ export default function Home() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === 'n') {
+      if (e.metaKey && e.shiftKey && e.key === 'n') {
         e.preventDefault()
         setIsAddModalOpen(true)
       }
@@ -182,7 +182,7 @@ export default function Home() {
   if (!node) return <p className="p-4 text-zinc-300">Node not found.</p>
   
   return (
-    <div className="h-screen bg-zinc-900 text-zinc-100">
+    <div className="h-screen bg-zinc-900 text-zinc-100 sticky">
     <Nav 
       onNavigateToNote={handleNavigateToNote}
       onCreateNote={handleCreateNote}
@@ -195,9 +195,13 @@ export default function Home() {
         } as React.CSSProperties}
       >
         <Allotment>
-          {showSidebar && (
-            <Allotment.Pane minSize={200} maxSize={400} preferredSize={280}>
-              <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden">
+          <Allotment.Pane minSize={showSidebar ? 180 : 40} maxSize={showSidebar ? 350 : 40} preferredSize={showSidebar ? 240 : 40}>
+            <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
+              <div 
+                className={`absolute inset-0 transition-transform duration-300 ease-out ${
+                  showSidebar ? 'translate-x-0' : '-translate-x-full'
+                }`}
+              >
                 <Sidebar
                   nodes={nodes}
                   activeId={activeId}
@@ -210,8 +214,26 @@ export default function Home() {
                   onHide={() => setShowSidebar(false)}
                 />
               </div>
-            </Allotment.Pane>
-          )}
+              <div 
+                className={`absolute inset-0 transition-transform duration-300 ease-out ${
+                  showSidebar ? 'translate-x-full' : 'translate-x-0'
+                }`}
+              >
+                <div className="h-full flex flex-col items-center py-3 w-10">
+                  <button
+                    onClick={() => setShowSidebar(true)}
+                    className="flex items-center justify-center w-8 h-8 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-md transition-colors duration-200 mb-4"
+                    title="Show sidebar"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  <div className="flex-1 w-px bg-zinc-800"></div>
+                </div>
+              </div>
+            </div>
+          </Allotment.Pane>
           
           <Allotment.Pane>
             <Allotment>
@@ -242,18 +264,6 @@ export default function Home() {
                     activeNodeId={activeId}
                   />
                   
-                  {/* Sidebar Toggle */}
-                  {!showSidebar && (
-                    <button
-                      onClick={() => setShowSidebar(true)}
-                      className="absolute left-2 top-20 z-20 bg-zinc-800/90 backdrop-blur-sm text-zinc-300 px-2 py-1 rounded hover:bg-zinc-700 hover:text-white transition-colors"
-                      aria-label="Show sidebar"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </button>
-                  )}
                   
                   {/* Inspector Toggle */}
                   {!showInspector && (

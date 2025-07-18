@@ -51,8 +51,9 @@ export default function CampaignSelector({ className = '' }: CampaignSelectorPro
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-start bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-3 hover:border-zinc-600 hover:bg-zinc-800 transition-colors text-left w-64 min-h-[3rem]"
+        title={currentCampaign?.title || 'No Campaign Selected'}
       >
-        <span className="text-white text-sm font-medium leading-5 flex-1 mr-3">
+        <span className="text-white text-sm font-medium leading-5 flex-1 mr-3 truncate">
           {currentCampaign?.title || 'No Campaign Selected'}
         </span>
         <ChevronDown size={16} className={`text-zinc-400 transition-transform mt-0.5 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />

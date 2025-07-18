@@ -16,7 +16,7 @@ export default function Inspector({ node, onNavigateToNote, onHide }: InspectorP
   const filteredAttributes = Object.fromEntries(
     Object.entries(node.attributes ?? {}).filter(
       ([key]) =>
-        !['embedding', 'ownerId', 'contentHash', 'embeddedAt'].includes(key)
+        !['embedding', 'ownerId', 'contentHash', 'embeddedAt', 'campaignId', 'campaignIds'].includes(key)
     )
   );
 
@@ -39,18 +39,20 @@ export default function Inspector({ node, onNavigateToNote, onHide }: InspectorP
       
       <div className="flex-1 overflow-y-auto p-4">
         <div className="mb-6">
-          <h5 className="mb-3 font-medium text-zinc-100">Attributes</h5>
           {Object.keys(filteredAttributes).length > 0 ? (
-            <ul className="space-y-2">
-              {Object.entries(filteredAttributes).map(([k, v]) => (
-                <li key={k} className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">{k}</span>
-                  <span className="text-zinc-200 bg-zinc-800 px-2 py-1 rounded text-sm">
-                    {String(v)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <h5 className="mb-3 font-medium text-zinc-100">Attributes</h5>
+              <ul className="space-y-2">
+                {Object.entries(filteredAttributes).map(([k, v]) => (
+                  <li key={k} className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">{k}</span>
+                    <span className="text-zinc-200 bg-zinc-800 px-2 py-1 rounded text-sm">
+                      {String(v)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <p className="text-zinc-500 text-xs italic">No attributes</p>
           )}
