@@ -66,6 +66,10 @@ export default function Home() {
         e.preventDefault()
         setIsAddModalOpen(true)
       }
+      if (e.metaKey && e.key === "[") {
+        e.preventDefault()
+        setShowAiAssistant(prev => !prev)
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -123,6 +127,9 @@ export default function Home() {
       case 'toggle-inspector':
         setShowInspector(prev => !prev)
         break
+      case 'toggle-ai-assistant':
+        setShowAiAssistant(prev => !prev)
+        break
       case 'add-note':
         setIsAddModalOpen(true)
         break
@@ -165,6 +172,7 @@ export default function Home() {
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [showInspector, setShowInspector] = useState(true);
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   if (!currentCampaign) return <p className="p-4 text-zinc-300">Loading campaigns…</p>
@@ -212,6 +220,7 @@ export default function Home() {
                     if (nodeOps) await nodeOps.renameNode(id, title)
                   }}
                   onHide={() => setShowSidebar(false)}
+                  onToggleAiAssistant={() => setShowAiAssistant(prev => !prev)}
                 />
               </div>
               <div 
@@ -262,6 +271,8 @@ export default function Home() {
                   <LLMChatEmbedded
                     campaign={currentCampaign.slug}
                     activeNodeId={activeId}
+                    isOpen={showAiAssistant}
+                    onToggle={() => setShowAiAssistant(prev => !prev)}
                   />
                   
                   

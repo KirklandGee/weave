@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import type { Note } from '@/types/node'
-import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar, MessageSquare } from 'lucide-react'
 import React from 'react'
 import { AddNoteModal } from './AddNoteModal'
 
@@ -13,6 +13,7 @@ export default function Sidebar({
   onDelete,
   onRename,
   onHide,
+  onToggleAiAssistant,
 }: {
   nodes: Note[]
   activeId: string
@@ -21,6 +22,7 @@ export default function Sidebar({
   onDelete: (node: Note) => void
   onRename: (id: string, title: string) => void
   onHide?: () => void
+  onToggleAiAssistant?: () => void
 }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -96,6 +98,15 @@ export default function Sidebar({
           >
             <Plus size={14} />
           </button>
+          {onToggleAiAssistant && (
+            <button
+              onClick={onToggleAiAssistant}
+              className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-green-400 hover:bg-green-900/20 rounded-md transition-colors group"
+              title="AI Assistant (⌘⇧T)"
+            >
+              <MessageSquare size={14} />
+            </button>
+          )}
           {onHide && (
             <button
               onClick={onHide}

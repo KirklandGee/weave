@@ -19,4 +19,6 @@ export type LLMChatEmbeddedProps = {
   placeholder?: string;
   campaign: string;
   activeNodeId: string;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }

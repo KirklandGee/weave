@@ -3,23 +3,25 @@ import { ChatRequest, LLMMessage, LLMChatEmbeddedProps } from '@/types/llm';
 import { Rnd } from 'react-rnd';
 import { useLLMContext } from '@/lib/hooks/useLLMContext';
 import { useAuthFetch } from '@/utils/authFetch.client';
+import { Trash2, X } from 'lucide-react';
 
 export default function LLMChatEmbedded({
   title = 'AI Assistant',
   placeholder = 'Ask me anything...',
   campaign,
-  activeNodeId
+  activeNodeId,
+  isOpen = false,
+  onToggle
 }: LLMChatEmbeddedProps) {
 
   const contextString = useLLMContext(campaign, activeNodeId)
   const [messages, setMessages] = useState<LLMMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
 
   // state for position & size
   const [panelPos, setPanelPos] = useState({ x: 100, y: 100 });
-  const [panelSize, setPanelSize] = useState({ width: 320, height: 360 });
+  const [panelSize, setPanelSize] = useState({ width: 400, height: 500 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const authFetch = useAuthFetch();
@@ -95,22 +97,10 @@ export default function LLMChatEmbedded({
     }
   };
 
-  // const clearChat = () => setMessages([]);
+  const clearChat = () => setMessages([]);
 
   return (
     <>
-      {/* Toggle Button - fixed at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-zinc-950 border-t border-zinc-800">
-        <div className="flex justify-center">
-          <button
-            onClick={() => setIsOpen(o => !o)}
-            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-6 py-2 rounded-md shadow-lg border border-zinc-700 transition-colors"
-          >
-            💬 AI Assistant
-          </button>
-        </div>
-      </div>
-
       {/* Chat Panel */}
       {isOpen && (
         <Rnd
@@ -123,33 +113,55 @@ export default function LLMChatEmbedded({
             setPanelPos(pos);
           }}
           dragHandleClassName="chat-drag-handle"
-          className="bg-zinc-900 text-white rounded-lg shadow-xl border border-zinc-700 overflow-hidden z-50 absolute"
+          className="bg-zinc-900 text-zinc-200 rounded-lg shadow-2xl border border-zinc-800 overflow-hidden z-50 absolute"
         >
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="chat-drag-handle flex items-center justify-between p-3 border-b border-zinc-700 bg-zinc-800 cursor-move flex-shrink-0">
-              <h4 className="font-semibold text-zinc-200">{title}</h4>
-              <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-200 text-xl">
-                &times;
-              </button>
+            <div className="chat-drag-handle flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 cursor-move flex-shrink-0">
+              <h4 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">{title}</h4>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={clearChat}
+                  className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
+                  title="Clear Chat History"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <button 
+                  onClick={onToggle}
+                  className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-zinc-200 rounded-md transition-colors"
+                  title="Close AI Assistant"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
             <div
-              className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0"
+              className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 bg-zinc-950"
               onWheel={(e) => {
                 e.stopPropagation();
               }}
             >
-              {messages.length === 0 && <p className="text-zinc-400 text-sm text-center">Say hi!</p>}
+              {messages.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-zinc-500 text-base">Ask me anything about your campaign!</p>
+                </div>
+              )}
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'human' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-[80%] p-3 rounded-lg text-sm whitespace-pre-wrap ${msg.role === 'human' ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-100 border border-zinc-700'
-                      }`}
+                    className={`max-w-[85%] p-4 rounded-lg text-base leading-relaxed whitespace-pre-wrap ${
+                      msg.role === 'human' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-zinc-800 text-zinc-100 border border-zinc-700'
+                    }`}
                   >
                     {msg.content}
-                    {msg.role === 'ai' && idx === messages.length - 1 && isLoading && <span className="animate-pulse">▋</span>}
+                    {msg.role === 'ai' && idx === messages.length - 1 && isLoading && (
+                      <span className="inline-block w-2 h-5 bg-zinc-400 animate-pulse ml-1">▋</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -157,7 +169,7 @@ export default function LLMChatEmbedded({
             </div>
 
             {/* Input */}
-            <div className="border-t border-zinc-700 p-3 bg-zinc-900 flex-shrink-0">
+            <div className="border-t border-zinc-800 p-3 bg-zinc-900 flex-shrink-0">
               <form onSubmit={handleSubmit} className="flex gap-2">
                 <input
                   type="text"
@@ -165,14 +177,18 @@ export default function LLMChatEmbedded({
                   onChange={e => setInput(e.target.value)}
                   placeholder={placeholder}
                   disabled={isLoading}
-                  className="flex-1 px-3 py-2 bg-zinc-800 text-white border border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 text-sm bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 placeholder-zinc-500"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-600 rounded-md disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-md disabled:cursor-not-allowed transition-colors"
                 >
-                  {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Send'}
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-zinc-300 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    'Send'
+                  )}
                 </button>
               </form>
             </div>
