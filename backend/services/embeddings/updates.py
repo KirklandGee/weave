@@ -71,7 +71,8 @@ class EmbeddingUpdateService:
             update_query = """
             MATCH (n {id: $node_id})
             SET n.embedding = $embedding,
-                n.embeddedAt = datetime(),
+                n.embeddedAt = int(datetime.now().timestamp() * 1000)
+
                 n.contentHash = $content_hash
             """
             

@@ -1,0 +1,24 @@
+{
+  "name": "ai-rpg-manager",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:app\" \"npm run dev:marketing\"",
+    "dev:app": "npm run dev --workspace=apps/app",
+    "dev:marketing": "npm run dev --workspace=apps/marketing",
+    "build": "npm run build --workspaces",
+    "build:app": "npm run build --workspace=apps/app",
+    "build:marketing": "npm run build --workspace=apps/marketing",
+    "start": "npm run start --workspaces",
+    "lint": "npm run lint --workspaces",
+    "dev:proxy": "node scripts/dev-proxy.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "http-proxy-middleware": "^2.0.6",
+    "express": "^4.18.2"
+  }
+}

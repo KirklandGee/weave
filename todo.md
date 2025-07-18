@@ -5,7 +5,7 @@
 ## BUGS
 - Every time, even with debounce, that the db saves, it moves the cursor around and deletes any whitespace/incomplete nodes. We'll need to eventually switch to storing the JSON in Dexie, and then translating to markdown on the backend—or maybe even just finding a way to store it all in Neo4j, or store that somewhere ELSE and then reference it in the graph—not sure yet.
 
-- [ ] Delete node doesn't work. Deletes from the UI, and then comes back on sync
+
 
 ## TODO
 
@@ -13,28 +13,23 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 
 ### BACKEND
 
-- [ ] Integrate vector store (Neo4j + vector plugin) and embedding pipeline on note-save  
 - [ ] Split out ChatService, EmbeddingService, CostService interfaces for modularity  
 
 **LLMS**
-- [x] Create common endpoints for getting a node + all of it's edges for when the AI calls
-- [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed
-- [ ] Define Cypher schema for DB for LLMs
-- [ ] Create embeddings generator, embed all seed entries
-- [ ] Create suggested relationships based on vector search of Markdown
 - [ ] Track per-user token usage and enforce quota (billing/cost control) 
+- [ ] Build proper Langchain prompt templating. 
+- [ ] Build endpoint to summarize the contents of a given note, including it's relationships (if relevant). 
+  - Will be a pretty basic endpoint, but needs a solid prompt chain/template behing the scenes
 
 **API**
 - [ ] Build a `/summarize` endpoint to auto-compress old chat history
 - [ ] Add simple concurrency metrics (thread-pool utilization) and tune thread-pool size  
-- [ ] Expose a `/retrieve` helper that returns top-K similar notes for RAG 
-- [ ] Create endpoints for creating relationships between nodes when someone adds a link. I will make the user choose the relationship when they link? Or just infer based on which node is linking to what. Create some sort of mapping system for this behind the scenes.
 - [ ] Explore task queue
-- [ ] Authentication
 - [ ] Dedupe relationships in DB
 
 ### Frontend
 - [ ] Add “summarize history” trigger to collapse older messages into a summary  
+- [ ] Support importing a Markdown file via upload
 
 ### Infrastructure & Observability
 - [ ] Add request-scoped logging middleware (timings, errors, token counts)  
@@ -42,16 +37,13 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Validate environment variables for quotas & Langfuse (or disable if unused)  
 
 ### UI
+= [ ] Support paste from markdown
 - [ ] Campaign-based knowledge graph visualzation, same as neo4j browser basically
-- [ ] Search notes by title, then markdown. Elastic?
-- [ ] Organize sidebar by note type
-- [ ] Better note creation flow, including type creation, suggested relationships
-- [ ] Surface a clear “waiting” state (spinner/fallback) before streaming begins  
-
 - [ ] LIne 33 /lib/db/sync.ts Implement something like what's at the bottom to use the max time on the server for pulling to verify time for data so things don't get overwritten.
 
 
 ### DONE
+- [x] Authentication
 - [x] Create basic frontend to talk with AI and show responses for testing
 - [x] Implement TipTap markdown editor on frontend
 - [x] Create note creation flow. Button currently is just a loading screen
@@ -62,3 +54,16 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [x] Build LLM interface for various models (start local with Ollama for testing, then OpenAI)
 - [x] Wire up streaming chat component with partial-chunk rendering and spinner  
 - [x] Build basic chat interface for LLM that calls my "chat" endpoint with streaming
+- [x] Delete node doesn't work. Deletes from the UI, and then comes back on sync
+- [x] Create common endpoints for getting a node + all of it's edges for when the AI calls
+- [x] Search notes by title
+- [x] Surface a clear “waiting” state (spinner/fallback) before streaming begins  
+- [x] Create embeddings generator, embed all seed entries
+- [x] Create endpoints for creating relationships between nodes when someone adds a link. I will make the user choose the relationship when they link? Or just 
+- [x] Better note creation flow, including type creation, suggested relationships
+- [x] Integrate vector store (Neo4j + vector plugin) and embedding pipeline on note-save  infer based on which node is linking to what. Create some sort of mapping system for this behind the scenes.
+- [x] Create suggested relationships based on vector search of Markdown
+- [x] Improve relationship recommendations and search based on embeddings
+- [x] Organize sidebar by note type
+- [x] Expose a `/retrieve` helper that returns top-K similar notes for RAG 
+~~- [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed~~

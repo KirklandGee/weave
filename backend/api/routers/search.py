@@ -4,6 +4,7 @@ from backend.models.schemas import VectorSearchRequest, VectorSearchResult, Rela
 from backend.services.embeddings.vector_search import get_vector_search_service
 from backend.api.auth import get_current_user
 
+
 router = APIRouter(prefix="/search", tags=["search"])
 
 @router.post("/", response_model=List[VectorSearchResult])
