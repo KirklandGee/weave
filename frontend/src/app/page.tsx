@@ -17,6 +17,7 @@ import { USER_ID } from '@/lib/constants'
 import LLMChatEmbedded from '@/components/LLMChatEmbedded'
 import { Allotment } from "allotment"
 import "allotment/dist/style.css"
+import { updateLastActivity } from '@/lib/utils/activityTracker'
 
 export default function Home() {
   const { currentCampaign } = useCampaign()
@@ -87,8 +88,11 @@ export default function Home() {
   )
 
   // Handle navigation to a note from command palette
-  const handleNavigateToNote = (note: Note) => {
+  const handleNavigateToNote = async (note: Note) => {
     setActiveId(note.id)
+    if (currentCampaign?.slug) {
+      await updateLastActivity(currentCampaign.slug)
+    }
   }
 
   // Handle creating new notes from command palette  
@@ -213,7 +217,12 @@ export default function Home() {
                 <Sidebar
                   nodes={nodes}
                   activeId={activeId}
-                  onSelect={node => setActiveId(node.id)}
+                  onSelect={async (node) => {
+                    setActiveId(node.id)
+                    if (currentCampaign?.slug) {
+                      await updateLastActivity(currentCampaign.slug)
+                    }
+                  }}
                   onCreate={handleCreate}
                   onDelete={handleDelete}
                   onRename={async (id, title) => {
@@ -296,8 +305,11 @@ export default function Home() {
                   <div className="bg-zinc-900 border-l border-zinc-800 h-full overflow-hidden">
                     <Inspector
                       node={node}
-                      onNavigateToNote={(noteId) => {
+                      onNavigateToNote={async (noteId) => {
                         setActiveId(noteId);
+                        if (currentCampaign?.slug) {
+                          await updateLastActivity(currentCampaign.slug)
+                        }
                       }}
                       onHide={() => setShowInspector(false)}
                     />

@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { getDb } from "../db/campaignDB";
 import { Change } from "@/types/node";
 import { USER_ID } from "../constants";
+import { updateLastActivity, updateLastLocalChange } from "../utils/activityTracker";
 
 const currentUserId = USER_ID
 
@@ -38,6 +39,10 @@ export function createNodeOps(campaignSlug: string) {
       })
     })
 
+    // Track user activity and local changes
+    await updateLastActivity(activeCampaignId)
+    await updateLastLocalChange(activeCampaignId)
+
     return id
   }
 
@@ -53,6 +58,10 @@ export function createNodeOps(campaignSlug: string) {
         ts,
       })
     })
+
+    // Track user activity and local changes
+    await updateLastActivity(activeCampaignId)
+    await updateLastLocalChange(activeCampaignId)
   }
 
   async function renameNode(id: string, title: string) {
@@ -67,6 +76,10 @@ export function createNodeOps(campaignSlug: string) {
         ts,
       })
     })
+
+    // Track user activity and local changes
+    await updateLastActivity(activeCampaignId)
+    await updateLastLocalChange(activeCampaignId)
   }
 
   async function addToCampaign(nodeId: string, campaignId: string) {
@@ -86,6 +99,10 @@ export function createNodeOps(campaignSlug: string) {
         ts,
       })
     })
+
+    // Track user activity and local changes
+    await updateLastActivity(activeCampaignId)
+    await updateLastLocalChange(activeCampaignId)
   }
 
   async function removeFromCampaign(nodeId: string, campaignId: string) {
@@ -105,6 +122,10 @@ export function createNodeOps(campaignSlug: string) {
         ts,
       })
     })
+
+    // Track user activity and local changes
+    await updateLastActivity(activeCampaignId)
+    await updateLastLocalChange(activeCampaignId)
   }
 
   async function logChange(change: Change) {

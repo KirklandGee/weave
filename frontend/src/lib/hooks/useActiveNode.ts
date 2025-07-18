@@ -2,9 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
 import { mdToHtml } from '@/lib/md'
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { USER_ID } from '@/lib/constants'
 import { useAuthFetch } from '@/utils/authFetch.client'
+import { updateLastActivity, updateLastLocalChange, getSyncInterval, getLastActivity } from '@/lib/utils/activityTracker'
 
 export function useActiveNode(campaign: string, nodeId: string, isTyping: boolean = false) {
 
@@ -18,7 +19,7 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
   const htmlContent = node ? mdToHtml(node.markdown ?? '') : ''
   const title = node?.title ?? 'Untitled'
 
-  async function updateMarkdown(md: string) {
+  const updateMarkdown = useCallback(async (md: string) => {
     const ts = Date.now()
 
     await db.transaction('rw', db.nodes, db.changes, async () => {
@@ -57,16 +58,37 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
       })
     }
     })
-  }
 
-  // background sync (one per hook instance) - pause when typing
+    // Track user activity and local changes
+    await updateLastActivity(campaign)
+    await updateLastLocalChange(campaign)
+  }, [db, nodeId, campaign])
+
+  // background sync with adaptive intervals - pause when typing
   useEffect(() => {
     if (isTyping) {
       return // Don't sync while typing
     }
     
-    const id = setInterval(() => pushPull(authFetch, campaign), 5000)
-    return () => clearInterval(id)
+    let timeoutId: NodeJS.Timeout
+    
+    const scheduleNextSync = async () => {
+      const lastActivity = await getLastActivity(campaign)
+      const interval = getSyncInterval(lastActivity)
+      
+      timeoutId = setTimeout(async () => {
+        await pushPull(authFetch, campaign)
+        scheduleNextSync() // Schedule the next sync
+      }, interval)
+    }
+    
+    scheduleNextSync()
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
   }, [campaign, authFetch, isTyping])
 
   return { title, htmlContent, updateMarkdown }

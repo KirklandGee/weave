@@ -1,5 +1,6 @@
 import { getDb } from './campaignDB'
 import type { Change } from '@/types/node'
+import { shouldSync, setSyncState, getSyncState } from '../utils/activityTracker'
 
 const API = '/api/sync'   // adjust to your FastAPI proxy
 
@@ -25,42 +26,64 @@ export async function pushPull(
 ) {
   const db = getDb(campaignSlug)
 
-  // 1. push local changes
-  const changes: Change[] = await db.changes.toArray()
-  if (changes.length) {
-    const res = await authFetch(`${API}/${campaignSlug}`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(changes),
-    })
-    if (res.ok) {
-      await db.changes.clear()
-    } else {
-      console.error('Push failed:', await res.text())
-      return                     // keep changes for the next attempt
-    }
+  // Check if sync is needed based on activity and local changes
+  const syncNeeded = await shouldSync(campaignSlug)
+  if (!syncNeeded) {
+    return
   }
-  // 1. pull fresh nodes
-  const lastNode = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0;
-  const freshNodes = await authFetch(
-    `${API}/${campaignSlug}/nodes/since/${lastNode}`,
-    { headers: { 'Content-Type':'application/json'} }
-  ).then(r => r.json());
-  if (freshNodes.length) await db.nodes.bulkPut(freshNodes);
-  
-  // 2. pull fresh edges
-  const lastEdge = (await db.edges.orderBy('updatedAt').last())?.updatedAt ?? 0;
-  const freshEdges = await authFetch(
-    `${API}/${campaignSlug}/edges/since/${lastEdge}`,
-    { headers: { 'Content-Type':'application/json' } }
-  ).then(r => r.json());
 
-  const camelEdges = freshEdges.map(edgeSnakeToCamel);
+  // Check if already syncing
+  const currentSyncState = await getSyncState(campaignSlug)
+  if (currentSyncState === 'syncing') {
+    return
+  }
 
+  try {
+    await setSyncState(campaignSlug, 'syncing')
 
-  if (freshEdges.length) await db.edges.bulkPut(camelEdges);
+    // 1. push local changes
+    const changes: Change[] = await db.changes.toArray()
+    if (changes.length) {
+      const res = await authFetch(`${API}/${campaignSlug}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(changes),
+      })
+      if (res.ok) {
+        await db.changes.clear()
+      } else {
+        console.error('Push failed:', await res.text())
+        await setSyncState(campaignSlug, 'error')
+        return                     // keep changes for the next attempt
+      }
+    }
+    
+    // 2. pull fresh nodes
+    const lastNode = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0;
+    const freshNodes = await authFetch(
+      `${API}/${campaignSlug}/nodes/since/${lastNode}`,
+      { headers: { 'Content-Type':'application/json'} }
+    ).then(r => r.json());
+    if (freshNodes.length) await db.nodes.bulkPut(freshNodes);
+    
+    // 3. pull fresh edges
+    const lastEdge = (await db.edges.orderBy('updatedAt').last())?.updatedAt ?? 0;
+    const freshEdges = await authFetch(
+      `${API}/${campaignSlug}/edges/since/${lastEdge}`,
+      { headers: { 'Content-Type':'application/json' } }
+    ).then(r => r.json());
+
+    const camelEdges = freshEdges.map(edgeSnakeToCamel);
+
+    if (freshEdges.length) await db.edges.bulkPut(camelEdges);
+
+    await setSyncState(campaignSlug, 'idle')
+  } catch (error) {
+    console.error('Sync failed:', error)
+    await setSyncState(campaignSlug, 'error')
+  }
 }
 
 // TODO: Implement something like the below

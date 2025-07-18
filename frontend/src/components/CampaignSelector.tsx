@@ -50,13 +50,16 @@ export default function CampaignSelector({ className = '' }: CampaignSelectorPro
     <div className={`relative ${className}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-start bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-3 hover:border-zinc-600 hover:bg-zinc-800 transition-colors text-left w-64 min-h-[3rem]"
-        title={currentCampaign?.title || 'No Campaign Selected'}
+        className={`
+          flex items-center w-auto min-w-[8rem] max-w-[28rem] 
+          bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2 
+          hover:border-zinc-600 hover:bg-zinc-800 transition-colors text-left min-h-[2.5rem] h-10
+        `}
       >
-        <span className="text-white text-sm font-medium leading-5 flex-1 mr-3 truncate">
+        <span className="text-white text-sm font-medium flex-1 truncate">
           {currentCampaign?.title || 'No Campaign Selected'}
         </span>
-        <ChevronDown size={16} className={`text-zinc-400 transition-transform mt-0.5 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={16} className={`text-zinc-400 transition-transform ml-2 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (

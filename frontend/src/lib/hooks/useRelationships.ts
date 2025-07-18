@@ -5,6 +5,7 @@ import { createEdgeOps } from './useEdgeOps';
 import { VectorSearchResult } from '@/types/search';
 import { useAuthFetch } from '@/utils/authFetch.client';
 import { useUser } from '@clerk/nextjs';
+import { updateLastActivity } from '../utils/activityTracker';
 // import {} from '@/lib/search'
 
 type UseRelationshipsProps = {
@@ -181,6 +182,11 @@ export function useRelationships({ currentNote, campaignSlug }: UseRelationships
       // Update local state
       setRelationships(prev => [...prev, newRelationship]);
 
+      // Track user activity (edgeOps.createEdge already tracks local changes)
+      if (campaignSlug) {
+        await updateLastActivity(campaignSlug);
+      }
+
       return newRelationship;
     } catch (error) {
       console.error('Error adding relationship:', error);
@@ -194,11 +200,16 @@ export function useRelationships({ currentNote, campaignSlug }: UseRelationships
       if (!edgeOps) throw new Error('Campaign not selected')
       await edgeOps.deleteEdge(relationshipId);
       setRelationships(prev => prev.filter(rel => rel.id !== relationshipId));
+      
+      // Track user activity (edgeOps.deleteEdge already tracks local changes)
+      if (campaignSlug) {
+        await updateLastActivity(campaignSlug);
+      }
     } catch (error) {
       console.error('Error removing relationship:', error);
       throw error;
     }
-  }, [edgeOps]);
+  }, [edgeOps, campaignSlug]);
 
   // Load relationships for current note
   const loadRelationships = useCallback(async () => {
