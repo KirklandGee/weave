@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, Plus } from 'lucide-react'
-import { useCampaign } from '@/contexts/CampaignContext'
+import { useCampaign } from '@/contexts/AppContext'
 
 interface CampaignSelectorProps {
   className?: string

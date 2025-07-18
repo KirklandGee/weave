@@ -19,8 +19,10 @@
     "allotment": "^1.20.4",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
+    "jsx-runtime": "^1.2.0",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.525.0",
+    "nanoid": "^5.1.5",
     "next": "15.3.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -30,7 +32,9 @@
     "remark": "^15.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
-    "turndown": "^7.2.0"
+    "tslib": "^2.8.1",
+    "turndown": "^7.2.0",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

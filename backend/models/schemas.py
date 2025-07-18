@@ -61,3 +61,30 @@ class BatchEmbeddingResult(BaseModel):
     updated: int
     skipped: int
     errors: list[str] = []
+
+# Template system models
+class TemplateRequest(BaseModel):
+    variables: dict[str, Any]
+    context: str = ""
+    metadata: dict[str, Any] = {}
+    stream: bool = True
+
+class AsyncTemplateRequest(BaseModel):
+    variables: dict[str, Any]
+    context: str = ""
+    metadata: dict[str, Any] = {}
+    note_id: str  # ID of the note to update when complete
+    campaign_slug: str  # Campaign slug for database access
+
+class TemplateResponse(BaseModel):
+    response: str
+    template_name: str
+    variables_used: dict[str, Any]
+
+class TemplateInfo(BaseModel):
+    name: str
+    description: str
+    required_vars: list[str]
+    optional_vars: list[str]
+    chain_type: str
+    metadata: dict[str, Any]

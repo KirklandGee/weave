@@ -4,7 +4,7 @@ import { AddRelationshipModal } from './AddRelationshipsModal';
 import { useRelationships } from '../lib/hooks/useRelationships';
 import { Note as Note, RelationshipType } from '@/types/node';
 import { searchNotes } from '@/lib/search';
-import { useCampaign } from '@/contexts/CampaignContext';
+import { useCampaign } from '@/contexts/AppContext';
 
 type RelationshipsSectionProps = {
   currentNote: Note;

@@ -1,0 +1,221 @@
+import { useEffect, useRef } from 'react';
+import { useAuthFetch } from '@/utils/authFetch.client';
+import { getDb } from '@/lib/db/campaignDB';
+
+interface TemplateGenerationStatus {
+  task_id: string;
+  status: 'running' | 'completed' | 'error';
+  template_name: string;
+  note_id: string;
+  started_at: string;
+  completed_at: string | null;
+  result: string | null;
+  error: string | null;
+}
+
+export function useTemplateGeneration(campaignSlug: string) {
+  const authFetch = useAuthFetch();
+  const pollingIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  const startPolling = (taskId: string, noteId: string) => {
+    // Clear any existing polling for this task
+    if (pollingIntervalsRef.current.has(taskId)) {
+      clearInterval(pollingIntervalsRef.current.get(taskId));
+    }
+
+    const startTime = Date.now();
+    const timeoutDuration = 10 * 60 * 1000; // 10 minutes timeout
+
+    const poll = async () => {
+      try {
+        // Check for timeout
+        if (Date.now() - startTime > timeoutDuration) {
+          console.error(`Task ${taskId} timed out after ${timeoutDuration / 1000} seconds`);
+          await handleGenerationTimeout(noteId, taskId);
+          stopPolling(taskId);
+          return;
+        }
+
+        const response = await authFetch(`/api/llm/template/status/${taskId}`);
+        
+        if (!response.ok) {
+          console.error(`Failed to get status for task ${taskId}:`, response.status);
+          return;
+        }
+
+        const status: TemplateGenerationStatus = await response.json();
+        
+        if (status.status === 'completed') {
+          await handleGenerationComplete(noteId, status);
+          stopPolling(taskId);
+        } else if (status.status === 'error') {
+          await handleGenerationError(noteId, status);
+          stopPolling(taskId);
+        }
+        // If status is still 'running', keep polling
+      } catch (error) {
+        console.error(`Error polling task ${taskId}:`, error);
+        // Continue polling on error - the task might still complete
+      }
+    };
+
+    // Start polling every 3 seconds
+    const intervalId = setInterval(poll, 3000);
+    pollingIntervalsRef.current.set(taskId, intervalId);
+
+    // Do an immediate poll
+    poll();
+  };
+
+  const stopPolling = (taskId: string) => {
+    const intervalId = pollingIntervalsRef.current.get(taskId);
+    if (intervalId) {
+      clearInterval(intervalId);
+      pollingIntervalsRef.current.delete(taskId);
+    }
+  };
+
+  const handleGenerationComplete = async (noteId: string, status: TemplateGenerationStatus) => {
+    try {
+      const db = getDb(campaignSlug);
+      
+      // Get the current note
+      const note = await db.nodes.get(noteId);
+      if (!note) {
+        console.error(`Note ${noteId} not found`);
+        return;
+      }
+
+      // Update the note with the generated content
+      const updatedNote = {
+        ...note,
+        title: `${status.template_name} Template Result`,
+        markdown: status.result || '',
+        updatedAt: Date.now(),
+        attributes: {
+          ...note.attributes,
+          generation_status: 'completed',
+          generation_completed_at: Date.now(),
+          generation_task_id: status.task_id
+        }
+      };
+
+      // Update the note in the database
+      await db.nodes.put(updatedNote);
+      
+      console.log(`Template generation completed for note ${noteId}`);
+    } catch (error) {
+      console.error(`Error updating note ${noteId} on completion:`, error);
+    }
+  };
+
+  const handleGenerationError = async (noteId: string, status: TemplateGenerationStatus) => {
+    try {
+      const db = getDb(campaignSlug);
+      
+      // Get the current note
+      const note = await db.nodes.get(noteId);
+      if (!note) {
+        console.error(`Note ${noteId} not found`);
+        return;
+      }
+
+      // Update the note with error information
+      const updatedNote = {
+        ...note,
+        title: `${status.template_name} Template - Error`,
+        markdown: `# ${status.template_name} Template - Generation Failed\n\n**Error:** ${status.error || 'Unknown error occurred during generation'}\n\n*Please try again or contact support if the problem persists.*`,
+        updatedAt: Date.now(),
+        attributes: {
+          ...note.attributes,
+          generation_status: 'error',
+          generation_completed_at: Date.now(),
+          generation_error: status.error,
+          generation_task_id: status.task_id
+        }
+      };
+
+      // Update the note in the database
+      await db.nodes.put(updatedNote);
+      
+      console.error(`Template generation failed for note ${noteId}:`, status.error);
+    } catch (error) {
+      console.error(`Error updating note ${noteId} on error:`, error);
+    }
+  };
+
+  const handleGenerationTimeout = async (noteId: string, taskId: string) => {
+    try {
+      const db = getDb(campaignSlug);
+      
+      // Get the current note
+      const note = await db.nodes.get(noteId);
+      if (!note) {
+        console.error(`Note ${noteId} not found`);
+        return;
+      }
+
+      // Update the note with timeout information
+      const updatedNote = {
+        ...note,
+        title: `${note.attributes.template_name} Template - Timeout`,
+        markdown: `# ${note.attributes.template_name} Template - Generation Timeout\n\n**Error:** Template generation timed out after 10 minutes.\n\n*The generation took too long to complete. Please try again with a simpler template or contact support if the problem persists.*`,
+        updatedAt: Date.now(),
+        attributes: {
+          ...note.attributes,
+          generation_status: 'error',
+          generation_completed_at: Date.now(),
+          generation_error: 'Generation timed out after 10 minutes',
+          generation_task_id: taskId
+        }
+      };
+
+      // Update the note in the database
+      await db.nodes.put(updatedNote);
+      
+      console.error(`Template generation timed out for note ${noteId}`);
+    } catch (error) {
+      console.error(`Error updating note ${noteId} on timeout:`, error);
+    }
+  };
+
+  // Start polling for notes that are in generating state
+  const startPollingForGeneratingNotes = async () => {
+    try {
+      const db = getDb(campaignSlug);
+      // Get all notes and filter in memory since attributes is not indexed
+      const allNotes = await db.nodes.toArray();
+      const generatingNotes = allNotes.filter(note => 
+        note.attributes?.generation_status === 'generating'
+      );
+
+      generatingNotes.forEach(note => {
+        const taskId = note.attributes.generation_task_id as string;
+        if (taskId) {
+          startPolling(taskId, note.id);
+        }
+      });
+    } catch (error) {
+      console.error('Error starting polling for generating notes:', error);
+    }
+  };
+
+  // Initialize polling for existing generating notes when the hook is created
+  useEffect(() => {
+    startPollingForGeneratingNotes();
+
+    // Cleanup on unmount
+    return () => {
+      pollingIntervalsRef.current.forEach((intervalId, taskId) => {
+        clearInterval(intervalId);
+      });
+      pollingIntervalsRef.current.clear();
+    };
+  }, [campaignSlug]);
+
+  return {
+    startPolling,
+    stopPolling,
+    startPollingForGeneratingNotes
+  };
+}

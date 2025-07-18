@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import type { Note } from '@/types/node'
-import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar, MessageSquare } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar, MessageSquare, AlertCircle } from 'lucide-react'
 import React from 'react'
 import { AddNoteModal } from './AddNoteModal'
 
@@ -178,13 +178,19 @@ export default function Sidebar({
                               left: e.clientX,
                             })
                           }}
-                          className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors ${
+                          className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 ${
                             n.id === activeId 
                               ? 'bg-blue-600 text-white font-medium' 
                               : 'hover:bg-zinc-800 hover:text-white'
                           }`}
                         >
-                          {n.title}
+                          {n.attributes?.generation_status === 'generating' && (
+                            <div className="w-3 h-3 border border-zinc-400 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
+                          )}
+                          {n.attributes?.generation_status === 'error' && (
+                            <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                          )}
+                          <span className="truncate">{n.title}</span>
                         </button>
                       )}
 

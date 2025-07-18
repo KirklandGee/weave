@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, ArrowRight, Hash, FileText, User, Map, Clock, Zap } from 'lucide-react';
 import { Note } from '@/types/node';
 import { searchNotes } from '@/lib/search';
-import { useCampaign } from '@/contexts/CampaignContext';
+import { useCampaign } from '@/contexts/AppContext';
 
 interface Command {
   id: string;

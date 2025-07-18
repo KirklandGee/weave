@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
 import { useAuthFetch } from '@/utils/authFetch.client'
+import { Note } from '@/types/node'
 
 export const useCampaignNodes = (campaignSlug?: string) => {
   const authFetch = useAuthFetch()
@@ -15,10 +16,10 @@ export const useCampaignNodes = (campaignSlug?: string) => {
   // Always call useLiveQuery, but return empty array if no campaign slug
   const nodes = useLiveQuery(() => {
     if (!campaignSlug) {
-      return Promise.resolve([])
+      return []
     }
     return db.nodes.toArray()
-  }, [db], [campaignSlug, db])
+  }, [campaignSlug, db])
 
   // 1. First-load seed
   useEffect(() => {
@@ -37,7 +38,7 @@ export const useCampaignNodes = (campaignSlug?: string) => {
         ).then(r => r.json())
         if (fresh.length) {
           // Ensure nodes have the new campaignIds field
-          const processedNodes = fresh.map((node: any) => ({
+          const processedNodes = fresh.map((node: Note) => ({
             ...node,
             campaignIds: node.campaignIds || (node.campaignId ? [node.campaignId] : [])
           }))

@@ -16,7 +16,20 @@ export default function Inspector({ node, onNavigateToNote, onHide }: InspectorP
   const filteredAttributes = Object.fromEntries(
     Object.entries(node.attributes ?? {}).filter(
       ([key]) =>
-        !['embedding', 'ownerId', 'contentHash', 'embeddedAt', 'campaignId', 'campaignIds'].includes(key)
+        ![
+          'embedding',
+          'ownerId',
+          'contentHash',
+          'embeddedAt',
+          'campaignId',
+          'campaignIds',
+          'generation_status',
+          'generation_started_at',
+          'generation_completed_at',
+          'generation_task_id',
+          'template_name',
+          'template_variables'
+        ].includes(key)
     )
   );
 

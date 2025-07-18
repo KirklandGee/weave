@@ -2,7 +2,10 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useAuthFetch } from '@/utils/authFetch.client'
+import { templateService } from '@/lib/services/templateService'
+import { TemplateInfo } from '@/lib/db/templateDB'
 
+// Campaign types
 export interface Campaign {
   id: string
   title: string
@@ -20,19 +23,36 @@ interface CampaignContextType {
   createCampaign: (title: string) => Promise<Campaign>
 }
 
-const CampaignContext = createContext<CampaignContextType | undefined>(undefined)
+// Template types
+interface TemplateContextType {
+  templates: TemplateInfo[]
+  templatesLoading: boolean
+  templatesError: string | null
+}
 
-interface CampaignProviderProps {
+// Combined context type
+interface AppContextType extends CampaignContextType, TemplateContextType {}
+
+const AppContext = createContext<AppContextType | undefined>(undefined)
+
+interface AppProviderProps {
   children: ReactNode
 }
 
-export function CampaignProvider({ children }: CampaignProviderProps) {
+export function AppProvider({ children }: AppProviderProps) {
+  // Campaign state
   const [currentCampaign, setCurrentCampaign] = useState<Campaign | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  // Template state
+  const [templates, setTemplates] = useState<TemplateInfo[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(true)
+  const [templatesError, setTemplatesError] = useState<string | null>(null)
+
   const authFetch = useAuthFetch()
 
+  // Campaign functions
   const fetchCampaigns = async (): Promise<Campaign[]> => {
     try {
       const response = await authFetch('/api/campaign/user', {
@@ -148,30 +168,74 @@ export function CampaignProvider({ children }: CampaignProviderProps) {
     }
   }
 
+  // Template functions
+  const initializeTemplates = async () => {
+    try {
+      setTemplatesError(null)
+      
+      // Initialize templates (will sync if needed)
+      await templateService.initializeTemplates(authFetch)
+      
+      const templateList = await templateService.getAllTemplates()
+      setTemplates(templateList)
+    } catch (err) {
+      setTemplatesError(err instanceof Error ? err.message : 'Failed to load templates')
+      console.error('Error loading templates:', err)
+    } finally {
+      setTemplatesLoading(false)
+    }
+  }
+
   useEffect(() => {
+    // Initialize both campaigns and templates
     refreshCampaigns()
+    initializeTemplates()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <CampaignContext.Provider
+    <AppContext.Provider
       value={{
+        // Campaign context
         currentCampaign,
         campaigns,
         isLoading,
         switchCampaign,
         refreshCampaigns,
         createCampaign,
+        // Template context
+        templates,
+        templatesLoading,
+        templatesError,
       }}
     >
       {children}
-    </CampaignContext.Provider>
+    </AppContext.Provider>
   )
 }
 
 export function useCampaign() {
-  const context = useContext(CampaignContext)
+  const context = useContext(AppContext)
   if (context === undefined) {
-    throw new Error('useCampaign must be used within a CampaignProvider')
+    throw new Error('useCampaign must be used within an AppProvider')
   }
-  return context
+  return {
+    currentCampaign: context.currentCampaign,
+    campaigns: context.campaigns,
+    isLoading: context.isLoading,
+    switchCampaign: context.switchCampaign,
+    refreshCampaigns: context.refreshCampaigns,
+    createCampaign: context.createCampaign,
+  }
+}
+
+export function useTemplates() {
+  const context = useContext(AppContext)
+  if (context === undefined) {
+    throw new Error('useTemplates must be used within an AppProvider')
+  }
+  return {
+    templates: context.templates,
+    loading: context.templatesLoading,
+    error: context.templatesError,
+  }
 }

@@ -21,6 +21,13 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Build endpoint to summarize the contents of a given note, including it's relationships (if relevant). 
   - Will be a pretty basic endpoint, but needs a solid prompt chain/template behing the scenes
 
+**Prompt Templates**
+- [ ] Create a new NPC based on all Lore documents in your workspace
+- [ ] Generate a new location (Realm, Region, Town, etc.) based on the existing locations, and some general instructions
+- [ ] Generate a special item uniquely for a character or a location (based on a note and it's relationships)
+- [ ] Generate session ideas based on all previous sessions and what could potentially come next (Think about all characters in the campaign, all sessions, )
+- [ ]
+
 **API**
 - [ ] Build a `/summarize` endpoint to auto-compress old chat history
 - [ ] Add simple concurrency metrics (thread-pool utilization) and tune thread-pool size  
