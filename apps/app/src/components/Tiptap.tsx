@@ -26,6 +26,25 @@ import {
 function TextTypeSelector({ editor }: { editor: any }) {
   const [isOpen, setIsOpen] = useState(false)
   
+  // Close dropdown when editor loses focus or selection changes
+  useEffect(() => {
+    const handleUpdate = () => {
+      if (!editor.isFocused || editor.state.selection.empty) {
+        setIsOpen(false)
+      }
+    }
+    
+    editor.on('update', handleUpdate)
+    editor.on('selectionUpdate', handleUpdate)
+    editor.on('blur', handleUpdate)
+    
+    return () => {
+      editor.off('update', handleUpdate)
+      editor.off('selectionUpdate', handleUpdate)
+      editor.off('blur', handleUpdate)
+    }
+  }, [editor])
+  
   const getCurrentTextType = () => {
     if (editor.isActive('heading', { level: 1 })) return { label: 'Heading 1', icon: Heading1 }
     if (editor.isActive('heading', { level: 2 })) return { label: 'Heading 2', icon: Heading2 }
@@ -81,6 +100,25 @@ function TextTypeSelector({ editor }: { editor: any }) {
 // List Type Selector Component
 function ListTypeSelector({ editor }: { editor: any }) {
   const [isOpen, setIsOpen] = useState(false)
+  
+  // Close dropdown when editor loses focus or selection changes
+  useEffect(() => {
+    const handleUpdate = () => {
+      if (!editor.isFocused || editor.state.selection.empty) {
+        setIsOpen(false)
+      }
+    }
+    
+    editor.on('update', handleUpdate)
+    editor.on('selectionUpdate', handleUpdate)
+    editor.on('blur', handleUpdate)
+    
+    return () => {
+      editor.off('update', handleUpdate)
+      editor.off('selectionUpdate', handleUpdate)
+      editor.off('blur', handleUpdate)
+    }
+  }, [editor])
   
   const getCurrentListType = () => {
     if (editor.isActive('bulletList')) return { label: 'Bullet', icon: List }
