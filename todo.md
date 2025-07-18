@@ -37,10 +37,12 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Validate environment variables for quotas & Langfuse (or disable if unused)  
 
 ### UI
-= [ ] Support paste from markdown
+- [ ] Support paste from markdown
 - [ ] Campaign-based knowledge graph visualzation, same as neo4j browser basically
 - [ ] LIne 33 /lib/db/sync.ts Implement something like what's at the bottom to use the max time on the server for pulling to verify time for data so things don't get overwritten.
 
+### Marketing Site
+- [ ] Add simplified version of app that users can demo to see how adding relationships works, how the markdown editor feels.
 
 ### DONE
 - [x] Authentication

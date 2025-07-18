@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AI RPG Manager - Transform Your Tabletop Campaigns",
-  description: "Intelligent note-taking, character management, and AI-powered storytelling assistance for tabletop RPG campaigns.",
+  description: "Intelligent note-taking, character management, and AI-powered storytelling assistance for tabletop RPG campaigns. Clean, minimal interface that gets out of your way.",
 };
 
 export default function RootLayout({
