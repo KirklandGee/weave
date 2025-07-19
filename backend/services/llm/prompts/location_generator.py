@@ -69,7 +69,7 @@ Create a detailed location based on the provided context and specifications.
 
 # Create the template configuration
 template_config = TemplateConfig(
-    name="location_generator",
+    name="Create New Location",
     description="Generate detailed locations (realms, regions, cities, towns, etc.) based on context and specifications",
     required_vars=["context", "location_type", "scale"],
     optional_vars=["theme"],

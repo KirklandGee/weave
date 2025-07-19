@@ -58,7 +58,7 @@ Create a detailed NPC (Non-Player Character) based on the provided context and c
 
 # Create the template configuration
 template_config = TemplateConfig(
-    name="npc_generator",
+    name="Create an NPC",
     description="Generate detailed NPCs based on context and character specifications",
     required_vars=["context", "character_type"],
     optional_vars=["personality_traits"],

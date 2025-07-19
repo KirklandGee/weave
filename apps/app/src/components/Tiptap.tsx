@@ -5,6 +5,7 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { htmlToMd } from '@/lib/md'
 import StarterKit from '@tiptap/starter-kit'
+import MarkdownPasteExtension from './MarkdownPasteExtension'
 import debounce from 'lodash.debounce'
 import React from 'react'
 import { 
@@ -246,7 +247,7 @@ export default function Tiptap({
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit],
+    extensions: [StarterKit, MarkdownPasteExtension],
     content,
     onUpdate({ editor }) {
       if (localUpdate.current) {            // ← ignore our own reset

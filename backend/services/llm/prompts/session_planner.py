@@ -107,7 +107,7 @@ Generate session ideas and plot hooks based on the campaign context and session 
 
 # Create the template configuration
 template_config = TemplateConfig(
-    name="session_planner",
+    name="Plan Your Next Session",
     description="Generate detailed session plans and ideas based on campaign context and preferences",
     required_vars=["context"],
     optional_vars=["session_type", "duration", "tone", "focus"],

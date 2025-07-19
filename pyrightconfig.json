@@ -1,7 +1,0 @@
-{
-  "include": ["./backend"],
-  "venvPath": "./backend",
-  "venv": ".venv",
-  "typeCheckingMode": "basic",
-  "exclude": ["**/langfuse"]
-}

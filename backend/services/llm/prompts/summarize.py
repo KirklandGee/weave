@@ -21,7 +21,7 @@ Please summarize the current note, taking into account any relevant context from
 
 # Create the template configuration
 template_config = TemplateConfig(
-    name="summarize",
+    name="Summarize Current Note",
     description="Summarize a note with context from related notes",
     required_vars=["context"],
     optional_vars=["length_preference"],

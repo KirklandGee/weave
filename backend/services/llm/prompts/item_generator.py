@@ -66,7 +66,7 @@ Create a unique and special item based on the provided context.
 
 # Create the template configuration
 template_config = TemplateConfig(
-    name="item_generator",
+    name="Create New Item",
     description="Generate unique magical items, weapons, or artifacts based on context",
     required_vars=["context", "item_type"],
     optional_vars=["rarity", "purpose"],

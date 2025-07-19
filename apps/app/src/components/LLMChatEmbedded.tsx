@@ -305,33 +305,35 @@ export default function LLMChatEmbedded({
                     </div>
                   )}
                   
-                  <div className="grid gap-2">
-                    {templatesLoading ? (
-                      <div className="text-xs text-zinc-400 p-2 text-center">Loading templates...</div>
-                    ) : templates.length === 0 ? (
-                      <div className="text-xs text-zinc-400 p-2 text-center">No templates available</div>
-                    ) : (
-                      templates.map((template) => (
-                        <button
-                          key={template.name}
-                          onClick={() => handleTemplateSelect(template)}
-                          className="flex flex-col items-start p-2 text-left bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors"
-                        >
-                          <div className="font-medium text-zinc-200 text-sm capitalize">{template.name}</div>
-                          <div className="text-xs text-zinc-400 mt-1">{template.description}</div>
-                          {template.required_vars.length > 0 && (
-                            <div className="text-xs text-blue-400 mt-1">
-                              Required: {template.required_vars.join(', ')}
-                            </div>
-                          )}
-                          {template.metadata.category && (
-                            <div className="text-xs text-zinc-500 mt-1">
-                              Category: {template.metadata.category}
-                            </div>
-                          )}
-                        </button>
-                      ))
-                    )}
+                  <div className="max-h-60 overflow-y-auto">
+                    <div className="grid gap-2">
+                      {templatesLoading ? (
+                        <div className="text-xs text-zinc-400 p-2 text-center">Loading templates...</div>
+                      ) : templates.length === 0 ? (
+                        <div className="text-xs text-zinc-400 p-2 text-center">No templates available</div>
+                      ) : (
+                        templates.map((template) => (
+                          <button
+                            key={template.name}
+                            onClick={() => handleTemplateSelect(template)}
+                            className="flex flex-col items-start p-2 text-left bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors"
+                          >
+                            <div className="font-medium text-zinc-200 text-sm capitalize">{template.name}</div>
+                            <div className="text-xs text-zinc-400 mt-1">{template.description}</div>
+                            {template.required_vars.length > 0 && (
+                              <div className="text-xs text-blue-400 mt-1">
+                                Required: {template.required_vars.join(', ')}
+                              </div>
+                            )}
+                            {template.metadata.category && (
+                              <div className="text-xs text-zinc-500 mt-1">
+                                Category: {template.metadata.category}
+                              </div>
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

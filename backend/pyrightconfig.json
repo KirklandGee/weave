@@ -1,0 +1,14 @@
+{
+  "include": [".."],
+  "extraPaths": [".."],
+  "pythonPath": ".venv/bin/python",
+  "typeCheckingMode": "basic",
+  "exclude": ["**/langfuse"],
+  "executionEnvironments": [
+    {
+      "root": "..",
+      "pythonVersion": "3.13",
+      "extraPaths": [".."]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "include": ["."],
+  "extraPaths": ["."],
+  "pythonPath": "backend/.venv/bin/python",
+  "typeCheckingMode": "basic",
+  "exclude": ["**/langfuse"],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "pythonVersion": "3.13",
+      "pythonPlatform": "Darwin",
+      "extraPaths": ["."]
+    }
+  ]
+}
