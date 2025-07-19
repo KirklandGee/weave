@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Request
 from fastapi.responses import StreamingResponse
 from backend.services.llm.llm_service import call_llm
 from backend.services.llm.template_manager import template_manager
 from backend.models.schemas import ChatRequest, TemplateRequest, TemplateInfo, AsyncTemplateRequest
+from backend.api.auth import get_current_user
 import asyncio
 from datetime import datetime
 from typing import Dict, Any
@@ -16,23 +17,27 @@ async_tasks: Dict[str, Dict[str, Any]] = {}
 
 
 @router.post("/chat/stream")
-async def llm_chat_stream(req: ChatRequest):
+async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_user)):
     try:
         print("Calling API")
         return StreamingResponse(
             call_llm(
                 messages=req.messages,
                 context=req.context,
+                user_id=user_id,
                 stream=True,
             ),
             media_type="text/plain",
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 429 for usage limits)
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/template/{template_name}/stream")
-async def execute_template_stream(template_name: str, req: TemplateRequest):
+async def execute_template_stream(template_name: str, req: TemplateRequest, user_id: str = Depends(get_current_user)):
     """Execute a template with streaming response."""
     try:
         return StreamingResponse(
@@ -40,10 +45,14 @@ async def execute_template_stream(template_name: str, req: TemplateRequest):
                 template_name=template_name,
                 variables=req.variables,
                 context=req.context,
+                user_id=user_id,
                 stream=True,
             ),
             media_type="text/plain",
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 429 for usage limits)
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -51,7 +60,7 @@ async def execute_template_stream(template_name: str, req: TemplateRequest):
 
 
 @router.post("/template/{template_name}")
-async def execute_template(template_name: str, req: TemplateRequest):
+async def execute_template(template_name: str, req: TemplateRequest, user_id: str = Depends(get_current_user)):
     """Execute a template with non-streaming response."""
     try:
         result = ""
@@ -59,6 +68,7 @@ async def execute_template(template_name: str, req: TemplateRequest):
             template_name=template_name,
             variables=req.variables,
             context=req.context,
+            user_id=user_id,
             stream=False,
         ):
             result += chunk
@@ -68,6 +78,9 @@ async def execute_template(template_name: str, req: TemplateRequest):
             "template_name": template_name,
             "variables_used": req.variables
         }
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 429 for usage limits)
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -75,7 +88,7 @@ async def execute_template(template_name: str, req: TemplateRequest):
 
 
 @router.post("/template/{template_name}/async")
-async def execute_template_async(template_name: str, req: AsyncTemplateRequest, background_tasks: BackgroundTasks):
+async def execute_template_async(template_name: str, req: AsyncTemplateRequest, background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):
     """Execute a template asynchronously and return immediately."""
     try:
         # Generate unique task ID
@@ -87,6 +100,7 @@ async def execute_template_async(template_name: str, req: AsyncTemplateRequest, 
             "template_name": template_name,
             "note_id": req.note_id,
             "campaign_slug": req.campaign_slug,
+            "user_id": user_id,
             "started_at": datetime.now().isoformat(),
             "completed_at": None,
             "result": None,
@@ -101,7 +115,8 @@ async def execute_template_async(template_name: str, req: AsyncTemplateRequest, 
             req.variables,
             req.context,
             req.note_id,
-            req.campaign_slug
+            req.campaign_slug,
+            user_id
         )
         
         return {
@@ -115,7 +130,7 @@ async def execute_template_async(template_name: str, req: AsyncTemplateRequest, 
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def execute_template_background(task_id: str, template_name: str, variables: dict, context: str, note_id: str, campaign_slug: str):
+async def execute_template_background(task_id: str, template_name: str, variables: dict, context: str, note_id: str, campaign_slug: str, user_id: str):
     """Background task to execute template and update tracking."""
     try:
         # Execute the template
@@ -124,6 +139,7 @@ async def execute_template_background(task_id: str, template_name: str, variable
             template_name=template_name,
             variables=variables,
             context=context,
+            user_id=user_id,
             stream=False,
         ):
             result += chunk

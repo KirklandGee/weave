@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Any
 from datetime import datetime
+from decimal import Decimal
 
 # Existing LLM models
 class LLMMessage(BaseModel):
@@ -88,3 +89,39 @@ class TemplateInfo(BaseModel):
     optional_vars: list[str]
     chain_type: str
     metadata: dict[str, Any]
+
+# Usage tracking models
+class UsageEvent(BaseModel):
+    user_id: str
+    timestamp: datetime
+    model: str
+    input_tokens: int
+    output_tokens: int
+    cost: Decimal
+    campaign_id: str | None = None
+    session_id: str | None = None
+
+class UsageLimit(BaseModel):
+    user_id: str
+    monthly_limit: Decimal
+    current_usage: Decimal
+    reset_date: datetime
+
+class UsageSummary(BaseModel):
+    user_id: str
+    current_month_usage: Decimal
+    monthly_limit: Decimal
+    remaining_budget: Decimal
+    usage_percentage: float
+    total_requests: int
+    most_used_model: str | None = None
+
+class UsageHistoryRequest(BaseModel):
+    user_id: str
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    limit: int = 100
+
+class SetUsageLimitRequest(BaseModel):
+    user_id: str
+    monthly_limit: Decimal
