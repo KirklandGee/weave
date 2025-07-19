@@ -82,6 +82,24 @@ export function createNodeOps(campaignSlug: string) {
     await updateLastLocalChange(activeCampaignId)
   }
 
+  async function updateNodeType(id: string, type: string) {
+    const ts = Date.now()
+    await db.transaction('rw', db.nodes, db.changes, async () => {
+      await db.nodes.update(id, { type, updatedAt: ts })
+      await logChange({
+        op: 'update',
+        entity: 'node',
+        entityId: id,
+        payload: { type, updatedAt: ts },
+        ts,
+      })
+    })
+
+    // Track user activity and local changes
+    await updateLastActivity(activeCampaignId)
+    await updateLastLocalChange(activeCampaignId)
+  }
+
   async function addToCampaign(nodeId: string, campaignId: string) {
     const node = await db.nodes.get(nodeId)
     if (!node) return
@@ -150,6 +168,7 @@ export function createNodeOps(campaignSlug: string) {
     createNode,
     deleteNode,
     renameNode,
+    updateNodeType,
     addToCampaign,
     removeFromCampaign,
   }

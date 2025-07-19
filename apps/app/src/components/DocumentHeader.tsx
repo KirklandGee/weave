@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Note } from '@/types/node'
 
 const NODE_TYPES = [
@@ -28,11 +28,26 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
   const [isEditing, setIsEditing] = useState(false)
   const [editingTitle, setEditingTitle] = useState(node.title)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Fix: Update editingTitle when node changes
   useEffect(() => {
     setEditingTitle(node.title)
   }, [node.id, node.title])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowTypeDropdown(false)
+      }
+    }
+
+    if (showTypeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showTypeDropdown])
 
   const handleTitleSave = () => {
     if (editingTitle.trim() && editingTitle !== node.title) {
@@ -84,7 +99,7 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
             {node.title}
           </h1>
         )}
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowTypeDropdown(!showTypeDropdown)}
             className="text-zinc-500 text-sm font-mono hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-800/50"
@@ -93,13 +108,13 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
             {node.type}
           </button>
           {showTypeDropdown && onTypeChange && (
-            <div className="absolute top-full left-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-10 min-w-[120px]">
+            <div className="absolute top-full left-0 mt-1 bg-zinc-800/95 backdrop-blur-sm border border-zinc-700 rounded-lg shadow-xl z-50 min-w-[120px] max-h-64 overflow-y-auto">
               {NODE_TYPES.map((type) => (
                 <button
                   key={type}
                   onClick={() => handleTypeChange(type)}
-                  className={`block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 transition-colors ${
-                    type === node.type ? 'text-emerald-400' : 'text-zinc-300'
+                  className={`block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700/80 transition-colors cursor-pointer ${
+                    type === node.type ? 'text-emerald-400 bg-zinc-700/40' : 'text-zinc-300'
                   } ${type === NODE_TYPES[0] ? 'rounded-t-lg' : ''} ${type === NODE_TYPES[NODE_TYPES.length - 1] ? 'rounded-b-lg' : ''}`}
                 >
                   {type}
