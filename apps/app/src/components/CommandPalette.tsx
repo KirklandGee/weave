@@ -1,9 +1,9 @@
 // src/components/CommandPalette.tsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, ArrowRight, Hash, FileText, User, Map, Clock, Zap } from 'lucide-react';
+import { Search, ArrowRight, Hash, FileText, User, Map, Clock, Zap, Upload } from 'lucide-react';
 import { Note } from '@/types/node';
 import { searchNotes } from '@/lib/search';
-import { useCampaign } from '@/contexts/AppContext';
+import { useCampaign, useTemplates } from '@/contexts/AppContext';
 
 interface Command {
   id: string;
@@ -20,64 +20,58 @@ interface CommandPaletteProps {
   onNavigateToNote?: (note: Note) => void;
   onCreateNote?: (type?: string) => void;
   onAction?: (action: string) => void;
+  onTemplateSelect?: (templateName: string) => void;
 }
 
 export function CommandPalette({
   isOpen,
   onClose,
   onNavigateToNote,
-  onCreateNote,
   onAction,
+  onTemplateSelect,
 }: CommandPaletteProps) {
   const { currentCampaign } = useCampaign();
+  const { templates, loading: templatesLoading } = useTemplates();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Note[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Built-in commands
-  const commands: Command[] = useMemo(() => [
-    {
-      id: 'create-character',
-      label: 'Create Character',
-      description: 'Add a new character to your campaign',
-      icon: <User size={16} />,
-      onExecute: () => onCreateNote?.('Character'),
+  // Built-in commands - dynamic from templates + static actions
+  const commands: Command[] = useMemo(() => {
+    const templateCommands: Command[] = templates.map(template => ({
+      id: `template-${template.name}`,
+      label: template.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: template.description,
+      icon: template.metadata.category === 'character' ? <User size={16} /> :
+            template.metadata.category === 'location' ? <Map size={16} /> :
+            template.metadata.category === 'session' ? <Clock size={16} /> :
+            <FileText size={16} />,
+      onExecute: () => onTemplateSelect?.(template.name),
       category: 'creation',
-    },
-    {
-      id: 'create-location',
-      label: 'Create Location',
-      description: 'Add a new location to your campaign',
-      icon: <Map size={16} />,
-      onExecute: () => onCreateNote?.('Location'),
-      category: 'creation',
-    },
-    {
-      id: 'create-session',
-      label: 'Create Session',
-      description: 'Add a new session note',
-      icon: <Clock size={16} />,
-      onExecute: () => onCreateNote?.('Session'),
-      category: 'creation',
-    },
-    {
-      id: 'create-lore',
-      label: 'Create Lore',
-      description: 'Add a new lore entry',
-      icon: <FileText size={16} />,
-      onExecute: () => onCreateNote?.('Lore'),
-      category: 'creation',
-    },
-    {
-      id: 'quick-action',
-      label: 'Quick Actions',
-      description: 'Open quick actions menu',
-      icon: <Zap size={16} />,
-      onExecute: () => onAction?.('Quick-actions'),
-      category: 'action',
-    },
-  ], [onCreateNote, onAction]);
+    }));
+
+    const staticCommands: Command[] = [
+      {
+        id: 'import-markdown',
+        label: 'Import Markdown Files',
+        description: 'Import notes from .md files with automatic parsing',
+        icon: <Upload size={16} />,
+        onExecute: () => onAction?.('import-markdown'),
+        category: 'action',
+      },
+      {
+        id: 'quick-action',
+        label: 'Quick Actions',
+        description: 'Open quick actions menu',
+        icon: <Zap size={16} />,
+        onExecute: () => onAction?.('Quick-actions'),
+        category: 'action',
+      },
+    ];
+
+    return [...templateCommands, ...staticCommands];
+  }, [templates, onTemplateSelect, onAction]);
 
   // Search notes using improved search function
   const handleSearch = useCallback(async (searchQuery: string) => {
@@ -231,7 +225,7 @@ export function CommandPalette({
         <div className="max-h-80 overflow-y-auto">
           {query.startsWith('/') && !query.slice(1) && (
             <div className="px-4 py-2 text-xs text-zinc-400 border-b border-zinc-700">
-              Available Commands
+              Available Commands {templatesLoading && "(Loading templates...)"}
             </div>
           )}
           

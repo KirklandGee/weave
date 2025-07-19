@@ -14,6 +14,8 @@ export default function Sidebar({
   onRename,
   onHide,
   onToggleAiAssistant,
+  onReorder,
+  customOrdering = {},
 }: {
   nodes: Note[]
   activeId: string
@@ -23,8 +25,14 @@ export default function Sidebar({
   onRename: (id: string, title: string) => void
   onHide?: () => void
   onToggleAiAssistant?: () => void
+  onReorder?: (sectionName: string, orderedIds: string[]) => void
+  customOrdering?: Record<string, string[]>
 }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  
+  /* ---------- drag and drop state ---------- */
+  const [draggedItem, setDraggedItem] = useState<{ id: string; section: string } | null>(null)
+  const [dragOverItem, setDragOverItem] = useState<string | null>(null)
 
   /* ---------- group + accordion state ---------- */
   // Define section groupings
@@ -43,11 +51,85 @@ export default function Sidebar({
     }
   }
 
-  // Group nodes by section instead of type
+  // Group nodes by section and apply custom ordering or sort alphabetically
   const grouped = Object.entries(sections).reduce((acc, [sectionName, section]) => {
-    acc[sectionName] = nodes.filter(n => section.types.includes(n.type))
+    const sectionNodes = nodes.filter(n => section.types.includes(n.type))
+    
+    // Apply custom ordering if it exists for this section
+    if (customOrdering[sectionName]) {
+      const customOrder = customOrdering[sectionName]
+      const orderedNodes: Note[] = []
+      const unorderedNodes: Note[] = []
+      
+      // First, add nodes in custom order
+      for (const nodeId of customOrder) {
+        const node = sectionNodes.find(n => n.id === nodeId)
+        if (node) orderedNodes.push(node)
+      }
+      
+      // Then add any new nodes that aren't in the custom order (alphabetically)
+      for (const node of sectionNodes) {
+        if (!customOrder.includes(node.id)) {
+          unorderedNodes.push(node)
+        }
+      }
+      unorderedNodes.sort((a, b) => a.title.localeCompare(b.title))
+      
+      acc[sectionName] = [...orderedNodes, ...unorderedNodes]
+    } else {
+      // Sort alphabetically by title if no custom ordering
+      acc[sectionName] = sectionNodes.sort((a, b) => a.title.localeCompare(b.title))
+    }
+    
     return acc
   }, {} as Record<string, Note[]>)
+
+  /* ---------- drag and drop handlers ---------- */
+  const handleDragStart = (e: React.DragEvent, noteId: string, sectionName: string) => {
+    setDraggedItem({ id: noteId, section: sectionName })
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent, noteId: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverItem(noteId)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverItem(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, targetNoteId: string, sectionName: string) => {
+    e.preventDefault()
+    setDragOverItem(null)
+    
+    if (!draggedItem || draggedItem.section !== sectionName) {
+      setDraggedItem(null)
+      return
+    }
+
+    const sectionNodes = grouped[sectionName]
+    const draggedIndex = sectionNodes.findIndex(n => n.id === draggedItem.id)
+    const targetIndex = sectionNodes.findIndex(n => n.id === targetNoteId)
+    
+    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
+      setDraggedItem(null)
+      return
+    }
+
+    // Reorder the nodes
+    const newOrder = [...sectionNodes]
+    const [draggedNode] = newOrder.splice(draggedIndex, 1)
+    newOrder.splice(targetIndex, 0, draggedNode)
+    
+    // Call the onReorder callback with the new order
+    if (onReorder) {
+      onReorder(sectionName, newOrder.map(n => n.id))
+    }
+    
+    setDraggedItem(null)
+  }
   
   const [open, setOpen] = useState<Record<string, boolean>>({'Sessions': true})
 
@@ -141,8 +223,11 @@ export default function Sidebar({
 
               <div 
                 className={`overflow-hidden transition-all duration-300 ease-out ${
-                  isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                  isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
                 }`}
+                style={{
+                  maxHeight: isOpen ? `${list.length * 2.5}rem` : '0'
+                }}
               >
                 <ul className="ml-5 space-y-1 py-1">
                   {list.map(n => (
@@ -169,6 +254,11 @@ export default function Sidebar({
                         />
                       ) : (
                         <button
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, n.id, sectionName)}
+                          onDragOver={(e) => handleDragOver(e, n.id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, n.id, sectionName)}
                           onClick={() => onSelect(n)}
                           onContextMenu={e => {
                             e.preventDefault()
@@ -178,10 +268,14 @@ export default function Sidebar({
                               left: e.clientX,
                             })
                           }}
-                          className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 ${
+                          className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 cursor-move ${
                             n.id === activeId 
                               ? 'bg-blue-600 text-white font-medium' 
                               : 'hover:bg-zinc-800 hover:text-white'
+                          } ${
+                            dragOverItem === n.id ? 'border-2 border-blue-400 border-dashed' : ''
+                          } ${
+                            draggedItem?.id === n.id ? 'opacity-50' : ''
                           }`}
                         >
                           {n.attributes?.generation_status === 'generating' && (
@@ -234,6 +328,103 @@ export default function Sidebar({
                   ))}
                 </ul>
               </div>
+              
+              {/* Show active note when category is collapsed */}
+              {!isOpen && list.some(n => n.id === activeId) && (
+                <div className="ml-5 space-y-1 py-1">
+                  {list.filter(n => n.id === activeId).map(n => (
+                    <div key={`collapsed-${n.id}`} className="relative">
+                      {renaming === n.id ? (
+                        <input
+                          aria-label='Rename note'
+                          ref={renameInput}
+                          defaultValue={n.title}
+                          className="w-full rounded bg-zinc-800 px-2 py-1 text-sm text-white outline-none border border-zinc-600 focus:border-blue-500"
+                          onBlur={e => {
+                            const v = e.currentTarget.value.trim()
+                            if (v && v !== n.title) onRename(n.id, v)
+                            setRenaming(null)
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') e.currentTarget.blur()
+                            if (e.key === 'Escape') {
+                              e.preventDefault()
+                              setRenaming(null)
+                            }
+                          }}
+                        />
+                      ) : (
+                        <button
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, n.id, sectionName)}
+                          onDragOver={(e) => handleDragOver(e, n.id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, n.id, sectionName)}
+                          onClick={() => onSelect(n)}
+                          onContextMenu={e => {
+                            e.preventDefault()
+                            setMenu({
+                              id: n.id,
+                              top: e.clientY,
+                              left: e.clientX,
+                            })
+                          }}
+                          className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 cursor-move ${
+                            n.id === activeId 
+                              ? 'bg-blue-600 text-white font-medium' 
+                              : 'hover:bg-zinc-800 hover:text-white'
+                          } ${
+                            dragOverItem === n.id ? 'border-2 border-blue-400 border-dashed' : ''
+                          } ${
+                            draggedItem?.id === n.id ? 'opacity-50' : ''
+                          }`}
+                        >
+                          {n.attributes?.generation_status === 'generating' && (
+                            <div className="w-3 h-3 border border-zinc-400 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
+                          )}
+                          {n.attributes?.generation_status === 'error' && (
+                            <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                          )}
+                          <span className="truncate">{n.title}</span>
+                        </button>
+                      )}
+
+                      {/* Context menu for collapsed active note */}
+                      {menu && menu.id === n.id && (
+                        <div
+                          className="fixed z-50"
+                          style={{
+                            top: `${menu.top}px`,
+                            left: `${menu.left}px`,
+                          }}
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div className="flex flex-col bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[120px]">
+                            <button
+                              onClick={() => triggerRename(n.id)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                            >
+                              <Pencil size={14} />
+                              Rename
+                            </button>
+                            <button
+                              onClick={() => {
+                                onDelete(n)
+                                setMenu(null)
+                              }}
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
+                            >
+                              <Trash size={14} />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )
         })}

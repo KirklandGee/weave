@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useCampaignNodes } from '@/lib/hooks/useCampaignNodes'
 import { useActiveNode } from '@/lib/hooks/useActiveNode'
 import { createNodeOps } from '@/lib/hooks/useNodeOps'
+import { createEdgeOps } from '@/lib/hooks/useEdgeOps'
 import { useCampaign } from '@/contexts/AppContext'
 import { useTemplateGeneration } from '@/lib/hooks/useTemplateGeneration'
 import Sidebar from '@/components/Sidebar'
@@ -12,6 +13,7 @@ import Nav from '@/components/Nav'
 import Tiptap from '@/components/Tiptap'
 import DocumentHeader from '@/components/DocumentHeader'
 import { AddNoteModal } from '@/components/AddNoteModal'
+import { ImportMarkdownModal } from '@/components/ImportMarkdownModal'
 import { nanoid } from 'nanoid'
 import { Note } from '@/types/node'
 import { USER_ID } from '@/lib/constants'
@@ -21,10 +23,11 @@ import "allotment/dist/style.css"
 import { updateLastActivity } from '@/lib/utils/activityTracker'
 
 export default function Home() {
-  const { currentCampaign } = useCampaign()
+  const { currentCampaign, campaigns } = useCampaign()
   // Only load nodes if we have a campaign - this prevents loading from 'default' database
   const dbNodes = useCampaignNodes(currentCampaign?.slug)
   const nodeOps = currentCampaign ? createNodeOps(currentCampaign.slug) : null
+  const edgeOps = currentCampaign ? createEdgeOps(currentCampaign.slug) : null
   
   // Initialize template generation polling for the current campaign
   useTemplateGeneration(currentCampaign?.slug || '')
@@ -123,6 +126,149 @@ export default function Home() {
     setNodes(prev => [{ ...newRow, id: nodeId }, ...prev])
   }
 
+  // Handle importing markdown files
+  const handleImportMarkdown = async (files: File[], campaignSlug: string) => {
+    if (!files.length) {
+      throw new Error('No files provided')
+    }
+
+    if (!campaignSlug) {
+      throw new Error('No campaign selected')
+    }
+
+    // Create node and edge operations for the selected campaign
+    const selectedNodeOps = createNodeOps(campaignSlug)
+    const selectedEdgeOps = createEdgeOps(campaignSlug)
+
+    try {
+      const results = []
+      const errors = []
+      const createdNotes = []
+
+      for (const file of files) {
+        try {
+          // Validate file type
+          if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+            errors.push(`${file.name}: Not a markdown file`)
+            continue
+          }
+
+          // Read file content
+          const content = await file.text()
+          
+          // Parse frontmatter (simple implementation)
+          const frontmatter: Record<string, unknown> = {}
+          let markdown = content
+          
+          if (content.startsWith('---\n')) {
+            const endIndex = content.indexOf('\n---\n', 4)
+            if (endIndex !== -1) {
+              const frontmatterText = content.substring(4, endIndex)
+              markdown = content.substring(endIndex + 5)
+              
+              // Simple YAML parsing for basic frontmatter
+              try {
+                frontmatterText.split('\n').forEach(line => {
+                  const colonIndex = line.indexOf(':')
+                  if (colonIndex > 0) {
+                    const key = line.substring(0, colonIndex).trim()
+                    const value = line.substring(colonIndex + 1).trim()
+                    frontmatter[key] = value.replace(/^["']|["']$/g, '') // Remove quotes
+                  }
+                })
+              } catch (e) {
+                console.warn('Failed to parse frontmatter:', e)
+              }
+            }
+          }
+
+          // Extract title
+          let title = file.name.replace(/\.(md|markdown)$/i, '')
+          
+          // Check frontmatter for title
+          if (frontmatter.title) {
+            title = String(frontmatter.title)
+          } else {
+            // Try to find H1 header
+            const h1Match = markdown.match(/^#\s+(.+)/m)
+            if (h1Match) {
+              title = h1Match[1].trim()
+            }
+          }
+
+          // Detect note type
+          let noteType = 'Note'
+          if (frontmatter.type && typeof frontmatter.type === 'string') {
+            const validTypes = ['Note', 'Character', 'Location', 'Quest', 'Event', 'Session', 'NPC', 'Item', 'Lore', 'Rule']
+            if (validTypes.includes(frontmatter.type)) {
+              noteType = frontmatter.type
+            }
+          } else {
+            // Pattern-based detection
+            const contentLower = markdown.toLowerCase()
+            if (contentLower.includes('character') || contentLower.includes('npc') || contentLower.includes('personality')) {
+              noteType = 'Character'
+            } else if (contentLower.includes('location') || contentLower.includes('place') || contentLower.includes('city')) {
+              noteType = 'Location'
+            } else if (contentLower.includes('quest') || contentLower.includes('mission')) {
+              noteType = 'Quest'
+            } else if (contentLower.includes('session') || contentLower.includes('adventure')) {
+              noteType = 'Session'
+            }
+          }
+
+          // Create note using the frontend's node operations
+          const noteId = await selectedNodeOps.createNode({
+            type: noteType,
+            title: title,
+            markdown: markdown,
+            attributes: {
+              imported_from: file.name,
+              frontmatter: frontmatter,
+            }
+          })
+
+          const createdNote = {
+            id: noteId,
+            title: title,
+            type: noteType,
+            markdown: markdown,
+            imported_from: file.name,
+            frontmatter: frontmatter
+          }
+
+          createdNotes.push(createdNote)
+          results.push(createdNote)
+
+        } catch (error) {
+          console.error(`Error importing ${file.name}:`, error)
+          errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+      }
+      
+      // Set first imported note as active (only if importing to current campaign)
+      if (createdNotes.length > 0 && campaignSlug === currentCampaign?.slug) {
+        setActiveId(createdNotes[0].id)
+      }
+
+      // Don't update local state optimistically - let the sync system handle it
+      // The useEffect in useCampaignNodes will pick up the new notes from IndexedDB
+
+      return {
+        message: `Import completed. ${results.length} notes created, ${errors.length} errors.`,
+        created_notes: results,
+        errors: errors,
+        total_files: files.length,
+        successful_imports: results.length,
+        failed_imports: errors.length
+      }
+
+    } catch (error) {
+      console.error('Import error:', error)
+      throw error
+    }
+  }
+
   // Handle other actions from command palette
   const handleAction = (action: string) => {
     switch (action) {
@@ -140,6 +286,9 @@ export default function Home() {
         break
       case 'add-note':
         setIsAddModalOpen(true)
+        break
+      case 'import-markdown':
+        setIsImportModalOpen(true)
         break
       default:
         console.log('Unknown action:', action)
@@ -182,6 +331,35 @@ export default function Home() {
   const [showInspector, setShowInspector] = useState(true);
   const [showAiAssistant, setShowAiAssistant] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  
+  // Custom ordering state for sidebar nodes
+  const [customOrdering, setCustomOrdering] = useState<Record<string, string[]>>({});
+
+  // Load custom ordering from localStorage on mount
+  useEffect(() => {
+    if (currentCampaign?.slug) {
+      const stored = localStorage.getItem(`sidebar-ordering-${currentCampaign.slug}`);
+      if (stored) {
+        try {
+          setCustomOrdering(JSON.parse(stored));
+        } catch (e) {
+          console.warn('Failed to parse stored ordering:', e);
+        }
+      }
+    }
+  }, [currentCampaign?.slug]);
+
+  // Handle reordering of sidebar nodes
+  const handleReorder = (sectionName: string, orderedIds: string[]) => {
+    if (!currentCampaign?.slug) return;
+    
+    const newOrdering = { ...customOrdering, [sectionName]: orderedIds };
+    setCustomOrdering(newOrdering);
+    
+    // Persist to localStorage
+    localStorage.setItem(`sidebar-ordering-${currentCampaign.slug}`, JSON.stringify(newOrdering));
+  };
 
   if (!currentCampaign) return <p className="p-4 text-zinc-300">Loading campaigns…</p>
   
@@ -234,6 +412,8 @@ export default function Home() {
                   }}
                   onHide={() => setShowSidebar(false)}
                   onToggleAiAssistant={() => setShowAiAssistant(prev => !prev)}
+                  onReorder={handleReorder}
+                  customOrdering={customOrdering}
                 />
               </div>
               <div 
@@ -329,6 +509,12 @@ export default function Home() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onCreate={handleCreateNote}
+      />
+      
+      <ImportMarkdownModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportMarkdown}
       />
     </div>
   )
