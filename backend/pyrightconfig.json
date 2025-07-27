@@ -1,5 +1,5 @@
 {
-  "include": [".."],
+  "include": ["."],
   "extraPaths": [".."],
   "pythonPath": ".venv/bin/python",
   "typeCheckingMode": "basic",

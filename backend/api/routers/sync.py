@@ -14,7 +14,6 @@ async def get_sidebar_nodes(
     user_id: str = Depends(get_current_user),
 ):
     try:
-        print(f"User ID: {user_id}")
         records = query(
             """
             MATCH (u:User {id:$user_id})
@@ -29,8 +28,8 @@ async def get_sidebar_nodes(
               id:        props.id,
               type:      props.type,
               title:     props.title,
-              ownerId:   props.ownerId,      // ← ADD THIS
-              campaignId: props.campaignId,  // ← ADD THIS  
+              ownerId:   {$:user_id}, // I'm not sure if this syntax is right`    
+              campaignId: props.campaignId,
               markdown:  props.markdown,
               updatedAt: props.updatedAt,
               createdAt: props.createdAt,
@@ -76,6 +75,7 @@ async def push_changes(
                         "to_id": ch.payload["toId"],
                         "rid": ch.entityId,
                         "relType": ch.payload['relType'],
+                        "ownerId": user_id,
                         "props": props,
                         "ts": ch.ts,
                     }
@@ -133,7 +133,7 @@ async def push_changes(
                 # ---------- CREATE ----------
                 elif ch.op == "create":
                     label = ch.payload.get("type") or "Node"
-                    props = {**ch.payload, "updatedAt": ch.ts}
+                    props = {**ch.payload, "updatedAt": ch.ts, "ownerId": user_id}
                     attrs = props.get("attributes")
                     if isinstance(attrs, dict):
                         props["attributes"] = json.dumps(attrs) if attrs else None

@@ -22,10 +22,7 @@ For now, I started building out some models and endpoints for basic CRUD of thes
   - Will be a pretty basic endpoint, but needs a solid prompt chain/template behing the scenes
 
 **Prompt Templates**
-- [ ] Create a new NPC based on all Lore documents in your workspace
-- [ ] Generate a new location (Realm, Region, Town, etc.) based on the existing locations, and some general instructions
-- [ ] Generate a special item uniquely for a character or a location (based on a note and it's relationships)
-- [ ] Generate session ideas based on all previous sessions and what could potentially come next (Think about all characters in the campaign, all sessions, )
+
 - [ ]
 
 **API**
@@ -75,4 +72,8 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [x] Improve relationship recommendations and search based on embeddings
 - [x] Organize sidebar by note type
 - [x] Expose a `/retrieve` helper that returns top-K similar notes for RAG 
-~~- [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed~~
+- [x] Create a new NPC based on all Lore documents in your workspace
+- [x] Generate a new location (Realm, Region, Town, etc.) based on the existing locations, and some general instructions
+- [x] Generate a special item uniquely for a character or a location (based on a note and it's relationships)
+- [x] Generate session ideas based on all previous sessions and what could potentially come next (Think about all characters in the campaign, all sessions, )
+~~- [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed~e

@@ -1,11 +1,12 @@
 # backend/api/routers/embed.py
 
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from typing import Annotated
 from backend.services.embeddings.service import get_embedding_service
 from backend.services.embeddings.updates import get_embedding_update_service
 from backend.services.neo4j import query
 from backend.models.schemas import EmbeddingStatus, EmbeddingUpdateResult, BatchEmbeddingResult
+from backend.services.queue_service import get_task_queue
 
 router = APIRouter(prefix="/embed", tags=["embedding"])
 
@@ -75,13 +76,19 @@ async def embed_node(
 async def embed_campaign(
     campaign_id: str,
     uid: UserIdHeader,
+    queue = Depends(get_task_queue),
     force: bool = False
 ):
     """Generate embeddings for all nodes in a campaign that need updating."""
     try:
         update_service = get_embedding_update_service()
-        result = update_service.update_campaign_embeddings(campaign_id, force=force)
+        task = queue.enqueue(
+            update_service.update_campaign_embeddings,
+            campaign_id,
+            force=force
+        )
         
+        # TODO: Clean this up 
         return BatchEmbeddingResult(
             message=result['message'],
             processed=result['processed'],
