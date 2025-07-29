@@ -447,6 +447,9 @@ export default function Home() {
                     onTitleChange={async (id, title) => {
                       if (nodeOps) await nodeOps.renameNode(id, title)
                     }}
+                    onTypeChange={async (id, newType) => {
+                      if (nodeOps) await nodeOps.updateNodeType(id, newType)
+                    }}
                   />
                   
                   {/* Document Content */}

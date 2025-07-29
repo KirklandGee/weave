@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Note } from '@/types/node'
 
 const NODE_TYPES = [
@@ -28,7 +29,9 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
   const [isEditing, setIsEditing] = useState(false)
   const [editingTitle, setEditingTitle] = useState(node.title)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   // Fix: Update editingTitle when node changes
   useEffect(() => {
@@ -38,7 +41,13 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Element
+      // Check if click is outside the button and not on a dropdown item
+      if (
+        buttonRef.current && 
+        !buttonRef.current.contains(target) &&
+        !target.closest('[data-dropdown-content]')
+      ) {
         setShowTypeDropdown(false)
       }
     }
@@ -76,6 +85,17 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
     setShowTypeDropdown(false)
   }
 
+  const handleDropdownToggle = () => {
+    if (!showTypeDropdown && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      })
+    }
+    setShowTypeDropdown(!showTypeDropdown)
+  }
+
   return (
     <div className="bg-zinc-900/50 backdrop-blur-sm border-b border-zinc-800/50 px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -101,27 +121,39 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
         )}
         <div className="relative" ref={dropdownRef}>
           <button
-            onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+            ref={buttonRef}
+            onClick={handleDropdownToggle}
             className="text-zinc-500 text-sm font-mono hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-800/50"
             disabled={!onTypeChange}
           >
             {node.type}
           </button>
-          {showTypeDropdown && onTypeChange && (
-            <div className="absolute top-full left-0 mt-1 bg-zinc-800/95 backdrop-blur-sm border border-zinc-700 rounded-lg shadow-xl z-50 min-w-[120px] max-h-64 overflow-y-auto">
-              {NODE_TYPES.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => handleTypeChange(type)}
-                  className={`block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700/80 transition-colors cursor-pointer ${
-                    type === node.type ? 'text-emerald-400 bg-zinc-700/40' : 'text-zinc-300'
-                  } ${type === NODE_TYPES[0] ? 'rounded-t-lg' : ''} ${type === NODE_TYPES[NODE_TYPES.length - 1] ? 'rounded-b-lg' : ''}`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          )}
+          {showTypeDropdown && onTypeChange && typeof window !== 'undefined' && 
+            createPortal(
+              <div 
+                data-dropdown-content
+                className="fixed bg-zinc-800 border border-zinc-600 rounded-lg shadow-2xl min-w-[120px] max-h-64 overflow-y-auto" 
+                style={{ 
+                  zIndex: 99999,
+                  left: dropdownPosition.left + 'px',
+                  top: dropdownPosition.top + 'px'
+                }}
+              >
+                {NODE_TYPES.map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => handleTypeChange(type)}
+                    className={`block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 transition-colors cursor-pointer ${
+                      type === node.type ? 'text-zinc-100 bg-zinc-600' : 'text-zinc-300'
+                    } ${type === NODE_TYPES[0] ? 'rounded-t-lg' : ''} ${type === NODE_TYPES[NODE_TYPES.length - 1] ? 'rounded-b-lg' : ''}`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>,
+              document.body
+            )
+          }
         </div>
       </div>
       <div className="flex items-center gap-2 text-zinc-500 text-sm">

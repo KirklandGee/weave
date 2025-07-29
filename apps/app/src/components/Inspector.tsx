@@ -7,36 +7,15 @@ type InspectorProps = {
   onNavigateToNote?: (noteId: string) => void;
   onHide?: () => void;
 }
-
+// Originally showed some extra attributes, but simplified to just relationships now. may change back at some point
 export default function Inspector({ node, onNavigateToNote, onHide }: InspectorProps) {
   if (!node) return null
   if (!Object.keys(node.attributes ?? {}).length && !node.id) return null
 
-  // Filter out unwanted attributes: embedding, ownerId, contentHash, embeddedAt
-  const filteredAttributes = Object.fromEntries(
-    Object.entries(node.attributes ?? {}).filter(
-      ([key]) =>
-        ![
-          'embedding',
-          'ownerId',
-          'contentHash',
-          'embeddedAt',
-          'campaignId',
-          'campaignIds',
-          'generation_status',
-          'generation_started_at',
-          'generation_completed_at',
-          'generation_task_id',
-          'template_name',
-          'template_variables'
-        ].includes(key)
-    )
-  );
-
   return (
     <aside className="h-full flex flex-col overflow-hidden text-zinc-200">
       <div className="flex-shrink-0 p-3 border-b border-zinc-800 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Inspector</h3>
+        <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Relationships</h3>
         {onHide && (
           <button
             onClick={onHide}
@@ -52,29 +31,14 @@ export default function Inspector({ node, onNavigateToNote, onHide }: InspectorP
       
       <div className="flex-1 overflow-y-auto p-3">
         <div className="mb-6">
-          {Object.keys(filteredAttributes).length > 0 ? (
-            <>
-              <h5 className="mb-3 text-sm font-medium text-zinc-400 uppercase tracking-wide">Attributes</h5>
-              <ul className="space-y-2">
-                {Object.entries(filteredAttributes).map(([k, v]) => (
-                  <li key={k} className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{k}</span>
-                    <span className="text-zinc-200 bg-zinc-800 px-2 py-1 rounded text-sm">
-                      {String(v)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="text-zinc-500 text-xs italic">No attributes</p>
-          )}
-        </div>
-        
+
         <RelationshipsSection
           currentNote={node}
           onNavigateToNote={onNavigateToNote}
         />
+
+        </div>
+        
       </div>
     </aside>
   )
