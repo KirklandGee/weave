@@ -5,7 +5,7 @@ from langchain.schema import BaseMessage
 from backend.models.schemas import LLMMessage
 from .llm_service import call_llm
 from .types import ChainStep
-from backend.logging.trace import traced
+from backend.observability.trace import traced
 
 
 class ChainBuilder:

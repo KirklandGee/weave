@@ -14,7 +14,15 @@
     "build:marketing": "npm run build --workspace=apps/marketing",
     "start": "npm run start --workspaces",
     "lint": "npm run lint --workspaces",
-    "dev:proxy": "node scripts/dev-proxy.js"
+    "dev:proxy": "node scripts/dev-proxy.js",
+    "docker:up": "docker-compose up",
+    "docker:up:build": "docker-compose up --build",
+    "docker:down": "docker-compose down",
+    "docker:down:volumes": "docker-compose down -v",
+    "docker:logs": "docker-compose logs -f",
+    "docker:backend": "docker-compose up backend rq-worker redis neo4j",
+    "docker:frontend": "docker-compose up app marketing",
+    "docker:seed": "docker-compose run --rm seeder"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

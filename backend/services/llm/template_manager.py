@@ -3,7 +3,7 @@ from langchain.schema import BaseMessage
 from backend.models.schemas import LLMMessage
 from .llm_service import call_llm
 from .types import TemplateConfig
-from backend.logging.trace import traced
+from backend.observability.trace import traced
 
 # Import these at the class level to avoid circular imports
 from typing import TYPE_CHECKING

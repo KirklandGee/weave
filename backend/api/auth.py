@@ -4,9 +4,32 @@ import jwt
 from fastapi import HTTPException, Request
 from clerk_backend_api import Clerk
 from clerk_backend_api.security.types import AuthenticateRequestOptions
+from backend.services.neo4j import query
 
 # Initialize Clerk client
 clerk_client = Clerk(bearer_auth=os.getenv("CLERK_SECRET_KEY"))
+
+
+def ensure_user_exists(user_id: str):
+    """
+    Ensure a User node exists in Neo4j for the given user_id.
+    Creates the user if they don't exist.
+    """
+    try:
+        result = query(
+            """
+            MERGE (u:User {id: $user_id})
+            ON CREATE SET u.created_at = datetime(), u.updated_at = datetime()
+            ON MATCH SET u.updated_at = datetime()
+            RETURN u.id as id
+            """,
+            user_id=user_id,
+        )
+        return result
+    except Exception as e:
+        print(f"❌ Error ensuring user exists: {str(e)}")
+        # Don't fail auth if user creation fails, just log it
+        pass
 
 
 async def get_current_user(request: Request) -> str:
@@ -42,6 +65,8 @@ async def get_current_user(request: Request) -> str:
         if hasattr(request_state, "payload") and request_state.payload:
             user_id = request_state.payload.get("sub")
             if user_id:
+                # Ensure user exists in Neo4j database
+                ensure_user_exists(user_id)
                 return user_id
 
         decoded = jwt.decode(token, options={"verify_signature": False})
@@ -49,6 +74,10 @@ async def get_current_user(request: Request) -> str:
         user_id = decoded.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="No user ID in token")
+        
+        # Ensure user exists in Neo4j database
+        ensure_user_exists(user_id)
+        
         return user_id
 
     except HTTPException:

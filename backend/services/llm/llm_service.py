@@ -4,7 +4,7 @@ from backend.models.schemas import LLMMessage
 from .llm_providers import get_llm_instance
 from .config import ROLE_MAP, DEFAULT_LLM_CONFIG
 from .token_counter import TokenCounter
-from backend.logging.trace import traced
+from backend.observability.trace import traced
 from backend.services.usage_service import UsageService
 from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
 from fastapi import HTTPException

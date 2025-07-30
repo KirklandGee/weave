@@ -1,12 +1,12 @@
-#!/usr/bin/env zsh
-# seed.sh ― run every seed file against the local Neo4j instance
+#!/usr/bin/env bash
+# seed.sh ― run every seed file against the Neo4j instance
 
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# Config -- tweak here if you ever change creds or port
+# Config -- works with both Docker and local Neo4j
 NEO4J_USER=${NEO4J_USER:-neo4j}
-NEO4J_PASS=${NEO4J_PASS:-secretgraph}
+NEO4J_PASS=${NEO4J_PASS:-password}
 NEO4J_BOLT=${NEO4J_BOLT:-bolt://localhost:7687}
 
 FILES=(

@@ -39,6 +39,8 @@ dependencies = [
     { name = "ollama" },
     { name = "pydantic" },
     { name = "python-frontmatter" },
+    { name = "redis" },
+    { name = "rq" },
     { name = "sentence-transformers" },
     { name = "tenacity" },
     { name = "tiktoken" },
@@ -56,6 +58,8 @@ requires-dist = [
     { name = "ollama", specifier = ">=0.5.1" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "python-frontmatter", specifier = ">=1.1.0" },
+    { name = "redis", specifier = ">=6.2.0" },
+    { name = "rq", specifier = ">=2.4.1" },
     { name = "sentence-transformers", specifier = ">=5.0.0" },
     { name = "tenacity", specifier = ">=9.1.2" },
     { name = "tiktoken", specifier = ">=0.8.0" },
@@ -1278,6 +1282,15 @@ wheels = [
 ]
 
 [[package]]
+name = "redis"
+version = "6.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/9a/0551e01ba52b944f97480721656578c8a7c46b51b99d66814f85fe3a4f3e/redis-6.2.0.tar.gz", hash = "sha256:e821f129b75dde6cb99dd35e5c76e8c49512a5a0d8dfdc560b2fbd44b85ca977", size = 4639129 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/67/e60968d3b0e077495a8fee89cf3f2373db98e528288a48f1ee44967f6e8c/redis-6.2.0-py3-none-any.whl", hash = "sha256:c8ddf316ee0aab65f04a11229e94a64b2618451dab7a67cb2f77eb799d872d5e", size = 278659 },
+]
+
+[[package]]
 name = "regex"
 version = "2024.11.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1384,6 +1397,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9c/4d/73afcb6efb0448fa28cf285714e84b06ee4670f0f10bdd0de3a73722894b/rignore-0.6.2-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:c7907763174c43b38525a490e2f9bc2b01534214e8af38f7737903e8fa195574", size = 1120238 },
     { url = "https://files.pythonhosted.org/packages/eb/87/7f362fc0d19c57a124f7b41fa043cb9761a4eb41076b392e8c68568a9b84/rignore-0.6.2-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0c27e1e93ece4296a593ff44d4200acf1b8212e13f0d2c3f4e1ac81e790015fd", size = 949673 },
     { url = "https://files.pythonhosted.org/packages/1d/9f/0f13511b27c3548372d9679637f1120e690370baf6ed890755eb73d9387b/rignore-0.6.2-cp314-cp314-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:d2252d603550d529362c569b10401ab32536613517e7e1df0e4477fe65498245", size = 974567 },
+]
+
+[[package]]
+name = "rq"
+version = "2.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "redis" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9f/1a/76bd814898c4c574bc0e6100c4626247fc08c0194372d4d3b7bfcf752eae/rq-2.4.1.tar.gz", hash = "sha256:40ba01af3edacc008ab376009a3a547278d2bfe02a77cd4434adc0b01788239f", size = 664540 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/c4/ffd7a6d9a706a50ab91c8bd42ff54cd9b228613d6bb80f7728a5144518b1/rq-2.4.1-py3-none-any.whl", hash = "sha256:a3a0839ba3213a9be013b398670caf71d9360a0c8525f343687cf2c2199e5ec8", size = 108014 },
 ]
 
 [[package]]

@@ -1,0 +1,144 @@
+services:
+  # Redis for task queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Neo4j database
+  neo4j:
+    image: neo4j:5.15-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/secretgraph
+      - NEO4J_dbms_security_procedures_unrestricted=gds.*,apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=gds.*,apoc.*
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=secretgraph
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_HOST=${LANGFUSE_HOST}
+      - UV_LINK_MODE=copy
+      - PYTHONPATH=/app
+    depends_on:
+      - redis
+      - neo4j
+    volumes:
+      - .:/app
+    working_dir: /app/backend
+    command: uv run python -m fastapi dev api/index.py --host 0.0.0.0 --port 8000
+
+  # RQ Worker for background tasks
+  rq-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=secretgraph
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_HOST=${LANGFUSE_HOST}
+      - UV_LINK_MODE=copy
+      - PYTHONPATH=/app
+    depends_on:
+      - redis
+      - neo4j
+      - backend
+    volumes:
+      - .:/app
+    working_dir: /app/backend
+    command: uv run python worker.py
+
+  # Frontend App
+  app:
+    build:
+      context: ./apps/app
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - BACKEND_URL=http://backend:8000
+    volumes:
+      - ./apps/app:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev -- --hostname 0.0.0.0
+
+  # Marketing Site
+  marketing:
+    build:
+      context: ./apps/marketing
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    volumes:
+      - ./apps/marketing:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev -- --hostname 0.0.0.0
+
+  # Database Seeder (run manually with: docker-compose run --rm seeder)
+  seeder:
+    image: neo4j:5.15-community
+    environment:
+      - NEO4J_USER=neo4j
+      - NEO4J_PASS=secretgraph
+      - NEO4J_BOLT=bolt://neo4j:7687
+    volumes:
+      - ./backend/db:/workspace
+    working_dir: /workspace
+    depends_on:
+      - neo4j
+    entrypoint: []
+    command: |
+      bash -c "
+        echo 'Waiting for Neo4j to be ready...'
+        until cypher-shell -a bolt://neo4j:7687 -u neo4j -p secretgraph 'RETURN 1;' 2>/dev/null; do
+          echo 'Neo4j not ready yet, waiting...'
+          sleep 2
+        done
+        echo 'Neo4j is ready! Running seed script...'
+        ./seed.sh
+      "
+    profiles:
+      - tools
+
+volumes:
+  redis_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:

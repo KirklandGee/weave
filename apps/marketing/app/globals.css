@@ -1,21 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
+  --background: #0a0a0a;
+  --foreground: #d4af37;
+  --gold: #d4af37;
+  --gold-light: #ffd700;
+  --gold-dark: #b8860b;
+  --black: #0a0a0a;
+  --black-light: #1a1a1a;
+  --tapestry-gold: #c9a96e;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-cinzel);
+  --font-decorative: var(--font-cinzel-decorative);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-cinzel), serif;
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
@@ -51,20 +57,22 @@ html {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #18181b;
+  background: var(--black);
+  border: 1px solid var(--gold-dark);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 4px;
+  background: linear-gradient(180deg, var(--gold-light), var(--gold-dark));
+  border-radius: 6px;
+  border: 1px solid var(--gold-dark);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: linear-gradient(180deg, var(--gold), var(--gold-light));
 }
 
 /* Animation delays */
@@ -97,4 +105,172 @@ html {
 /* Glow effect */
 .glow {
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Ornate border patterns */
+.ornate-border {
+  position: relative;
+  padding: 2rem;
+}
+
+.ornate-border::before,
+.ornate-border::after {
+  content: '';
+  position: absolute;
+  background: linear-gradient(45deg, var(--gold), var(--gold-light), var(--gold-dark));
+  z-index: 1;
+}
+
+.ornate-border::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold) 0px,
+    var(--gold-light) 10px,
+    var(--gold-dark) 20px,
+    var(--gold) 30px
+  );
+}
+
+.ornate-border::after {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold) 0px,
+    var(--gold-light) 10px,
+    var(--gold-dark) 20px,
+    var(--gold) 30px
+  );
+}
+
+/* Filigree corner decorations */
+.filigree-corners {
+  position: relative;
+}
+
+.filigree-corners::before,
+.filigree-corners::after {
+  content: '❦';
+  position: absolute;
+  color: var(--gold);
+  font-size: 1.5rem;
+  z-index: 2;
+}
+
+.filigree-corners::before {
+  top: -0.5rem;
+  left: -0.5rem;
+}
+
+.filigree-corners::after {
+  bottom: -0.5rem;
+  right: -0.5rem;
+  transform: rotate(180deg);
+}
+
+/* Tapestry panel styling */
+.tapestry-panel {
+  background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black) 100%);
+  border: 2px solid var(--gold);
+  border-image: linear-gradient(45deg, var(--gold-dark), var(--gold-light), var(--gold-dark)) 1;
+  box-shadow: 
+    inset 0 0 20px rgba(212, 175, 55, 0.1),
+    0 0 30px rgba(212, 175, 55, 0.2);
+  position: relative;
+}
+
+.tapestry-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Decorative text styling */
+.decorative-title {
+  font-family: var(--font-cinzel-decorative), serif;
+  background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+}
+
+/* Ornate divider */
+.ornate-divider {
+  width: 200px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--gold-dark) 25%,
+    var(--gold-light) 50%,
+    var(--gold-dark) 75%,
+    transparent 100%
+  );
+  position: relative;
+  margin: 2rem auto;
+}
+
+.ornate-divider::before,
+.ornate-divider::after {
+  content: '◆';
+  position: absolute;
+  color: var(--gold);
+  top: -8px;
+  font-size: 1rem;
+}
+
+.ornate-divider::before {
+  left: -10px;
+}
+
+.ornate-divider::after {
+  right: -10px;
+}
+
+/* Enhanced tapestry texture overlay */
+.tapestry-texture {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(255, 215, 0, 0.02) 0%, transparent 50%),
+    linear-gradient(45deg, transparent 48%, rgba(212, 175, 55, 0.01) 50%, transparent 52%),
+    linear-gradient(-45deg, transparent 48%, rgba(212, 175, 55, 0.01) 50%, transparent 52%);
+  background-size: 100px 100px, 80px 80px, 60px 60px, 60px 60px;
+  animation: textureShift 20s ease-in-out infinite;
+}
+
+@keyframes textureShift {
+  0%, 100% { background-position: 0% 0%, 20% 20%, 0% 0%, 0% 0%; }
+  50% { background-position: 10% 10%, 30% 30%, 5% 5%, -5% 5%; }
+}
+
+/* Mystical glow animation */
+.mystical-glow {
+  animation: mysticalPulse 4s ease-in-out infinite;
+}
+
+@keyframes mysticalPulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 20px rgba(212, 175, 55, 0.3),
+      inset 0 0 20px rgba(212, 175, 55, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 40px rgba(212, 175, 55, 0.5),
+      inset 0 0 30px rgba(212, 175, 55, 0.2);
+  }
 }
