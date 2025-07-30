@@ -14,6 +14,7 @@ import Tiptap from '@/components/Tiptap'
 import DocumentHeader from '@/components/DocumentHeader'
 import { AddNoteModal } from '@/components/AddNoteModal'
 import { ImportMarkdownModal } from '@/components/ImportMarkdownModal'
+import EmptyCampaignsState from '@/components/EmptyCampaignsState'
 import { nanoid } from 'nanoid'
 import { Note } from '@/types/node'
 import { USER_ID } from '@/lib/constants'
@@ -23,7 +24,7 @@ import "allotment/dist/style.css"
 import { updateLastActivity } from '@/lib/utils/activityTracker'
 
 export default function Home() {
-  const { currentCampaign, campaigns } = useCampaign()
+  const { currentCampaign, campaigns, isLoading } = useCampaign()
   // Only load nodes if we have a campaign - this prevents loading from 'default' database
   const dbNodes = useCampaignNodes(currentCampaign?.slug)
   const nodeOps = currentCampaign ? createNodeOps(currentCampaign.slug) : null
@@ -361,19 +362,195 @@ export default function Home() {
     localStorage.setItem(`sidebar-ordering-${currentCampaign.slug}`, JSON.stringify(newOrdering));
   };
 
-  if (!currentCampaign) return <p className="p-4 text-zinc-300">Loading campaigns…</p>
+  // Handle campaigns loading state
+  if (isLoading) {
+    return (
+      <div className="h-screen bg-zinc-900 text-zinc-100 sticky">
+        <Nav 
+          onNavigateToNote={handleNavigateToNote}
+          onCreateNote={handleCreateNote}
+          onAction={handleAction}
+        />      
+        <div 
+          className="h-[calc(100vh-64px)] bg-zinc-950"
+          style={{
+            '--separator-border': '1px solid rgb(39 39 42)', // zinc-800
+          } as React.CSSProperties}
+        >
+          <Allotment>
+            <Allotment.Pane minSize={180} maxSize={350} preferredSize={240}>
+              <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
+                <Sidebar
+                  nodes={[]}
+                  activeId=""
+                  onSelect={() => {}}
+                  onCreate={() => {}}
+                  onDelete={() => {}}
+                  onRename={() => {}}
+                  onReorder={() => {}}
+                  customOrdering={{}}
+                  isLoading={true}
+                />
+              </div>
+            </Allotment.Pane>
+            
+            <Allotment.Pane>
+              <div className="flex-1 min-w-0 relative bg-zinc-950 h-full flex items-center justify-center">
+                <div className="text-zinc-400">Loading...</div>
+              </div>
+            </Allotment.Pane>
+          </Allotment>
+        </div>
+      </div>
+    )
+  }
+
+  // Handle no campaigns state  
+  if (!isLoading && campaigns.length === 0) {
+    return <EmptyCampaignsState />
+  }
+
+  // Handle campaign loading but no current campaign selected
+  if (!currentCampaign) {
+    return (
+      <div className="h-screen bg-zinc-900 text-zinc-100 flex items-center justify-center">
+        <div className="text-zinc-400">Loading campaign...</div>
+      </div>
+    )
+  }
   
   // Show loading if we have no nodes and dbNodes is still undefined (still fetching)
-  if (!nodes.length && dbNodes === undefined) return <p className="p-4 text-zinc-300">Loading nodes…</p>
+  if (!nodes.length && dbNodes === undefined) {
+    return (
+      <div className="h-screen bg-zinc-900 text-zinc-100 sticky">
+        <Nav 
+          onNavigateToNote={handleNavigateToNote}
+          onCreateNote={handleCreateNote}
+          onAction={handleAction}
+        />      
+        <div 
+          className="h-[calc(100vh-64px)] bg-zinc-950"
+          style={{
+            '--separator-border': '1px solid rgb(39 39 42)', // zinc-800
+          } as React.CSSProperties}
+        >
+          <Allotment>
+            <Allotment.Pane minSize={180} maxSize={350} preferredSize={240}>
+              <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
+                <Sidebar
+                  nodes={[]}
+                  activeId=""
+                  onSelect={() => {}}
+                  onCreate={() => {}}
+                  onDelete={() => {}}
+                  onRename={() => {}}
+                  onReorder={() => {}}
+                  customOrdering={{}}
+                  isLoading={true}
+                />
+              </div>
+            </Allotment.Pane>
+            
+            <Allotment.Pane>
+              <div className="flex-1 min-w-0 relative bg-zinc-950 h-full flex items-center justify-center">
+                <div className="text-zinc-400">Loading notes...</div>
+              </div>
+            </Allotment.Pane>
+          </Allotment>
+        </div>
+      </div>
+    )
+  }
   
   // If we have no nodes but dbNodes is defined (finished fetching), allow empty state
   if (!nodes.length && dbNodes !== undefined) {
-    return <p className="p-4 text-zinc-300">No nodes found. Create your first note!</p>
+    return (
+      <div className="h-screen bg-zinc-900 text-zinc-100 sticky">
+        <Nav 
+          onNavigateToNote={handleNavigateToNote}
+          onCreateNote={handleCreateNote}
+          onAction={handleAction}
+        />      
+        <div 
+          className="h-[calc(100vh-64px)] bg-zinc-950"
+          style={{
+            '--separator-border': '1px solid rgb(39 39 42)', // zinc-800
+          } as React.CSSProperties}
+        >
+          <Allotment>
+            <Allotment.Pane minSize={180} maxSize={350} preferredSize={240}>
+              <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
+                <Sidebar
+                  nodes={nodes}
+                  activeId=""
+                  onSelect={async (node) => {
+                    setActiveId(node.id)
+                    if (currentCampaign?.slug) {
+                      await updateLastActivity(currentCampaign.slug)
+                    }
+                  }}
+                  onCreate={handleCreate}
+                  onDelete={handleDelete}
+                  onRename={async (id, title) => {
+                    if (nodeOps) await nodeOps.renameNode(id, title)
+                  }}
+                  onReorder={handleReorder}
+                  customOrdering={customOrdering}
+                />
+              </div>
+            </Allotment.Pane>
+            
+            <Allotment.Pane>
+              <div className="flex-1 min-w-0 relative bg-zinc-950 h-full flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <div className="text-zinc-300 text-lg">No notes found</div>
+                  <button
+                    onClick={() => handleCreate()}
+                    className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+                  >
+                    Create your first note!
+                  </button>
+                </div>
+              </div>
+            </Allotment.Pane>
+          </Allotment>
+        </div>
+        
+        <AddNoteModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onCreate={handleCreateNote}
+        />
+        
+        <ImportMarkdownModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImport={handleImportMarkdown}
+        />
+      </div>
+    )
   }
   
-  if (!activeId) return <p className="p-4 text-zinc-300">Loading active node…</p>
+  if (!activeId) {
+    // Set first available node as active if we have nodes but no activeId
+    if (nodes.length > 0) {
+      setActiveId(nodes[0].id)
+    }
+    return (
+      <div className="h-screen bg-zinc-900 text-zinc-100 flex items-center justify-center">
+        <div className="text-zinc-400">Loading...</div>
+      </div>
+    )
+  }
+  
   const node = nodes.find(n => n.id === activeId)
-  if (!node) return <p className="p-4 text-zinc-300">Node not found.</p>
+  if (!node) {
+    return (
+      <div className="h-screen bg-zinc-900 text-zinc-100 flex items-center justify-center">
+        <div className="text-zinc-400">Note not found.</div>
+      </div>
+    )
+  }
   
   return (
     <div className="h-screen bg-zinc-900 text-zinc-100 sticky">

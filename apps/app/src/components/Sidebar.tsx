@@ -4,6 +4,7 @@ import type { Note } from '@/types/node'
 import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar, MessageSquare, AlertCircle } from 'lucide-react'
 import React from 'react'
 import { AddNoteModal } from './AddNoteModal'
+import { Skeleton, SkeletonText } from './ui/Skeleton'
 
 export default function Sidebar({
   nodes,
@@ -16,6 +17,7 @@ export default function Sidebar({
   onToggleAiAssistant,
   onReorder,
   customOrdering = {},
+  isLoading = false,
 }: {
   nodes: Note[]
   activeId: string
@@ -27,6 +29,7 @@ export default function Sidebar({
   onToggleAiAssistant?: () => void
   onReorder?: (sectionName: string, orderedIds: string[]) => void
   customOrdering?: Record<string, string[]>
+  isLoading?: boolean
 }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   
@@ -166,6 +169,67 @@ export default function Sidebar({
   const triggerRename = (id: string) => {
     setMenu(null)
     setRenaming(id)
+  }
+
+  // Render loading skeleton if loading
+  if (isLoading) {
+    return (
+      <aside className="h-full flex flex-col overflow-hidden text-zinc-200">
+        <div className="flex-shrink-0 p-3 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Notes</h3>
+          <div className="flex items-center gap-2">
+            <Skeleton width="28px" height="28px" className="rounded-md" />
+            <Skeleton width="28px" height="28px" className="rounded-md" />
+            <Skeleton width="28px" height="28px" className="rounded-md" />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3">
+          {/* World Building Section Skeleton */}
+          <section className="mb-4">
+            <div className="flex w-full items-center justify-between font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+              <div className="flex items-center gap-2">
+                <Map size={14} />
+                <span className="text-xs">World Building</span>
+              </div>
+              <ChevronDown size={14} />
+            </div>
+            <div className="ml-5 space-y-1 py-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} height="32px" className="rounded" />
+              ))}
+            </div>
+          </section>
+
+          {/* Characters & NPCs Section Skeleton */}
+          <section className="mb-4">
+            <div className="flex w-full items-center justify-between font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+              <div className="flex items-center gap-2">
+                <Users size={14} />
+                <span className="text-xs">Characters & NPCs</span>  
+              </div>
+              <ChevronRight size={14} />
+            </div>
+          </section>
+
+          {/* Sessions Section Skeleton */}
+          <section className="mb-4">
+            <div className="flex w-full items-center justify-between font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+              <div className="flex items-center gap-2">
+                <Calendar size={14} />
+                <span className="text-xs">Sessions</span>
+              </div>
+              <ChevronDown size={14} />
+            </div>
+            <div className="ml-5 space-y-1 py-1">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} height="32px" className="rounded" />
+              ))}
+            </div>
+          </section>
+        </div>
+      </aside>
+    )
   }
 
   return (
