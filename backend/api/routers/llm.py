@@ -53,7 +53,7 @@ async def execute_template_async(
             req.note_id,
             req.campaign_slug,
             user_id,
-            timeout=300  # 5 minute timeout
+            job_timeout=300  # 5 minute timeout
         )
         
         return {
@@ -69,10 +69,10 @@ async def execute_template_async(
 
 def execute_template_background(template_name: str, variables: dict, context: str, note_id: str, campaign_slug: str, user_id: str):
     """Background task to execute template using Redis Queue."""
-    from rq import get_current_task
+    from rq import get_current_job
     import asyncio
     
-    task = get_current_task()
+    task = get_current_job()
     
     try:
         # Update task progress
@@ -115,7 +115,7 @@ def execute_template_background(template_name: str, variables: dict, context: st
         
         return {
             "status": "completed",
-            "result": result,
+            "note": result,
             "template_name": template_name,
             "note_id": note_id,
             "campaign_slug": campaign_slug,

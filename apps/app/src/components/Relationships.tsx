@@ -15,7 +15,7 @@ type RelationshipsSectionProps = {
 const RELATIONSHIP_TYPE_COLORS: Record<RelationshipType, string> = {
   'DEPICTS': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   'FOLLOWS': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  'FROM': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  'FROM': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
   'INVOLVES': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
   'KNOWS': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
   'LIVES_IN': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
@@ -115,7 +115,7 @@ export function RelationshipsSection({
         </h3>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-md transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-md transition-colors"
         >
           <Plus size={12} />
           Add
@@ -125,7 +125,7 @@ export function RelationshipsSection({
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-4">
-          <div className="w-5 h-5 border-2 border-zinc-300 border-t-purple-500 rounded-full animate-spin"></div>
+          <div className="w-5 h-5 border-2 border-zinc-300 border-t-yellow-500 rounded-full animate-spin"></div>
         </div>
       )}
 
@@ -152,7 +152,7 @@ export function RelationshipsSection({
                         <ArrowRight size={12} className="text-zinc-400 flex-shrink-0" />
                         <button
                           onClick={() => handleNoteClick(otherNoteId)}
-                          className="text-sm text-zinc-900 dark:text-zinc-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
+                          className="text-sm text-zinc-900 dark:text-zinc-100 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors truncate"
                           title={otherNoteTitle}
                         >
                           {otherNoteTitle}
@@ -196,7 +196,7 @@ export function RelationshipsSection({
                         <ArrowRight size={12} className="text-zinc-400 flex-shrink-0 rotate-180" />
                         <button
                           onClick={() => handleNoteClick(otherNoteId)}
-                          className="text-sm text-zinc-900 dark:text-zinc-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
+                          className="text-sm text-zinc-900 dark:text-zinc-100 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors truncate"
                           title={otherNoteTitle}
                         >
                           {otherNoteTitle}

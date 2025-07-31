@@ -239,7 +239,7 @@ export default function Sidebar({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-blue-400 hover:bg-blue-900/20 rounded-md transition-colors group"
+            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-amber-400 hover:bg-amber-900/20 rounded-md transition-colors group border border-dashed border-transparent hover:border-amber-500/30"
             title="Add Note (⌘N)"
           >
             <Plus size={14} />
@@ -302,7 +302,7 @@ export default function Sidebar({
                           aria-label='Rename note'
                           ref={renameInput}
                           defaultValue={n.title}
-                          className="w-full rounded bg-zinc-800 px-2 py-1 text-sm text-white outline-none border border-zinc-600 focus:border-blue-500"
+                          className="w-full rounded bg-zinc-800 px-2 py-1 text-sm text-white outline-none border border-zinc-600 focus:border-amber-500"
                           onBlur={e => {
                             const v = e.currentTarget.value.trim()
                             if (v && v !== n.title) onRename(n.id, v)
@@ -334,16 +334,16 @@ export default function Sidebar({
                           }}
                           className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 cursor-move ${
                             n.id === activeId 
-                              ? 'bg-blue-600 text-white font-medium' 
+                              ? 'bg-amber-600 text-white font-medium' 
                               : 'hover:bg-zinc-800 hover:text-white'
                           } ${
-                            dragOverItem === n.id ? 'border-2 border-blue-400 border-dashed' : ''
+                            dragOverItem === n.id ? 'border-2 border-amber-400 border-dashed' : ''
                           } ${
                             draggedItem?.id === n.id ? 'opacity-50' : ''
                           }`}
                         >
                           {n.attributes?.generation_status === 'generating' && (
-                            <div className="w-3 h-3 border border-zinc-400 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
+                            <div className="w-3 h-3 border border-zinc-400 border-t-amber-500 rounded-full animate-spin flex-shrink-0" />
                           )}
                           {n.attributes?.generation_status === 'error' && (
                             <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
@@ -403,7 +403,7 @@ export default function Sidebar({
                           aria-label='Rename note'
                           ref={renameInput}
                           defaultValue={n.title}
-                          className="w-full rounded bg-zinc-800 px-2 py-1 text-sm text-white outline-none border border-zinc-600 focus:border-blue-500"
+                          className="w-full rounded bg-zinc-800 px-2 py-1 text-sm text-white outline-none border border-zinc-600 focus:border-amber-500"
                           onBlur={e => {
                             const v = e.currentTarget.value.trim()
                             if (v && v !== n.title) onRename(n.id, v)
@@ -435,16 +435,16 @@ export default function Sidebar({
                           }}
                           className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 cursor-move ${
                             n.id === activeId 
-                              ? 'bg-blue-600 text-white font-medium' 
+                              ? 'bg-amber-600 text-white font-medium' 
                               : 'hover:bg-zinc-800 hover:text-white'
                           } ${
-                            dragOverItem === n.id ? 'border-2 border-blue-400 border-dashed' : ''
+                            dragOverItem === n.id ? 'border-2 border-amber-400 border-dashed' : ''
                           } ${
                             draggedItem?.id === n.id ? 'opacity-50' : ''
                           }`}
                         >
                           {n.attributes?.generation_status === 'generating' && (
-                            <div className="w-3 h-3 border border-zinc-400 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
+                            <div className="w-3 h-3 border border-zinc-400 border-t-amber-500 rounded-full animate-spin flex-shrink-0" />
                           )}
                           {n.attributes?.generation_status === 'error' && (
                             <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />

@@ -52,8 +52,8 @@ export default function EmptyCampaignsState() {
         {/* Features Preview */}
         <div className="grid grid-cols-3 gap-4 py-4">
           <div className="text-center space-y-2">
-            <div className="w-10 h-10 bg-blue-900/20 rounded-lg flex items-center justify-center mx-auto">
-              <Book size={20} className="text-blue-400" />
+            <div className="w-10 h-10 bg-amber-900/20 rounded-lg flex items-center justify-center mx-auto">
+              <Book size={20} className="text-amber-400" />
             </div>
             <div className="text-xs text-zinc-400">World Building</div>
           </div>
@@ -64,8 +64,8 @@ export default function EmptyCampaignsState() {
             <div className="text-xs text-zinc-400">Characters</div>
           </div>
           <div className="text-center space-y-2">
-            <div className="w-10 h-10 bg-purple-900/20 rounded-lg flex items-center justify-center mx-auto">
-              <Calendar size={20} className="text-purple-400" />
+            <div className="w-10 h-10 bg-yellow-900/20 rounded-lg flex items-center justify-center mx-auto">
+              <Calendar size={20} className="text-yellow-400" />
             </div>
             <div className="text-xs text-zinc-400">Sessions</div>
           </div>
@@ -79,14 +79,14 @@ export default function EmptyCampaignsState() {
             value={campaignTitle}
             onChange={(e) => setCampaignTitle(e.target.value)}
             onKeyDown={handleKeyPress}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
             autoFocus
           />
           
           <button
             onClick={handleCreateCampaign}
             disabled={!campaignTitle.trim() || isCreating}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-600 disabled:cursor-not-allowed px-4 py-3 rounded-lg text-white font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-600 disabled:cursor-not-allowed px-4 py-3 rounded-lg text-white font-medium transition-colors border-2 border-amber-500 hover:border-amber-400 relative overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-amber-300 before:rounded-md before:opacity-40"
           >
             <Plus size={20} />
             {isCreating ? 'Creating Campaign...' : 'Create Your First Campaign'}

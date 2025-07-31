@@ -135,11 +135,11 @@ export const NodeSearch = forwardRef<HTMLInputElement, NodeSearchProps>(function
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+          className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
         />
         {isLoading && (
           <div className="absolute right-3 top-3">
-            <div className="w-4 h-4 border-2 border-zinc-300 border-t-purple-500 rounded-full animate-spin"></div>
+            <div className="w-4 h-4 border-2 border-zinc-300 border-t-yellow-500 rounded-full animate-spin"></div>
           </div>
         )}
         {searchQuery && !isLoading && (
@@ -222,7 +222,7 @@ function SearchResultItem({
       onClick={onClick}
       className={`w-full text-left px-3 py-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
         isSelected
-          ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
+          ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
           : 'text-zinc-900 dark:text-zinc-100'
       }`}
     >

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(docker-compose logs:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker compose logs:*)"
     ],
     "deny": []
   }

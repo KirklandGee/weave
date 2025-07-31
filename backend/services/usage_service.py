@@ -105,7 +105,14 @@ class UsageService:
         if result:
             limit_data = result[0]
             monthly_limit = Decimal(str(limit_data["monthly_limit"]))
-            reset_date = datetime.fromisoformat(limit_data["reset_date"])
+            reset_date_value = limit_data["reset_date"]
+            
+            # Handle Neo4j datetime object or string
+            if isinstance(reset_date_value, str):
+                reset_date = datetime.fromisoformat(reset_date_value)
+            else:
+                # Neo4j datetime object - convert to Python datetime
+                reset_date = reset_date_value.to_native()
             
             # Check if we need to reset for new month
             if now.month != reset_date.month or now.year != reset_date.year:

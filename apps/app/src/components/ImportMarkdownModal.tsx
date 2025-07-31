@@ -138,7 +138,7 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
                 <div className="relative">
                   <button
                     onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
-                    className="w-full flex items-center justify-between bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full flex items-center justify-between bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                   >
                     <span>
                       {selectedCampaignData?.title || 'Select a campaign...'}
@@ -168,7 +168,7 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
                             }}
                             className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                               selectedCampaign === campaign.slug
-                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
+                                ? 'bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100'
                                 : 'text-zinc-900 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
                             }`}
                           >
@@ -190,7 +190,7 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   isDragActive
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
                     : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500'
                 }`}
                 onDrop={handleDrop}
@@ -201,7 +201,7 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
                 <Upload className="mx-auto mb-4 text-zinc-400" size={48} />
                 <p className="text-zinc-600 dark:text-zinc-300 mb-2">
                   Drag and drop markdown files here, or{' '}
-                  <label className="text-blue-600 hover:text-blue-700 cursor-pointer">
+                  <label className="text-amber-600 hover:text-amber-700 cursor-pointer">
                     browse
                     <input
                       type="file"
@@ -252,8 +252,8 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
               )}
 
               {/* Import Info */}
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                <div className="text-sm text-blue-800 dark:text-blue-200">
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                <div className="text-sm text-amber-800 dark:text-amber-200">
                   <strong>Import Features:</strong>
                   <ul className="mt-1 space-y-1 list-disc list-inside">
                     <li>Automatic title extraction from H1 headers or filenames</li>
@@ -295,11 +295,11 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
                     Failed
                   </div>
                 </div>
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded">
+                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                     {importResult.total_files}
                   </div>
-                  <div className="text-sm text-blue-800 dark:text-blue-300">
+                  <div className="text-sm text-amber-800 dark:text-amber-300">
                     Total
                   </div>
                 </div>
@@ -369,7 +369,7 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
                 <button
                   onClick={handleImport}
                   disabled={files.length === 0 || !selectedCampaign || isImporting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 border border-amber-500 hover:border-amber-400 disabled:bg-zinc-400 disabled:cursor-not-allowed rounded-md"
                   title={!selectedCampaign ? 'Please select a campaign first' : ''}
                 >
                   {isImporting ? 'Importing...' : `Import ${files.length} File${files.length !== 1 ? 's' : ''}`}

@@ -506,7 +506,7 @@ export default function Home() {
                   <div className="text-zinc-300 text-lg">No notes found</div>
                   <button
                     onClick={() => handleCreate()}
-                    className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+                    className="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg text-white font-medium transition-colors border-2 border-amber-500 hover:border-amber-400 relative overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-amber-300 before:rounded-md before:opacity-40"
                   >
                     Create your first note!
                   </button>

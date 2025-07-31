@@ -174,7 +174,7 @@ function NotionLikeBubbleMenu({ editor }: { editor: any }) {
         onClick={onClick}
         className={`flex items-center justify-center p-1.5 rounded-md transition-colors ${
           isActive 
-            ? 'bg-purple-500 text-white hover:bg-purple-600' 
+            ? 'bg-yellow-500 text-white hover:bg-yellow-600 border border-yellow-400' 
             : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
         }`}
       >

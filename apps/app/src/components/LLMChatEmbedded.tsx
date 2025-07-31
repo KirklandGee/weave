@@ -271,7 +271,7 @@ export default function LLMChatEmbedded({
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setShowTemplates(!showTemplates)}
-                  className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-blue-400 hover:bg-blue-900/20 rounded-md transition-colors"
+                  className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-amber-400 hover:bg-amber-900/20 rounded-md transition-colors"
                   title="Template Shortcuts"
                 >
                   <Zap size={14} />
@@ -321,7 +321,7 @@ export default function LLMChatEmbedded({
                             <div className="font-medium text-zinc-200 text-sm capitalize">{template.name}</div>
                             <div className="text-xs text-zinc-400 mt-1">{template.description}</div>
                             {template.required_vars.length > 0 && (
-                              <div className="text-xs text-blue-400 mt-1">
+                              <div className="text-xs text-amber-400 mt-1">
                                 Required: {template.required_vars.join(', ')}
                               </div>
                             )}
@@ -356,7 +356,7 @@ export default function LLMChatEmbedded({
                   <div
                     className={`max-w-[85%] p-4 rounded-lg text-base leading-relaxed whitespace-pre-wrap ${
                       msg.role === 'human' 
-                        ? 'bg-blue-600 text-white' 
+                        ? 'bg-amber-600 text-white' 
                         : 'bg-zinc-800 text-zinc-100 border border-zinc-700'
                     }`}
                   >
@@ -379,12 +379,12 @@ export default function LLMChatEmbedded({
                   onChange={e => setInput(e.target.value)}
                   placeholder={placeholder}
                   disabled={isLoading}
-                  className="flex-1 px-3 py-2 text-sm bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 placeholder-zinc-500"
+                  className="flex-1 px-3 py-2 text-sm bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50 placeholder-zinc-500"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-md disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-md disabled:cursor-not-allowed transition-colors border border-amber-500 hover:border-amber-400"
                 >
                   {isLoading ? (
                     <div className="w-4 h-4 border-2 border-zinc-300 border-t-transparent rounded-full animate-spin" />
@@ -431,7 +431,7 @@ export default function LLMChatEmbedded({
                           ...prev,
                           [varName]: e.target.value
                         }))}
-                        className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-zinc-500"
+                        className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 placeholder-zinc-500"
                         rows={3}
                         placeholder={`Enter ${varName.replace(/_/g, ' ')}...`}
                       />
@@ -443,7 +443,7 @@ export default function LLMChatEmbedded({
                           ...prev,
                           [varName]: e.target.value
                         }))}
-                        className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-zinc-500"
+                        className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 placeholder-zinc-500"
                         placeholder={`Enter ${varName.replace(/_/g, ' ')}...`}
                       />
                     )}
@@ -467,7 +467,7 @@ export default function LLMChatEmbedded({
                               ...prev,
                               [varName]: e.target.value
                             }))}
-                            className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-zinc-500"
+                            className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 placeholder-zinc-500"
                             rows={3}
                             placeholder={`Enter ${varName.replace(/_/g, ' ')}...`}
                           />
@@ -479,7 +479,7 @@ export default function LLMChatEmbedded({
                               ...prev,
                               [varName]: e.target.value
                             }))}
-                            className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-zinc-500"
+                            className="w-full px-3 py-2 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 placeholder-zinc-500"
                             placeholder={`Enter ${varName.replace(/_/g, ' ')}...`}
                           />
                         )}
@@ -500,7 +500,7 @@ export default function LLMChatEmbedded({
               <button
                 onClick={handleTemplateSubmit}
                 disabled={isExecutingTemplate}
-                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-600 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+                className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-600 disabled:cursor-not-allowed text-white rounded-md transition-colors border border-amber-500 hover:border-amber-400"
               >
                 {isExecutingTemplate ? (
                   <div className="flex items-center gap-2">

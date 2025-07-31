@@ -102,7 +102,7 @@ export function GlobalSearch({
                 </div>
                 <button
                   onClick={() => handleNoteOpen(selectedNote)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium"
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md text-sm font-medium border border-yellow-500 hover:border-yellow-400"
                 >
                   Open Note
                 </button>

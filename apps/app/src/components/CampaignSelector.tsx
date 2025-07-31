@@ -109,7 +109,7 @@ export default function CampaignSelector({ className = '' }: CampaignSelectorPro
                 <button
                   onClick={handleCreateCampaign}
                   disabled={!newCampaignTitle.trim() || isCreating}
-                  className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-600 disabled:cursor-not-allowed px-3 py-2 rounded text-sm text-white transition-colors w-full"
+                  className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-600 disabled:cursor-not-allowed px-3 py-2 rounded text-sm text-white transition-colors w-full border border-amber-500 hover:border-amber-400 relative overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-amber-300 before:rounded before:opacity-30"
                 >
                   <Plus size={14} />
                   {isCreating ? 'Creating...' : 'Create Campaign'}

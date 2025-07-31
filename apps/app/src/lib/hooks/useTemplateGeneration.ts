@@ -87,10 +87,44 @@ export function useTemplateGeneration(campaignSlug: string) {
       }
 
       // Update the note with the generated content
+      // Handle nested result structure - the actual content is in result.note
+      const resultContent = typeof status.result === 'object' && status.result?.note 
+        ? status.result.note 
+        : status.result || '';
+      
+      // Extract title from first line of generated content
+      const extractTitleFromContent = (content: string): string => {
+        const firstLine = content.split('\n')[0].trim();
+        
+        // Look for patterns like "**Location:** The Mire of Mirabel" or "**Name:** Something"
+        const colonMatch = firstLine.match(/\*\*[^*]+\*\*:\s*(.+)/);
+        if (colonMatch) {
+          return colonMatch[1].trim();
+        }
+        
+        // Look for patterns like "# Title" or "## Title"
+        const headerMatch = firstLine.match(/^#+\s*(.+)/);
+        if (headerMatch) {
+          return headerMatch[1].trim();
+        }
+        
+        // If first line has bold formatting, extract it
+        const boldMatch = firstLine.match(/\*\*([^*]+)\*\*/);
+        if (boldMatch) {
+          return boldMatch[1].trim();
+        }
+        
+        // Fall back to template name or default
+        const templateName = status.template_name || note.attributes?.template_name || 'Template';
+        return `${templateName} Result`;
+      };
+      
+      const noteTitle = extractTitleFromContent(resultContent);
+      
       const updatedNote = {
         ...note,
-        title: `${status.template_name} Template Result`,
-        markdown: status.result || '',
+        title: noteTitle,
+        markdown: resultContent,
         updatedAt: Date.now(),
         attributes: {
           ...note.attributes,
@@ -121,10 +155,13 @@ export function useTemplateGeneration(campaignSlug: string) {
       }
 
       // Update the note with error information
+      // Use template_name from status, or fall back to note attributes, or default
+      const templateName = status.template_name || note.attributes?.template_name || 'Template';
+      
       const updatedNote = {
         ...note,
-        title: `${status.template_name} Template - Error`,
-        markdown: `# ${status.template_name} Template - Generation Failed\n\n**Error:** ${status.error || 'Unknown error occurred during generation'}\n\n*Please try again or contact support if the problem persists.*`,
+        title: `${templateName} - Error`,
+        markdown: `# ${templateName} - Generation Failed\n\n**Error:** ${status.error || 'Unknown error occurred during generation'}\n\n*Please try again or contact support if the problem persists.*`,
         updatedAt: Date.now(),
         attributes: {
           ...note.attributes,

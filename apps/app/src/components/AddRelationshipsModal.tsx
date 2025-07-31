@@ -125,7 +125,7 @@ export const AddRelationshipModal = forwardRef(function AddRelationshipModal({
               title='Select Relationship Type'
               value={selectedRelType}
               onChange={(e) => setSelectedRelType(e.target.value as RelationshipType)}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
             >
               {RELATIONSHIP_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -156,7 +156,7 @@ export const AddRelationshipModal = forwardRef(function AddRelationshipModal({
             <button
               type="submit"
               disabled={!selectedNote}
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-400 disabled:cursor-not-allowed rounded-md"
+              className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 border border-yellow-500 hover:border-yellow-400 disabled:bg-zinc-400 disabled:cursor-not-allowed rounded-md"
             >
               Add Relationship
             </button>
