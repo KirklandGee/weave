@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 
 class TemplateConfig(BaseModel):

@@ -69,8 +69,20 @@ async def get_user_usage_history(
         
         usage_events = []
         for record in result:
+            # Convert Neo4j datetime object to ISO string
+            timestamp = record["timestamp"]
+            if hasattr(timestamp, 'to_native'):
+                # Neo4j datetime object
+                timestamp_str = timestamp.to_native().isoformat()
+            elif isinstance(timestamp, str):
+                # Already a string
+                timestamp_str = timestamp
+            else:
+                # Python datetime object
+                timestamp_str = timestamp.isoformat()
+            
             usage_events.append({
-                "timestamp": record["timestamp"],
+                "timestamp": timestamp_str,
                 "model": record["model"],
                 "input_tokens": record["input_tokens"],
                 "output_tokens": record["output_tokens"],

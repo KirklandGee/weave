@@ -1,7 +1,4 @@
 from typing import Dict, Any, Optional, AsyncGenerator, List
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
-from langchain.schema import BaseMessage
 from backend.models.schemas import LLMMessage
 from .llm_service import call_llm
 from .types import ChainStep

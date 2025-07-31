@@ -1,4 +1,3 @@
-from langchain import PromptTemplate, LLMChain
 from langchain_core.messages import HumanMessage, SystemMessage
 from backend.models.schemas import LLMMessage
 from .llm_providers import get_llm_instance

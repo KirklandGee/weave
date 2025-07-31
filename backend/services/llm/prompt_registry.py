@@ -55,7 +55,7 @@ class PromptRegistry:
         
         # Look for individual components (legacy support)
         if hasattr(module, 'system_message') and hasattr(module, 'user_message'):
-            from langchain.prompts import PromptTemplate
+            from langchain_core.prompts import PromptTemplate
             
             # Create a combined template from system and user messages
             template_str = f"{module.system_message}\n\n{module.user_message}"

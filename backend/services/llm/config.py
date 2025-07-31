@@ -2,11 +2,10 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from decimal import Decimal
 
 DEFAULT_LLM_CONFIG = {
-    "model": "llama3.1",
+    "model": "gemini-2.5-flash-lite",
     "temperature": 0.5,
     "max_tokens": 4096,
     "streaming": True
-    # ... any other defaults ...
 }
 
 ROLE_MAP = {"human": HumanMessage, "system": SystemMessage, "ai": AIMessage}
@@ -14,12 +13,12 @@ ROLE_MAP = {"human": HumanMessage, "system": SystemMessage, "ai": AIMessage}
 # Model pricing per 1M tokens (input, output)
 MODEL_PRICING = {
     "gpt-4o": {
-        "input_cost": Decimal("2.00"),   # $2.50 per 1M input tokens
-        "output_cost": Decimal("8.00")  # $10.00 per 1M output tokens
+        "input_cost": Decimal("2.00"),  
+        "output_cost": Decimal("8.00")  
     },
     "gpt-4o-mini": {
-        "input_cost": Decimal("0.40"),   # $0.15 per 1M input tokens
-        "output_cost": Decimal("1.60")   # $0.60 per 1M output tokens
+        "input_cost": Decimal("0.40"),  
+        "output_cost": Decimal("1.60") 
     },
     # Local models (free)
     "llama3.1": {
@@ -29,6 +28,14 @@ MODEL_PRICING = {
     "llama3": {
         "input_cost": Decimal("0.00"),
         "output_cost": Decimal("0.00")
+    },
+    "gemini-2.5-flash-lite": {
+        "input_cost": Decimal("0.10"),
+        "output_cost": Decimal("0.40")
+    },
+    "gemini-2.5-flash": {
+        "input_cost": Decimal("0.30"),
+        "output_cost": Decimal("1.00")
     }
 }
 

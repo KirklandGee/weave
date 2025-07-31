@@ -19,6 +19,9 @@ COPY . .
 
 # Change to backend directory and install dependencies
 WORKDIR /app/backend
+
+# Set UV to use system python instead of creating venv in mounted directory
+ENV UV_SYSTEM_PYTHON=1
 RUN uv sync --frozen --no-cache
 
 # Expose port
