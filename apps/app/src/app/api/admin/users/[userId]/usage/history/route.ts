@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { userId: string } }
+) {
+  try {
+    const { userId: clerkUserId } = await auth()
+    
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Only allow users to access their own usage data
+    if (clerkUserId !== params.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const limit = searchParams.get('limit') || '50'
+    const startDate = searchParams.get('start_date')
+    const endDate = searchParams.get('end_date')
+
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
+    const queryParams = new URLSearchParams({ limit })
+    
+    if (startDate) queryParams.append('start_date', startDate)
+    if (endDate) queryParams.append('end_date', endDate)
+
+    const response = await fetch(`${backendUrl}/admin/users/${params.userId}/usage/history?${queryParams}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to fetch usage history' },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Error fetching usage history:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

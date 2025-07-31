@@ -1,6 +1,7 @@
 'use client'
 
-import { Search, Command } from 'lucide-react'
+import { useState } from 'react'
+import { Search, Command, Activity } from 'lucide-react'
 import {   SignInButton,
   SignUpButton,
   SignedIn,
@@ -9,6 +10,7 @@ import {   SignInButton,
 } from '@clerk/nextjs'
 import { CommandPalette, useCommandPalette } from './CommandPalette'
 import CampaignSelector from './CampaignSelector'
+import UsageModal from './UsageModal'
 import { Note } from '@/types/node'
 
 interface NavProps {
@@ -24,6 +26,7 @@ export default function Nav({
   onAction
 }: NavProps) {
   const commandPalette = useCommandPalette()
+  const [showUsageModal, setShowUsageModal] = useState(false)
 
   return (
     <>
@@ -63,7 +66,17 @@ export default function Nav({
               </SignUpButton>
             </SignedOut>
             <SignedIn>
-              <UserButton />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowUsageModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                  title="View usage"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span className="text-sm">Usage</span>
+                </button>
+                <UserButton />
+              </div>
             </SignedIn>
           </div>
         </div>
@@ -76,6 +89,12 @@ export default function Nav({
         onNavigateToNote={onNavigateToNote}
         onCreateNote={onCreateNote}
         onAction={onAction}
+      />
+
+      {/* Usage Modal */}
+      <UsageModal
+        isOpen={showUsageModal}
+        onClose={() => setShowUsageModal(false)}
       />
     </>
   )
