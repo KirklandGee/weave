@@ -25,7 +25,7 @@
     "docker:backend": "docker-compose up backend rq-worker redis neo4j",
     "docker:frontend": "docker-compose up app marketing",
     "docker:seed": "docker-compose run --rm seeder",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
