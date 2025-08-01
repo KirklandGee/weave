@@ -40,13 +40,9 @@ export default function Sidebar({
   /* ---------- group + accordion state ---------- */
   // Define section groupings
   const sections = {
-    'World Building': {
+    'Notes': {
       icon: Map,
-      types: ['Location', 'Quest', 'Event', 'Lore', 'Rule', 'Item', 'Note']
-    },
-    'Characters & NPCs': {
-      icon: Users,
-      types: ['Character', 'NPC']
+      types: ['Location', 'Quest', 'Event', 'Lore', 'Rule', 'Item', 'Note', 'Character', 'NPC']
     },
     'Sessions': {
       icon: Calendar,
