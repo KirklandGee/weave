@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth()
@@ -12,13 +12,15 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const resolvedParams = await params
+
     // Only allow users to access their own usage data
-    if (clerkUserId !== params.userId) {
+    if (clerkUserId !== resolvedParams.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
-    const response = await fetch(`${backendUrl}/admin/users/${params.userId}/usage`, {
+    const response = await fetch(`${backendUrl}/admin/users/${resolvedParams.userId}/usage`, {
       headers: {
         'Content-Type': 'application/json',
       },

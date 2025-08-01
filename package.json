@@ -36,12 +36,12 @@
   },
   "lint-staged": {
     "apps/app/**/*.{js,jsx,ts,tsx}": [
-      "npm run lint --workspace=apps/app --",
-      "npm run format --workspace=apps/app"
+      "cd apps/app && npm run lint",
+      "cd apps/app && npm run format"
     ],
     "apps/marketing/**/*.{js,jsx,ts,tsx}": [
-      "npm run lint --workspace=apps/marketing --",
-      "npm run format --workspace=apps/marketing"
+      "cd apps/marketing && npm run lint",
+      "cd apps/marketing && npm run format"
     ],
     "backend/**/*.py": [
       "cd backend && uv run black"

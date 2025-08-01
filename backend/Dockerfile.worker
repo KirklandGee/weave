@@ -1,4 +1,4 @@
-# Multi-stage build for production (optimized for size)
+# Multi-stage build for RQ worker (lighter than API)
 # Stage 1: Builder stage
 FROM python:3.13-slim as builder
 
@@ -17,23 +17,16 @@ WORKDIR /app/backend
 # Copy only backend dependency files first (for better caching)
 COPY backend/pyproject.toml backend/uv.lock ./
 
-# Install dependencies (production only, no dev dependencies)
-RUN uv sync --frozen --no-cache --no-dev
+# Install dependencies with cleanup
+RUN uv sync --frozen --no-cache --no-dev && \
+    find /app/backend/.venv -name "*.pyc" -delete && \
+    find /app/backend/.venv -name "__pycache__" -type d -exec rm -rf {} + || true
 
 # Stage 2: Runtime stage
 FROM python:3.13-slim
 
-# Install only runtime system dependencies
-RUN apt-get update && apt-get install -y \
-    bash \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-# Install uv (lightweight runtime only)
+# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
-
-# Create non-root user
-RUN groupadd -r backend && useradd -r -g backend backend
 
 # Set working directory
 WORKDIR /app/backend
@@ -44,19 +37,10 @@ COPY --from=builder /app/backend/.venv /app/backend/.venv
 # Copy only necessary backend application files
 COPY backend/ ./
 
-# Change ownership to non-root user
-RUN chown -R backend:backend /app/backend
-
-# Switch to non-root user
-USER backend
-
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1
 ENV PATH="/app/backend/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 
-# Expose port
-EXPOSE $PORT
-
-# Production command
-CMD uv run python -m fastapi run api/index.py --host 0.0.0.0 --port $PORT
+# Default command for RQ worker
+CMD ["uv", "run", "python", "worker.py"]
