@@ -7,7 +7,12 @@ _URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 _USER = os.getenv("NEO4J_USER", "neo4j")
 _PASS = os.getenv("NEO4J_PASS", "secretgraph")
 
-_driver = GraphDatabase.driver(_URI, auth=(_USER, _PASS), max_connection_pool_size=50)
+_driver = GraphDatabase.driver(
+    _URI, 
+    auth=(_USER, _PASS), 
+    max_connection_pool_size=50,
+    encrypted=True if _URI.startswith(("neo4j+s://", "bolt+s://")) else False
+)
 
 
 def verify() -> None:

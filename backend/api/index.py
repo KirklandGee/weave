@@ -16,6 +16,7 @@ origins = [
     "http://app.localhost:3001",  # App via subdomain
     "http://localhost:3080",  # Proxy server
     "http://app.localhost:3080",  # Proxy server with subdomain
+    "https://weave-rpg-nghr2438s8tj.vercel.app",  # Production frontend
 ]
 
 # Add production origins from environment
@@ -53,4 +54,34 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    """Health check endpoint that verifies dependencies."""
+    health_status = {"status": "healthy", "checks": {}}
+    overall_healthy = True
+    
+    # Check Neo4j connection
+    try:
+        from backend.services.neo4j import verify
+        verify()
+        health_status["checks"]["neo4j"] = "healthy"
+    except Exception as e:
+        health_status["checks"]["neo4j"] = f"unhealthy: {str(e)}"
+        overall_healthy = False
+    
+    # Check Redis connection (if available)
+    try:
+        from backend.services.queue_service import health_check
+        if health_check():
+            health_status["checks"]["redis"] = "healthy"
+        else:
+            health_status["checks"]["redis"] = "unhealthy"
+            overall_healthy = False
+    except Exception as e:
+        health_status["checks"]["redis"] = f"unavailable: {str(e)}"
+        # Don't fail overall health for Redis since it might be optional
+    
+    if not overall_healthy:
+        health_status["status"] = "unhealthy"
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail=health_status)
+    
+    return health_status
