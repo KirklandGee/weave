@@ -15,7 +15,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 WORKDIR /app/backend
 
 # Copy only backend dependency files first (for better caching)
-COPY backend/pyproject.toml backend/uv.lock ./
+COPY pyproject.toml uv.lock ./
 
 # Install dependencies (production only, no dev dependencies)
 RUN uv sync --frozen --no-cache --no-dev
@@ -42,7 +42,7 @@ WORKDIR /app/backend
 COPY --from=builder /app/backend/.venv /app/backend/.venv
 
 # Copy only necessary backend application files
-COPY backend/ ./
+COPY . ./
 
 # Change ownership to non-root user
 RUN chown -R backend:backend /app/backend
