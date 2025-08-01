@@ -21,6 +21,7 @@ dependencies = [
     "redis>=6.2.0",
     "rq>=2.4.1",
     "langchain-google-genai>=2.1.8",
+    "langgraph>=0.6.2",
 ]
 
 [dependency-groups]

@@ -15,10 +15,10 @@ type ImportResult = {
   created_notes: Array<{
     id: string
     title: string
+    type: string
+    markdown: string
     imported_from: string
-    detected_type: string
-    internal_links?: string[]
-    frontmatter?: Record<string, unknown>
+    frontmatter: Record<string, unknown>
   }>
   errors: string[]
   total_files: number
@@ -321,14 +321,9 @@ export function ImportMarkdownModal({ isOpen, onClose, onImport }: ImportMarkdow
                             {note.title || note.imported_from}
                           </span>
                           <span className="text-xs text-green-600 dark:text-green-400">
-                            {note.detected_type}
+                            {note.type}
                           </span>
                         </div>
-                        {note.internal_links && note.internal_links.length > 0 && (
-                          <div className="text-xs text-green-700 dark:text-green-300 mt-1">
-                            Links: {note.internal_links.join(', ')}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
