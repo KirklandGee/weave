@@ -20,12 +20,12 @@ COPY . .
 # Change to backend directory and install dependencies
 WORKDIR /app/backend
 
-# Set UV to use system python instead of creating venv in mounted directory
+# Set UV to use system python instead of creating venv
 ENV UV_SYSTEM_PYTHON=1
-RUN uv sync --frozen --no-cache
+RUN uv sync --frozen --no-cache --no-dev
 
 # Expose port
-EXPOSE 8000
+EXPOSE $PORT
 
-# Default command (Railway will override this with startCommand)
-CMD ["uv", "run", "fastapi", "run", "api/index.py", "--host", "0.0.0.0", "--port", "8000"]
+# Production command
+CMD uv run python -m fastapi run api/index.py --host 0.0.0.0 --port $PORT

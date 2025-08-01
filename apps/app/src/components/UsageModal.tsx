@@ -139,7 +139,7 @@ export default function UsageModal({ isOpen, onClose }: UsageModalProps) {
                 <div className="w-full bg-zinc-800 rounded-full h-3">
                   <div
                     className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(summary.usage_percentage)}`}
-                    style={{ width: `${Math.min(summary.usage_percentage, 100)}%` }}
+                    style={{ width: `${Math.min(Number(summary.usage_percentage), 100)}%` }}
                   ></div>
                 </div>
               </div>

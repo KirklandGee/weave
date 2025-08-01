@@ -14,6 +14,7 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 ### BACKEND
 
 - [ ] Split out ChatService, EmbeddingService, CostService interfaces for modularity  
+- [ ] Fix template creation to use some kind of schema for the title instead of extracting from the note. 
 
 **LLMS**
 - [ ] Track per-user token usage and enforce quota (billing/cost control) 
