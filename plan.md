@@ -4,6 +4,7 @@
 
 This project is a web-based campaign management tool for D&D (or similar TTRPGs), designed with an Obsidian-like UX. It supports markdown-based document management, knowledge graph linking, document embeddings, and AI-augmented gameplay features for DMs. The long-term vision includes adding a full autonomous DM agent, but the short-term focus is on context-aware augmentation for human DMs.
 
+
 ---
 
 ## Core Features
