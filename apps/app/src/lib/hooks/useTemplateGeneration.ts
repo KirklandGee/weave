@@ -9,7 +9,7 @@ interface TemplateGenerationStatus {
   note_id: string;
   started_at: string;
   completed_at: string | null;
-  result: string | null;
+  result: string | { note: string } | null;
   error: string | null;
 }
 
@@ -40,7 +40,7 @@ export function useTemplateGeneration(campaignSlug: string) {
       // Handle nested result structure - the actual content is in result.note
       const resultContent = typeof status.result === 'object' && status.result?.note 
         ? status.result.note 
-        : status.result || '';
+        : (typeof status.result === 'string' ? status.result : '');
       
       // Extract title from first line of generated content
       const extractTitleFromContent = (content: string): string => {
