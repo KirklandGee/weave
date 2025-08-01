@@ -7,6 +7,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+
 # Connection pool (singleton-like pattern)
 @lru_cache()
 def get_redis_pool():
@@ -18,6 +19,7 @@ def get_redis_pool():
         logger.error(f"Failed to create Redis connection pool: {e}")
         raise
 
+
 def get_redis_connection():
     """Get Redis connection from pool."""
     try:
@@ -27,6 +29,7 @@ def get_redis_connection():
         logger.error(f"Failed to get Redis connection: {e}")
         raise
 
+
 def get_task_queue(name: str = "default"):
     """Get RQ queue for tasks."""
     try:
@@ -35,13 +38,16 @@ def get_task_queue(name: str = "default"):
         logger.error(f"Failed to create queue '{name}': {e}")
         raise
 
+
 def get_priority_queue():
     """Get high-priority queue for urgent tasks."""
     return get_task_queue("priority")
 
+
 def get_long_running_queue():
     """Get queue for long-running tasks (with higher timeout)."""
     return get_task_queue("long_running")
+
 
 def health_check() -> bool:
     """Check if Redis connection is healthy."""
@@ -52,6 +58,7 @@ def health_check() -> bool:
     except Exception as e:
         logger.error(f"Redis health check failed: {e}")
         return False
+
 
 def get_queue_stats(queue_name: str = "default") -> dict:
     """Get statistics for a queue."""
@@ -68,31 +75,33 @@ def get_queue_stats(queue_name: str = "default") -> dict:
         logger.error(f"Failed to get stats for queue '{queue_name}': {e}")
         return {}
 
+
 def cleanup_failed_jobs(queue_name: str = "default", max_age: int = 3600) -> int:
     """Clean up failed jobs older than max_age seconds."""
     try:
         queue = get_task_queue(queue_name)
         failed_registry = queue.failed_job_registry
-        
+
         # Get jobs older than max_age
         job_ids = failed_registry.get_job_ids()
         cleaned = 0
-        
+
         for job_id in job_ids:
             try:
                 job = queue.fetch_job(job_id)
                 if job and job.ended_at:
                     import time
+
                     age = time.time() - job.ended_at.timestamp()
                     if age > max_age:
                         failed_registry.remove(job_id)
                         cleaned += 1
             except Exception as job_error:
                 logger.warning(f"Error processing job {job_id}: {job_error}")
-                
+
         logger.info(f"Cleaned up {cleaned} failed jobs from queue '{queue_name}'")
         return cleaned
-        
+
     except Exception as e:
         logger.error(f"Failed to cleanup failed jobs for queue '{queue_name}': {e}")
         return 0

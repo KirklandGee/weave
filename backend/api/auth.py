@@ -74,10 +74,10 @@ async def get_current_user(request: Request) -> str:
         user_id = decoded.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="No user ID in token")
-        
+
         # Ensure user exists in Neo4j database
         ensure_user_exists(user_id)
-        
+
         return user_id
 
     except HTTPException:

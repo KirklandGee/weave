@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAuthFetch } from '@/utils/authFetch.client';
 import { getDb } from '@/lib/db/campaignDB';
 
@@ -17,65 +17,15 @@ export function useTemplateGeneration(campaignSlug: string) {
   const authFetch = useAuthFetch();
   const pollingIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  const startPolling = (taskId: string, noteId: string) => {
-    // Clear any existing polling for this task
-    if (pollingIntervalsRef.current.has(taskId)) {
-      clearInterval(pollingIntervalsRef.current.get(taskId));
-    }
-
-    const startTime = Date.now();
-    const timeoutDuration = 10 * 60 * 1000; // 10 minutes timeout
-
-    const poll = async () => {
-      try {
-        // Check for timeout
-        if (Date.now() - startTime > timeoutDuration) {
-          console.error(`Task ${taskId} timed out after ${timeoutDuration / 1000} seconds`);
-          await handleGenerationTimeout(noteId, taskId);
-          stopPolling(taskId);
-          return;
-        }
-
-        const response = await authFetch(`/api/llm/template/status/${taskId}`);
-        
-        if (!response.ok) {
-          console.error(`Failed to get status for task ${taskId}:`, response.status);
-          return;
-        }
-
-        const status: TemplateGenerationStatus = await response.json();
-        
-        if (status.status === 'completed') {
-          await handleGenerationComplete(noteId, status);
-          stopPolling(taskId);
-        } else if (status.status === 'error') {
-          await handleGenerationError(noteId, status);
-          stopPolling(taskId);
-        }
-        // If status is still 'running', keep polling
-      } catch (error) {
-        console.error(`Error polling task ${taskId}:`, error);
-        // Continue polling on error - the task might still complete
-      }
-    };
-
-    // Start polling every 3 seconds
-    const intervalId = setInterval(poll, 3000);
-    pollingIntervalsRef.current.set(taskId, intervalId);
-
-    // Do an immediate poll
-    poll();
-  };
-
-  const stopPolling = (taskId: string) => {
+  const stopPolling = useCallback((taskId: string) => {
     const intervalId = pollingIntervalsRef.current.get(taskId);
     if (intervalId) {
       clearInterval(intervalId);
       pollingIntervalsRef.current.delete(taskId);
     }
-  };
+  }, []);
 
-  const handleGenerationComplete = async (noteId: string, status: TemplateGenerationStatus) => {
+  const handleGenerationComplete = useCallback(async (noteId: string, status: TemplateGenerationStatus) => {
     try {
       const db = getDb(campaignSlug);
       
@@ -141,9 +91,9 @@ export function useTemplateGeneration(campaignSlug: string) {
     } catch (error) {
       console.error(`Error updating note ${noteId} on completion:`, error);
     }
-  };
+  }, [campaignSlug]);
 
-  const handleGenerationError = async (noteId: string, status: TemplateGenerationStatus) => {
+  const handleGenerationError = useCallback(async (noteId: string, status: TemplateGenerationStatus) => {
     try {
       const db = getDb(campaignSlug);
       
@@ -179,9 +129,9 @@ export function useTemplateGeneration(campaignSlug: string) {
     } catch (error) {
       console.error(`Error updating note ${noteId} on error:`, error);
     }
-  };
+  }, [campaignSlug]);
 
-  const handleGenerationTimeout = async (noteId: string, taskId: string) => {
+  const handleGenerationTimeout = useCallback(async (noteId: string, taskId: string) => {
     try {
       const db = getDb(campaignSlug);
       
@@ -214,10 +164,60 @@ export function useTemplateGeneration(campaignSlug: string) {
     } catch (error) {
       console.error(`Error updating note ${noteId} on timeout:`, error);
     }
-  };
+  }, [campaignSlug]);
+
+  const startPolling = useCallback((taskId: string, noteId: string) => {
+    // Clear any existing polling for this task
+    if (pollingIntervalsRef.current.has(taskId)) {
+      clearInterval(pollingIntervalsRef.current.get(taskId));
+    }
+
+    const startTime = Date.now();
+    const timeoutDuration = 10 * 60 * 1000; // 10 minutes timeout
+
+    const poll = async () => {
+      try {
+        // Check for timeout
+        if (Date.now() - startTime > timeoutDuration) {
+          console.error(`Task ${taskId} timed out after ${timeoutDuration / 1000} seconds`);
+          await handleGenerationTimeout(noteId, taskId);
+          stopPolling(taskId);
+          return;
+        }
+
+        const response = await authFetch(`/api/llm/template/status/${taskId}`);
+        
+        if (!response.ok) {
+          console.error(`Failed to get status for task ${taskId}:`, response.status);
+          return;
+        }
+
+        const status: TemplateGenerationStatus = await response.json();
+        
+        if (status.status === 'completed') {
+          await handleGenerationComplete(noteId, status);
+          stopPolling(taskId);
+        } else if (status.status === 'error') {
+          await handleGenerationError(noteId, status);
+          stopPolling(taskId);
+        }
+        // If status is still 'running', keep polling
+      } catch (error) {
+        console.error(`Error polling task ${taskId}:`, error);
+        // Continue polling on error - the task might still complete
+      }
+    };
+
+    // Start polling every 3 seconds
+    const intervalId = setInterval(poll, 3000);
+    pollingIntervalsRef.current.set(taskId, intervalId);
+
+    // Do an immediate poll
+    poll();
+  }, [authFetch, handleGenerationComplete, handleGenerationError, handleGenerationTimeout, stopPolling]);
 
   // Start polling for notes that are in generating state
-  const startPollingForGeneratingNotes = async () => {
+  const startPollingForGeneratingNotes = useCallback(async () => {
     try {
       const db = getDb(campaignSlug);
       // Get all notes and filter in memory since attributes is not indexed
@@ -235,7 +235,7 @@ export function useTemplateGeneration(campaignSlug: string) {
     } catch (error) {
       console.error('Error starting polling for generating notes:', error);
     }
-  };
+  }, [campaignSlug, startPolling]);
 
   // Initialize polling for existing generating notes when the hook is created
   useEffect(() => {
@@ -243,12 +243,12 @@ export function useTemplateGeneration(campaignSlug: string) {
 
     // Cleanup on unmount
     return () => {
-      pollingIntervalsRef.current.forEach((intervalId, taskId) => {
+      pollingIntervalsRef.current.forEach((intervalId) => {
         clearInterval(intervalId);
       });
       pollingIntervalsRef.current.clear();
     };
-  }, [campaignSlug]);
+  }, [campaignSlug, startPollingForGeneratingNotes]);
 
   return {
     startPolling,

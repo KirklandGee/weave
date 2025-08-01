@@ -11,5 +11,5 @@ __all__ = [
     "TemplateConfig",
     "ChainStep",
     "PromptRegistry",
-    "ChainBuilder"
+    "ChainBuilder",
 ]

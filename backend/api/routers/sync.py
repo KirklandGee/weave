@@ -7,6 +7,7 @@ from backend.api.auth import get_current_user
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
+
 # ───────────────────────────────────────────────────────── sidebar list ──
 @router.get("/{campaign_id}/sidebar", response_model=list[Note])
 async def get_sidebar_nodes(
@@ -66,16 +67,20 @@ async def push_changes(
                         for k, v in ch.payload.items()
                         if k not in ("fromId", "toId", "relType")
                     }
-                    
+
                     # Handle attributes serialization
                     if "attributes" in props and isinstance(props["attributes"], dict):
-                        props["attributes"] = json.dumps(props["attributes"]) if props["attributes"] else None
-                    
+                        props["attributes"] = (
+                            json.dumps(props["attributes"])
+                            if props["attributes"]
+                            else None
+                        )
+
                     params = {
                         "from_id": ch.payload["fromId"],
                         "to_id": ch.payload["toId"],
                         "rid": ch.entityId,
-                        "relType": ch.payload['relType'],
+                        "relType": ch.payload["relType"],
                         "props": props,
                         "ts": ch.ts,
                     }
@@ -92,8 +97,12 @@ async def push_changes(
                     props = ch.payload.copy()
                     # Handle attributes serialization for updates too
                     if "attributes" in props and isinstance(props["attributes"], dict):
-                        props["attributes"] = json.dumps(props["attributes"]) if props["attributes"] else None
-                    
+                        props["attributes"] = (
+                            json.dumps(props["attributes"])
+                            if props["attributes"]
+                            else None
+                        )
+
                     _ = query(
                         """
                         MATCH ()-[r {id:$rid}]->()
@@ -103,7 +112,7 @@ async def push_changes(
                         rid=ch.entityId,
                         props=props,
                         ts=ch.ts,
-                    )                
+                    )
                 # ---------- DELETE ----------
                 else:  # delete
                     _ = query(
@@ -178,7 +187,6 @@ async def push_changes(
         # After processing all changes, add:
         hook = get_sync_embedding_hook()
         hook.on_sync_changes(changes)
-
 
         return {"status": "ok"}
 

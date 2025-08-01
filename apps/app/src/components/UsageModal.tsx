@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Activity, DollarSign, MessageSquare, Brain, Calendar, TrendingUp } from 'lucide-react'
-import { useUsage, UsageEvent } from '@/lib/hooks/useUsage'
+import { X, Activity, DollarSign, MessageSquare, Brain, TrendingUp } from 'lucide-react'
+import { useUsage } from '@/lib/hooks/useUsage'
 
 interface UsageModalProps {
   isOpen: boolean
@@ -55,6 +55,7 @@ export default function UsageModal({ isOpen, onClose }: UsageModalProps) {
             <h2 className="text-xl font-semibold text-white">LLM Usage</h2>
           </div>
           <button
+            title="LLM Usage button"
             onClick={onClose}
             className="text-zinc-400 hover:text-white transition-colors"
           >

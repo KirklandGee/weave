@@ -68,6 +68,6 @@ template_config = TemplateConfig(
     metadata={
         "category": "rpg_content",
         "tags": ["npc", "character_creation", "worldbuilding"],
-        "version": "1.0"
-    }
+        "version": "1.0",
+    },
 )

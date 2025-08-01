@@ -72,7 +72,7 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-amber-200 mb-6 decorative-title">
-              Oracle's Wisdom
+              Oracle&apos;s Wisdom
             </h3>
             <p className="text-amber-100 leading-relaxed text-lg">
               Harness AI magic for epic storytelling

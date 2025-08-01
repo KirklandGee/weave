@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useCampaignNodes } from '@/lib/hooks/useCampaignNodes'
 import { useActiveNode } from '@/lib/hooks/useActiveNode'
 import { createNodeOps } from '@/lib/hooks/useNodeOps'
-import { createEdgeOps } from '@/lib/hooks/useEdgeOps'
 import { useCampaign } from '@/contexts/AppContext'
 import { useTemplateGeneration } from '@/lib/hooks/useTemplateGeneration'
 import Sidebar from '@/components/Sidebar'
@@ -28,7 +27,6 @@ export default function Home() {
   // Only load nodes if we have a campaign - this prevents loading from 'default' database
   const dbNodes = useCampaignNodes(currentCampaign?.slug)
   const nodeOps = currentCampaign ? createNodeOps(currentCampaign.slug) : null
-  const edgeOps = currentCampaign ? createEdgeOps(currentCampaign.slug) : null
   
   // Initialize template generation polling for the current campaign
   useTemplateGeneration(currentCampaign?.slug || '')
@@ -137,9 +135,8 @@ export default function Home() {
       throw new Error('No campaign selected')
     }
 
-    // Create node and edge operations for the selected campaign
+    // Create node operations for the selected campaign
     const selectedNodeOps = createNodeOps(campaignSlug)
-    const selectedEdgeOps = createEdgeOps(campaignSlug)
 
     try {
       const results = []

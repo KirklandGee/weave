@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useEffect, useState } from 'react'
-import { EditorContent, useEditor } from '@tiptap/react'
+import { EditorContent, useEditor, Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { htmlToMd } from '@/lib/md'
 import StarterKit from '@tiptap/starter-kit'
@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 
 // Text Type Selector Component
-function TextTypeSelector({ editor }: { editor: any }) {
+function TextTypeSelector({ editor }: { editor: Editor }) {
   const [isOpen, setIsOpen] = useState(false)
   
   // Close dropdown when editor loses focus or selection changes
@@ -99,7 +99,7 @@ function TextTypeSelector({ editor }: { editor: any }) {
 }
 
 // List Type Selector Component
-function ListTypeSelector({ editor }: { editor: any }) {
+function ListTypeSelector({ editor }: { editor: Editor }) {
   const [isOpen, setIsOpen] = useState(false)
   
   // Close dropdown when editor loses focus or selection changes
@@ -137,6 +137,7 @@ function ListTypeSelector({ editor }: { editor: any }) {
   return (
     <div className="relative">
       <button
+        title="chevron-decorative"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-sm"
       >
@@ -166,11 +167,12 @@ function ListTypeSelector({ editor }: { editor: any }) {
 }
 
 // Main Bubble Menu Component
-function NotionLikeBubbleMenu({ editor }: { editor: any }) {
+function NotionLikeBubbleMenu({ editor }: { editor: Editor }) {
   const formatButton = (isActive: boolean, onClick: () => void, icon: React.ComponentType<{ size: number }>) => {
     const Icon = icon
     return (
       <button
+        title="bubbleMenu"
         onClick={onClick}
         className={`flex items-center justify-center p-1.5 rounded-md transition-colors ${
           isActive 

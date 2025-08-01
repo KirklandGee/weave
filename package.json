@@ -14,6 +14,8 @@
     "build:marketing": "npm run build --workspace=apps/marketing",
     "start": "npm run start --workspaces",
     "lint": "npm run lint --workspaces",
+    "format": "npm run format --workspaces && cd backend && uv run black .",
+    "format:check": "npm run format:check --workspaces && cd backend && uv run black --check .",
     "dev:proxy": "node scripts/dev-proxy.js",
     "docker:up": "docker-compose up",
     "docker:up:build": "docker-compose up --build",

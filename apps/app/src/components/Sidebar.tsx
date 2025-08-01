@@ -4,7 +4,7 @@ import type { Note } from '@/types/node'
 import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar, MessageSquare, AlertCircle } from 'lucide-react'
 import React from 'react'
 import { AddNoteModal } from './AddNoteModal'
-import { Skeleton, SkeletonText } from './ui/Skeleton'
+import { Skeleton } from './ui/Skeleton'
 
 export default function Sidebar({
   nodes,

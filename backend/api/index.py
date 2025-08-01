@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+
 load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,7 @@ app = FastAPI()
 
 # Configure CORS for multiple origins
 import os
+
 origins = [
     "http://localhost:3000",  # Marketing site
     "http://localhost:3001",  # App
@@ -20,10 +22,12 @@ origins = [
 if os.getenv("FRONTEND_URL"):
     origins.append(os.getenv("FRONTEND_URL"))
 if os.getenv("FRONTEND_DOMAIN"):
-    origins.extend([
-        f"https://{os.getenv('FRONTEND_DOMAIN')}",
-        f"https://www.{os.getenv('FRONTEND_DOMAIN')}"
-    ])
+    origins.extend(
+        [
+            f"https://{os.getenv('FRONTEND_DOMAIN')}",
+            f"https://www.{os.getenv('FRONTEND_DOMAIN')}",
+        ]
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,9 +45,11 @@ app.include_router(search.router)
 app.include_router(embed.router)
 app.include_router(admin.router)
 
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
 
 @app.get("/health")
 async def health():

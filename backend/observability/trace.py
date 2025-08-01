@@ -4,20 +4,23 @@ from contextlib import contextmanager
 
 try:
     from langfuse import get_client
+
     langfuse = get_client()
 except ImportError:
     langfuse = None
 
+
 @contextmanager
 def trace_span(name, **kwargs):
     if langfuse:
-        print(f'TRACING {name}')
+        print(f"TRACING {name}")
         for k, v in kwargs.items():
-            print(f'  {k}: {v}')
-        # Will replace with real tracing at some point, but for now just going to print. 
+            print(f"  {k}: {v}")
+        # Will replace with real tracing at some point, but for now just going to print.
         # with langfuse.start_as_current_span(name=name, **kwargs) as span:
         #     yield span
     yield None
+
 
 def traced(name=None, **span_kwargs):
     def decorator(func):
@@ -53,4 +56,5 @@ def traced(name=None, **span_kwargs):
             return async_wrapper
         else:
             return sync_wrapper
+
     return decorator

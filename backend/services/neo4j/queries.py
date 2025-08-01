@@ -2,10 +2,13 @@ from typing import Any, LiteralString
 from neo4j import Query
 from backend.models.components import MarkdownNodeBase
 
-def build_create_query(node: MarkdownNodeBase) -> tuple[LiteralString | Query, dict[str, Any]]:
+
+def build_create_query(
+    node: MarkdownNodeBase,
+) -> tuple[LiteralString | Query, dict[str, Any]]:
     label = node.get_label()
     props = node.create_props()
-    
+
     # Create different queries for each label type based on seed data
     match label:
         case "Campaign":
@@ -24,5 +27,5 @@ def build_create_query(node: MarkdownNodeBase) -> tuple[LiteralString | Query, d
             query = "CREATE (n:Session $props) RETURN n"
         case _:
             query = "CREATE (n $props) RETURN n"
-    
+
     return query, {"props": props}

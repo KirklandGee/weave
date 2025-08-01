@@ -79,6 +79,6 @@ template_config = TemplateConfig(
     metadata={
         "category": "rpg_content",
         "tags": ["location", "worldbuilding", "geography"],
-        "version": "1.0"
-    }
+        "version": "1.0",
+    },
 )

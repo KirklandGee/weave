@@ -6,10 +6,8 @@ from backend.services.neo4j import query
 from backend.services.neo4j.queries import build_create_query
 from backend.api.auth import get_current_user
 
-router = APIRouter(
-  prefix='/campaign',
-  tags=["campaign"]
-)
+router = APIRouter(prefix="/campaign", tags=["campaign"])
+
 
 @router.get("/user")
 async def get_user_campaigns(current_user: str = Depends(get_current_user)):
@@ -23,21 +21,24 @@ async def get_user_campaigns(current_user: str = Depends(get_current_user)):
             """,
             user_id=current_user,
         )
-        
+
         campaigns = []
         for record in result:
-            campaigns.append({
-                "id": record["id"],
-                "title": record["title"],
-                "slug": record["id"],  # Use ID as slug for now
-                "created_at": record["created_at"],
-                "updated_at": record["updated_at"],
-            })
-        
+            campaigns.append(
+                {
+                    "id": record["id"],
+                    "title": record["title"],
+                    "slug": record["id"],  # Use ID as slug for now
+                    "created_at": record["created_at"],
+                    "updated_at": record["updated_at"],
+                }
+            )
+
         return campaigns
-        
+
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
 
 @router.post("/")
 async def add_campaign(campaign_data: MarkdownContent):

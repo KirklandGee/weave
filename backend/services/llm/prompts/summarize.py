@@ -31,6 +31,6 @@ template_config = TemplateConfig(
     metadata={
         "category": "content_processing",
         "tags": ["summarization", "notes", "context"],
-        "version": "1.0"
-    }
+        "version": "1.0",
+    },
 )

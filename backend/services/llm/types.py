@@ -5,6 +5,7 @@ from langchain_core.prompts import PromptTemplate
 
 class TemplateConfig(BaseModel):
     """Configuration for a prompt template."""
+
     name: str
     description: str
     required_vars: list[str] = Field(default_factory=list)
@@ -13,11 +14,14 @@ class TemplateConfig(BaseModel):
     template: PromptTemplate
     system_message: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    chain_steps: Optional[list[Dict[str, Any]]] = Field(default=None, description="For multi-step chains")
+    chain_steps: Optional[list[Dict[str, Any]]] = Field(
+        default=None, description="For multi-step chains"
+    )
 
 
 class ChainStep(BaseModel):
     """Represents a single step in a multi-step chain."""
+
     name: str
     template: PromptTemplate
     output_key: str

@@ -55,34 +55,39 @@ class EmbeddingService:
     def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for multiple texts efficiently."""
 
-        if not texts: 
-          return []
+        if not texts:
+            return []
 
         processed_texts = [text if text and text.strip() else " " for text in texts]
         embeddings = self.model.encode(processed_texts, convert_to_tensor=False)
         return embeddings.tolist()
 
     def embed_node(self, node: MarkdownNodeBase) -> MarkdownNodeBase:
-          """Add embedding to a node."""
-          text = node.get_embedding_text()
-          embedding = self.generate_embedding(text)
-          node.embedding = embedding
-          return node
-    def calculate_similarity(self, embedding1: list[float], embedding2: list[float]) -> float:
+        """Add embedding to a node."""
+        text = node.get_embedding_text()
+        embedding = self.generate_embedding(text)
+        node.embedding = embedding
+        return node
+
+    def calculate_similarity(
+        self, embedding1: list[float], embedding2: list[float]
+    ) -> float:
         """Calculate cosine similarity between two embeddings."""
         if not embedding1 or not embedding2:
             return 0.0
-            
+
         # Convert to numpy arrays
         a = np.array(embedding1)
         b = np.array(embedding2)
-        
+
         # Calculate cosine similarity
         cos_sim = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
         return float(cos_sim)
 
+
 # Use as a singleton instance
 _embedding_service = None
+
 
 def get_embedding_service() -> EmbeddingService:
     """Get the singleton embedding service instance."""
