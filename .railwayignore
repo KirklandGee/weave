@@ -4,3 +4,12 @@ package.json
 package-lock.json
 *.md
 .git/
+scripts/
+*.ts
+*.tsx
+*.js
+*.jsx
+next.config.*
+tailwind.config.*
+postcss.config.*
+eslint.config.*

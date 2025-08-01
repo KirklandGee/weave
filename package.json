@@ -24,11 +24,27 @@
     "docker:logs": "docker-compose logs -f",
     "docker:backend": "docker-compose up backend rq-worker redis neo4j",
     "docker:frontend": "docker-compose up app marketing",
-    "docker:seed": "docker-compose run --rm seeder"
+    "docker:seed": "docker-compose run --rm seeder",
+    "prepare": "husky"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "express": "^4.18.2",
-    "http-proxy-middleware": "^2.0.6"
+    "http-proxy-middleware": "^2.0.6",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0"
+  },
+  "lint-staged": {
+    "apps/app/**/*.{js,jsx,ts,tsx}": [
+      "npm run lint --workspace=apps/app --",
+      "npm run format --workspace=apps/app"
+    ],
+    "apps/marketing/**/*.{js,jsx,ts,tsx}": [
+      "npm run lint --workspace=apps/marketing --",
+      "npm run format --workspace=apps/marketing"
+    ],
+    "backend/**/*.py": [
+      "cd backend && uv run black"
+    ]
   }
 }
