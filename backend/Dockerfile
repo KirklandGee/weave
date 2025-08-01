@@ -19,13 +19,10 @@ COPY . .
 
 # Change to backend directory and install dependencies
 WORKDIR /app/backend
-
-# Set UV to use system python instead of creating venv in mounted directory
-ENV UV_SYSTEM_PYTHON=1
 RUN uv sync --frozen --no-cache
 
 # Expose port
 EXPOSE 8000
 
-# Default command (Railway will override this with startCommand)
-CMD ["uv", "run", "fastapi", "run", "api/index.py", "--host", "0.0.0.0", "--port", "8000"]
+# Default command (can be overridden in docker-compose)
+CMD ["uv", "run", "python", "-m", "fasta", "api.index:app", "--host", "0.0.0.0", "--port", "8000"]

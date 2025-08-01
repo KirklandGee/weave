@@ -17,8 +17,6 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Fix template creation to use some kind of schema for the title instead of extracting from the note. 
 
 **LLMS**
-- [ ] Track per-user token usage and enforce quota (billing/cost control) 
-- [ ] Build proper Langchain prompt templating. 
 - [ ] Build endpoint to summarize the contents of a given note, including it's relationships (if relevant). 
   - Will be a pretty basic endpoint, but needs a solid prompt chain/template behing the scenes
 
@@ -32,12 +30,10 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 **API**
 - [ ] Build a `/summarize` endpoint to auto-compress old chat history
 - [ ] Add simple concurrency metrics (thread-pool utilization) and tune thread-pool size  
-- [ ] Explore task queue
 - [ ] Dedupe relationships in DB
 
 ### Frontend
 - [ ] Add “summarize history” trigger to collapse older messages into a summary  
-- [ ] Support importing a Markdown file via upload
 
 ### Infrastructure & Observability
 - [ ] Add request-scoped logging middleware (timings, errors, token counts)  
@@ -45,7 +41,6 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [ ] Validate environment variables for quotas & Langfuse (or disable if unused)  
 
 ### UI
-- [ ] Support paste from markdown
 - [ ] Campaign-based knowledge graph visualzation, same as neo4j browser basically
 - [ ] LIne 33 /lib/db/sync.ts Implement something like what's at the bottom to use the max time on the server for pulling to verify time for data so things don't get overwritten.
 
@@ -54,6 +49,8 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 
 ### DONE
 - [x] Authentication
+- [x] Build proper Langchain prompt templating. 
+- [x] Track per-user token usage and enforce quota (billing/cost control) 
 - [x] Create basic frontend to talk with AI and show responses for testing
 - [x] Implement TipTap markdown editor on frontend
 - [x] Create note creation flow. Button currently is just a loading screen
@@ -67,6 +64,7 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [x] Delete node doesn't work. Deletes from the UI, and then comes back on sync
 - [x] Create common endpoints for getting a node + all of it's edges for when the AI calls
 - [x] Search notes by title
+- [x] Support paste from markdown
 - [x] Surface a clear “waiting” state (spinner/fallback) before streaming begins  
 - [x] Create embeddings generator, embed all seed entries
 - [x] Create endpoints for creating relationships between nodes when someone adds a link. I will make the user choose the relationship when they link? Or just 
@@ -76,4 +74,6 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 - [x] Improve relationship recommendations and search based on embeddings
 - [x] Organize sidebar by note type
 - [x] Expose a `/retrieve` helper that returns top-K similar notes for RAG 
+- [x] Support importing a Markdown file via upload
 ~~- [ ] Explore how an AI can write the Cypher queries, based on my schema, if needed~~
+- [x] Explore task queue
