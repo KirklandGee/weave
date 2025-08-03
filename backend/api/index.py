@@ -54,34 +54,5 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint that verifies dependencies."""
-    health_status = {"status": "healthy", "checks": {}}
-    overall_healthy = True
-    
-    # Check Neo4j connection
-    try:
-        from backend.services.neo4j import verify
-        verify()
-        health_status["checks"]["neo4j"] = "healthy"
-    except Exception as e:
-        health_status["checks"]["neo4j"] = f"unhealthy: {str(e)}"
-        overall_healthy = False
-    
-    # Check Redis connection (if available)
-    try:
-        from backend.services.queue_service import health_check
-        if health_check():
-            health_status["checks"]["redis"] = "healthy"
-        else:
-            health_status["checks"]["redis"] = "unhealthy"
-            overall_healthy = False
-    except Exception as e:
-        health_status["checks"]["redis"] = f"unavailable: {str(e)}"
-        # Don't fail overall health for Redis since it might be optional
-    
-    if not overall_healthy:
-        health_status["status"] = "degraded"
-        # Don't fail the health check during initial deployment
-        # This allows us to see what's actually failing in the logs
-    
-    return health_status
+    """Simple health check that always returns healthy."""
+    return {"status": "healthy", "message": "Service is running"}

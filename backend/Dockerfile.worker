@@ -39,7 +39,7 @@ COPY . ./
 
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1
-ENV PATH="/app/backend/.venv/bin:$PATH"
+ENV PATH="/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 
 # Default command for RQ worker
