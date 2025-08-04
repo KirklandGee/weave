@@ -47,13 +47,27 @@ def main():
     queue_names = ["priority", "default", "long_running"]
     queues = [get_task_queue(name) for name in queue_names]
 
-    # Create worker
-    worker = Worker(queues, connection=redis_conn, name=f"worker-{os.getpid()}")
+    # Create worker with unique name including timestamp
+    import time
+    worker_name = f"worker-{os.getpid()}-{int(time.time())}"
+    worker = Worker(queues, connection=redis_conn, name=worker_name)
 
     logger.info(
         f"Starting RQ worker '{worker.name}' listening on queues: {queue_names}"
     )
     logger.info(f"Worker PID: {os.getpid()}")
+
+    # Clean up any stale worker registrations
+    try:
+        # Clean up any existing workers with the same base name
+        from rq import Worker as RQWorker
+        existing_workers = RQWorker.all(connection=redis_conn)
+        for existing_worker in existing_workers:
+            if existing_worker.name.startswith(f"worker-{os.getpid()}") and existing_worker.name != worker_name:
+                logger.info(f"Cleaning up stale worker: {existing_worker.name}")
+                existing_worker.cleanup()
+    except Exception as e:
+        logger.warning(f"Failed to clean up stale workers: {e}")
 
     # Start processing jobs
     try:
@@ -65,6 +79,11 @@ def main():
         raise
     finally:
         logger.info("Worker stopped")
+        # Clean up worker registration on shutdown
+        try:
+            worker.cleanup()
+        except Exception as e:
+            logger.warning(f"Failed to cleanup worker on shutdown: {e}")
 
 
 if __name__ == "__main__":
