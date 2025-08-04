@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile.worker"
 
 [deploy]
-startCommand = "cd backend && uv run python worker.py"
+startCommand = "sh -c 'cd backend && uv run python worker.py'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 healthcheckPath = ""
