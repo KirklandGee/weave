@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# Set working directory
+# Set working directory for building
 WORKDIR /app/backend
 
 # Copy only backend dependency files first (for better caching)
@@ -28,18 +28,18 @@ FROM python:3.13-slim
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# Set working directory
-WORKDIR /app/backend
+# Set working directory to app root (not backend)
+WORKDIR /app
 
 # Copy installed dependencies from builder stage
 COPY --from=builder /app/backend/.venv /app/backend/.venv
 
-# Copy only necessary backend application files
-COPY backend/ ./
+# Copy backend files to preserve directory structure
+COPY backend/ ./backend/
 
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1
-ENV PATH="/.venv/bin:$PATH"
+ENV PATH="/app/backend/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 
 # Default command for RQ worker
