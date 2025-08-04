@@ -44,7 +44,7 @@ COPY backend/ ./backend/
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1
 ENV PATH="/app/backend/.venv/bin:$PATH"
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/backend
 
 # Expose port
 EXPOSE $PORT

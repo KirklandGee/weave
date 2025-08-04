@@ -10,8 +10,7 @@ _PASS = os.getenv("NEO4J_PASS", "secretgraph")
 _driver = GraphDatabase.driver(
     _URI, 
     auth=(_USER, _PASS), 
-    max_connection_pool_size=50,
-    encrypted=True if _URI.startswith(("neo4j+s://", "bolt+s://")) else False
+    max_connection_pool_size=50
 )
 
 
