@@ -17,6 +17,7 @@ origins = [
     "http://localhost:3080",  # Proxy server
     "http://app.localhost:3080",  # Proxy server with subdomain
     "https://weave-rpg-nghr2438s8tj.vercel.app",  # Production frontend
+    "https://weave-app-backend-production.up.railway.app",  # Railway backend (for any internal calls)
 ]
 
 # Add production origins from environment
