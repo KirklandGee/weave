@@ -56,4 +56,5 @@ async def root():
 @app.get("/health")
 async def health():
     """Simple health check that always returns healthy."""
+    print("Health check endpoint called")  # This will show in Railway logs
     return {"status": "healthy", "message": "Service is running"}
