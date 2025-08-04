@@ -21,11 +21,15 @@ export async function GET(
 
     // Get the JWT token to pass to backend
     const token = await getToken()
+    console.log('Frontend: Token obtained:', !!token, token ? `Length: ${token.length}` : 'No token')
     if (!token) {
       return NextResponse.json({ error: 'No token available' }, { status: 401 })
     }
 
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
+    console.log('Frontend: Making request to:', `${backendUrl}/admin/users/${resolvedParams.userId}/usage`)
+    console.log('Frontend: Authorization header:', `Bearer ${token.substring(0, 20)}...`)
+    
     const response = await fetch(`${backendUrl}/admin/users/${resolvedParams.userId}/usage`, {
       headers: {
         'Content-Type': 'application/json',
