@@ -10,7 +10,9 @@ _PASS = os.getenv("NEO4J_PASS", "secretgraph")
 _driver = GraphDatabase.driver(
     _URI, 
     auth=(_USER, _PASS), 
-    max_connection_pool_size=50
+    max_connection_pool_size=5,  # Reduced for Aura free tier
+    max_connection_lifetime=1800,  # 30 minutes
+    connection_acquisition_timeout=30  # 30 seconds
 )
 
 

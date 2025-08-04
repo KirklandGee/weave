@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId: clerkUserId } = await auth()
+    const { userId: clerkUserId, getToken } = await auth()
     
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -19,10 +19,17 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // Get the JWT token to pass to backend
+    const token = await getToken()
+    if (!token) {
+      return NextResponse.json({ error: 'No token available' }, { status: 401 })
+    }
+
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
     const response = await fetch(`${backendUrl}/admin/users/${resolvedParams.userId}/usage`, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
     })
 
