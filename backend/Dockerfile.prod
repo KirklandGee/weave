@@ -32,9 +32,6 @@ RUN apt-get update && apt-get install -y \
 # Install uv (lightweight runtime only)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# Create non-root user
-RUN groupadd -r backend && useradd -r -g backend backend
-
 # Set working directory
 WORKDIR /app/backend
 
@@ -43,12 +40,6 @@ COPY --from=builder /app/backend/.venv /app/backend/.venv
 
 # Copy only necessary backend application files
 COPY . ./
-
-# Change ownership to non-root user
-RUN chown -R backend:backend /app/backend
-
-# Switch to non-root user
-USER backend
 
 # Set environment variables
 ENV UV_SYSTEM_PYTHON=1
