@@ -136,6 +136,18 @@ export function CommandPalette({
     return results;
   }, [query, filteredCommands, searchResults]);
 
+  const executeSelected = useCallback(() => {
+    if (allResults.length === 0) return;
+    
+    const selected = allResults[selectedIndex];
+    if (selected.type === 'note') {
+      onNavigateToNote?.(selected.item as Note);
+    } else {
+      (selected.item as Command).onExecute();
+    }
+    onClose();
+  }, [allResults, selectedIndex, onNavigateToNote, onClose]);
+
   // Reset selection when results change
   useEffect(() => {
     setSelectedIndex(0);
@@ -169,18 +181,6 @@ export function CommandPalette({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, allResults, selectedIndex, executeSelected, onClose]);
-
-  const executeSelected = () => {
-    if (allResults.length === 0) return;
-    
-    const selected = allResults[selectedIndex];
-    if (selected.type === 'note') {
-      onNavigateToNote?.(selected.item as Note);
-    } else {
-      (selected.item as Command).onExecute();
-    }
-    onClose();
-  };
 
   // Reset state when modal closes
   useEffect(() => {
