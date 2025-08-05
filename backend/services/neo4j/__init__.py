@@ -4,8 +4,8 @@ from neo4j.exceptions import Neo4jError, ServiceUnavailable, AuthError
 import os
 
 _URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-_USER = os.getenv("NEO4J_USER", "neo4j")
-_PASS = os.getenv("NEO4J_PASS", "secretgraph")
+_USER = os.getenv("NEO4J_USERNAME", "neo4j")
+_PASS = os.getenv("NEO4J_PASSWORD", "secretgraph")
 
 _driver = GraphDatabase.driver(
     _URI, 
