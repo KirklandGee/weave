@@ -3,7 +3,6 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { AppProvider } from '@/contexts/AppContext'
 import ToastContainer from '@/components/ToastContainer'
-import Image from 'next/image'
 import './globals.css'
 
 const geistSans = Geist({
