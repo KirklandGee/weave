@@ -16,7 +16,7 @@ origins = [
     "http://app.localhost:3001",  # App via subdomain
     "http://localhost:3080",  # Proxy server
     "http://app.localhost:3080",  # Proxy server with subdomain
-    "https://weave-rpg-nghr2438s8tj.vercel.app",  # Production frontend
+    "https://use-weave.app",  # Production frontend
     "https://weave-app-backend-production.up.railway.app",  # Railway backend (for any internal calls)
 ]
 
@@ -28,6 +28,13 @@ if os.getenv("FRONTEND_DOMAIN"):
         [
             f"https://{os.getenv('FRONTEND_DOMAIN')}",
             f"https://www.{os.getenv('FRONTEND_DOMAIN')}",
+        ]
+    )
+if os.getenv("PRODUCTION_DOMAIN"):
+    origins.extend(
+        [
+            f"https://{os.getenv('PRODUCTION_DOMAIN')}",
+            f"https://www.{os.getenv('PRODUCTION_DOMAIN')}",
         ]
     )
 

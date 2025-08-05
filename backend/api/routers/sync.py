@@ -239,46 +239,60 @@ async def get_edges(
     user_id: str = Depends(get_current_user),
 ):
     """
-    Return every relationship touching this user’s nodes/campaign whose
+    Return every relationship touching this user's nodes/campaign whose
     r.updatedAt > ts.  Works no matter what the rel-type is (:MENTIONS, etc.).
     """
-    records = query(
-        """
-        MATCH (u:User {id:$user_id})
+    try:
+        import uuid
+        
+        records = query(
+            """
+            MATCH (u:User {id:$user_id})
 
-        // campaign-scoped nodes the user owns
-        OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(a)
-        // global nodes the user is linked to
-        OPTIONAL MATCH (u)-[:PART_OF]->(b)
-        WITH collect(a)+collect(b) AS nodes
+            // campaign-scoped nodes the user owns
+            OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(a)
+            // global nodes the user is linked to
+            OPTIONAL MATCH (u)-[:PART_OF]->(b)
+            WITH collect(a)+collect(b) AS nodes
 
-        UNWIND nodes AS n
-        MATCH (n)-[r]->(m)
-        WHERE r.updatedAt > $ts          // ← incremental filter
-        WITH DISTINCT r,                // dedup if two paths reach same rel
-             startNode(r)  AS s,
-             endNode(r)    AS e,
-             properties(r) AS props
-        RETURN {
-          id:         props.id,         // you store this when creating
-          from_id:    s.id,
-          to_id:      e.id,
-          from_title: s.title,
-          to_title:   e.title,
-          relType:    type(r),
-          updatedAt:  props.updatedAt,
-          createdAt:  props.createdAt,
-          attributes: apoc.map.removeKeys(
-                         props,
-                         ['id','updatedAt','createdAt']
-                      )
-        } AS edge
-        """,
-        user_id=user_id,
-        cid=None if cid == "global" else cid,
-        ts=ts,
-    )
-    return [r["edge"] for r in records]
+            UNWIND nodes AS n
+            MATCH (n)-[r]->(m)
+            WHERE r.updatedAt > $ts          // ← incremental filter
+            WITH DISTINCT r,                // dedup if two paths reach same rel
+                 startNode(r)  AS s,
+                 endNode(r)    AS e,
+                 properties(r) AS props
+            RETURN {
+              id:         props.id,         // we'll handle None values in Python
+              from_id:    s.id,
+              to_id:      e.id,
+              from_title: s.title,
+              to_title:   e.title,
+              relType:    type(r),
+              updatedAt:  props.updatedAt,
+              createdAt:  props.createdAt,
+              attributes: apoc.map.removeKeys(
+                             props,
+                             ['id','updatedAt','createdAt']
+                          )
+            } AS edge
+            """,
+            user_id=user_id,
+            cid=None if cid == "global" else cid,
+            ts=ts,
+        )
+        
+        # Post-process records to generate UUIDs for None IDs
+        result = []
+        for r in records:
+            edge = r["edge"]
+            if edge["id"] is None:
+                edge["id"] = f"edge-{str(uuid.uuid4())[:8]}"
+            result.append(edge)
+        
+        return result
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ─────────────────────────────────────────────── edges for a node ──

@@ -4,9 +4,10 @@ import type { NextConfig } from 'next'
 const backend = process.env.BACKEND_URL ?? 'http://localhost:8000'
 
 const nextConfig: NextConfig = {
+  trailingSlash: false,
   async rewrites() {
     return [
-      // 1) Don’t proxy any /api/llm/*—let Next.js handle those for streaming.
+      // 1) Don't proxy any /api/llm/*—let Next.js handle those for streaming.
       {
         source: '/api/llm/:path*',
         destination: '/api/llm/:path*',

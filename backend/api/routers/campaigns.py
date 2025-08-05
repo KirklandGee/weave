@@ -6,8 +6,74 @@ from backend.services.neo4j import query
 from backend.services.neo4j.queries import build_create_query
 from backend.api.auth import get_current_user
 
-router = APIRouter(prefix="/campaign", tags=["campaign"])
+router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
+@router.post("/create")
+async def add_campaign(
+    campaign_data: MarkdownContent, 
+    current_user: str = Depends(get_current_user)
+):
+    try:
+        import uuid
+        
+        # Generate a proper unique ID
+        campaign_id = f"camp-{str(uuid.uuid4())[:8]}"
+        
+        metadata = Metadata(
+            id=campaign_id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        campaign = Campaign(content=campaign_data, metadata=metadata)
+
+        # Create campaign and link to user
+        result = query(
+            """
+            MATCH (u:User {id: $user_id})
+            CREATE (c:Campaign {
+                id: $campaign_id,
+                title: $title,
+                markdown: $markdown,
+                created_at: $created_at,
+                updated_at: $updated_at
+            })
+            CREATE (u)-[:OWNS]->(c)
+            RETURN c.id as id, c.title as title, c.created_at as created_at, c.updated_at as updated_at
+            """,
+            user_id=current_user,
+            campaign_id=campaign_id,
+            title=campaign_data.title,
+            markdown=campaign_data.markdown,
+            created_at=metadata.created_at.isoformat(),
+            updated_at=metadata.updated_at.isoformat(),
+        )
+
+        if result:
+            return {"message": "Campaign created successfully!", "campaign": result[0]}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create campaign")
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.delete("/")
+async def delete_campaign(campaign_id: str):
+
+    try:
+        _ = query(
+            """
+        MATCH (n:Campaign {id: $campaign_id})
+        DELETE n
+      """,
+            campaign_id=campaign_id,
+        )
+
+        return {"message": f"Campaign: {campaign_id} deleted"}
+
+    except HTTPException as exc:
+        raise exc
 
 @router.get("/user")
 async def get_user_campaigns(current_user: str = Depends(get_current_user)):
@@ -39,43 +105,3 @@ async def get_user_campaigns(current_user: str = Depends(get_current_user)):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-
-@router.post("/")
-async def add_campaign(campaign_data: MarkdownContent):
-
-    metadata = Metadata(
-        id=f"camp-{campaign_data.title.split()[1]}-{campaign_data.title.split()[2][:4]}",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-    )
-
-    campaign = Campaign(content=campaign_data, metadata=metadata)
-
-    q, params = build_create_query(campaign)
-
-    try:
-        result = query(q, **params)
-
-        if result:
-            return {"message": "Campaign created successfully!", "campaign": result[0]}
-
-    except HTTPException as exc:
-        raise exc
-
-
-@router.delete("/")
-async def delete_campaign(campaign_id: str):
-
-    try:
-        _ = query(
-            """
-        MATCH (n:Campaign {id: $campaign_id})
-        DELETE n
-      """,
-            campaign_id=campaign_id,
-        )
-
-        return {"message": f"Campaign: {campaign_id} deleted"}
-
-    except HTTPException as exc:
-        raise exc

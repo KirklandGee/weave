@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Plus, Book, Users, Calendar } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useCampaign } from '@/contexts/AppContext'
 
 export default function EmptyCampaignsState() {
@@ -31,51 +31,20 @@ export default function EmptyCampaignsState() {
 
   return (
     <div className="h-screen bg-zinc-900 text-zinc-100 flex items-center justify-center">
-      <div className="max-w-md w-full mx-4 text-center space-y-8">
-        {/* Icon */}
-        <div className="flex justify-center">
-          <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center">
-            <Book size={40} className="text-zinc-400" />
-          </div>
-        </div>
-
-        {/* Title & Description */}
-        <div className="space-y-4">
+      <div className="max-w-md w-full mx-4 text-center space-y-6">
+        <div className="space-y-2">
           <h1 className="text-2xl font-bold text-white">
-            Welcome to AI RPG Manager
+            Create your first campaign
           </h1>
-          <p className="text-zinc-400 leading-relaxed">
-            Get started by creating your first campaign. Organize your world, characters, and adventures in one place.
+          <p className="text-zinc-400">
+            Get started by giving your campaign a name
           </p>
         </div>
 
-        {/* Features Preview */}
-        <div className="grid grid-cols-3 gap-4 py-4">
-          <div className="text-center space-y-2">
-            <div className="w-10 h-10 bg-amber-900/20 rounded-lg flex items-center justify-center mx-auto">
-              <Book size={20} className="text-amber-400" />
-            </div>
-            <div className="text-xs text-zinc-400">World Building</div>
-          </div>
-          <div className="text-center space-y-2">
-            <div className="w-10 h-10 bg-green-900/20 rounded-lg flex items-center justify-center mx-auto">
-              <Users size={20} className="text-green-400" />
-            </div>
-            <div className="text-xs text-zinc-400">Characters</div>
-          </div>
-          <div className="text-center space-y-2">
-            <div className="w-10 h-10 bg-yellow-900/20 rounded-lg flex items-center justify-center mx-auto">
-              <Calendar size={20} className="text-yellow-400" />
-            </div>
-            <div className="text-xs text-zinc-400">Sessions</div>
-          </div>
-        </div>
-
-        {/* Create Campaign Form */}
         <div className="space-y-4">
           <input
             type="text"
-            placeholder="Enter your campaign name..."
+            placeholder="Enter campaign name..."
             value={campaignTitle}
             onChange={(e) => setCampaignTitle(e.target.value)}
             onKeyDown={handleKeyPress}
@@ -86,17 +55,11 @@ export default function EmptyCampaignsState() {
           <button
             onClick={handleCreateCampaign}
             disabled={!campaignTitle.trim() || isCreating}
-            className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-600 disabled:cursor-not-allowed px-4 py-3 rounded-lg text-white font-medium transition-colors border-2 border-amber-500 hover:border-amber-400 relative overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-amber-300 before:rounded-md before:opacity-40"
+            className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-600 disabled:cursor-not-allowed px-4 py-3 rounded-lg text-white font-medium transition-colors"
           >
             <Plus size={20} />
-            {isCreating ? 'Creating Campaign...' : 'Create Your First Campaign'}
+            {isCreating ? 'Creating...' : 'Create Campaign'}
           </button>
-        </div>
-
-        {/* Help Text */}
-        <div className="text-xs text-zinc-500 space-y-1">
-          <p>You can create multiple campaigns and switch between them anytime.</p>
-          <p>Each campaign keeps your notes, characters, and world organized separately.</p>
         </div>
       </div>
     </div>
