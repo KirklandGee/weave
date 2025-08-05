@@ -1,10 +1,11 @@
-## Work Session 7/6/25
-- Planned out the basics of the app, tested Neo4J with seed data and a few basic queries
-- Setup initial FastAPI endpoint for cURL testing of just getting all the nodes
+## RESOURCES
+
+### Walkthrough Videos:
+- Part 1: https://www.loom.com/share/6967d18257934535b24f033c60861014
+- Part 2: https://www.loom.com/share/dbf454b856174b08a2d4097c321430fb
+
 
 ## BUGS
-- Every time, even with debounce, that the db saves, it moves the cursor around and deletes any whitespace/incomplete nodes. We'll need to eventually switch to storing the JSON in Dexie, and then translating to markdown on the backend—or maybe even just finding a way to store it all in Neo4j, or store that somewhere ELSE and then reference it in the graph—not sure yet.
-
 
 
 ## TODO

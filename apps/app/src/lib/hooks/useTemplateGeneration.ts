@@ -87,7 +87,7 @@ export function useTemplateGeneration(campaignSlug: string) {
       // Update the note in the database
       await db.nodes.put(updatedNote);
       
-      console.log(`Template generation completed for note ${noteId}`);
+      (`Template generation completed for note ${noteId}`);
     } catch (error) {
       console.error(`Error updating note ${noteId} on completion:`, error);
     }

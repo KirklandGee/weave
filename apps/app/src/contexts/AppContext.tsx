@@ -54,23 +54,15 @@ export function AppProvider({ children }: AppProviderProps) {
 
   // Campaign functions
   const fetchCampaigns = async (): Promise<Campaign[]> => {
-    console.log('🔍 fetchCampaigns called')
     
     try {
       const url = '/api/campaigns/user'
-      console.log('📤 [FETCH] Making request to:', url)
       
       const response = await authFetch(url, {
         headers: {
           'Content-Type': 'application/json',
         },
       })
-      
-      console.log('📨 [FETCH] Response received:')
-      console.log('  - Status:', response.status)
-      console.log('  - Status Text:', response.statusText)  
-      console.log('  - URL:', response.url)
-      console.log('  - Redirected:', response.redirected)
       
       if (!response.ok) {
         const errorText = await response.text()
@@ -79,7 +71,6 @@ export function AppProvider({ children }: AppProviderProps) {
       }
       
       const data = await response.json()
-      console.log('✅ [FETCH] Response data:', data)
       
       const campaigns = (data || []).map((campaign: {
         id: string
@@ -95,7 +86,6 @@ export function AppProvider({ children }: AppProviderProps) {
         updatedAt: campaign.updated_at ? new Date(campaign.updated_at).getTime() : Date.now(),
       }))
       
-      console.log('🎯 [FETCH] Processed campaigns:', campaigns)
       return campaigns
     } catch (error) {
       console.error('💥 [FETCH] Error fetching campaigns:', error)
@@ -162,13 +152,6 @@ export function AppProvider({ children }: AppProviderProps) {
         body: JSON.stringify(payload),
       })
       
-      console.log('📨 Response received:')
-      console.log('  - Status:', response.status)
-      console.log('  - Status Text:', response.statusText)
-      console.log('  - Headers:', Object.fromEntries(response.headers.entries()))
-      console.log('  - URL:', response.url)
-      console.log('  - Redirected:', response.redirected)
-      
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ Response not OK:')
@@ -177,7 +160,6 @@ export function AppProvider({ children }: AppProviderProps) {
       }
       
       const data = await response.json()
-      console.log('✅ Response data:', data)
       
       const newCampaign: Campaign = {
         id: data.campaign.id,
@@ -186,16 +168,9 @@ export function AppProvider({ children }: AppProviderProps) {
         createdAt: data.campaign.created_at || Date.now(),
         updatedAt: data.campaign.updated_at || Date.now(),
       }
-      
-      console.log('🎯 Created campaign object:', newCampaign)
-      
-      console.log('🔄 Refreshing campaigns...')
       await refreshCampaigns()
-      
-      console.log('🔀 Switching to new campaign...')
       switchCampaign(newCampaign)
       
-      console.log('✨ Campaign creation complete!')
       return newCampaign
     } catch (error) {
       console.error('💥 Error creating campaign:', error)

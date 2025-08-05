@@ -58,7 +58,6 @@ export class TemplateService {
       }
       
       const templatesData = await templatesResponse.json();
-      console.log('Templates API response:', templatesData);
       
       // Handle different possible response formats
       let templateNames: string[] = [];
@@ -73,8 +72,6 @@ export class TemplateService {
         console.error('Unexpected templates response format:', templatesData);
         throw new Error('Invalid response format from templates endpoint');
       }
-      
-      console.log('Template names:', templateNames);
       
       // Fetch details for each template
       const templatePromises = templateNames.map(async (name) => {
@@ -104,7 +101,6 @@ export class TemplateService {
       });
 
       this.lastSync = Date.now();
-      console.log(`Synced ${templates.length} templates`);
     } catch (error) {
       console.error('Failed to sync templates:', error);
       throw error;

@@ -5,7 +5,6 @@ export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
 
-  console.log(`Request ${req}`)
   const { userId, getToken } = await auth();
 
   if (!userId) {
@@ -33,7 +32,6 @@ export async function POST(req: Request) {
     return new NextResponse(null, { status: upstream.status });
   }
 
-  console.log('📥 got headers:', upstream.headers.get('transfer-encoding'));
 
   return new NextResponse(upstream.body, {
     status: upstream.status,

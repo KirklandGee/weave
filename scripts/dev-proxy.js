@@ -19,8 +19,6 @@ app.use((req, res, next) => {
   const host = req.get('host');
   const subdomain = host.split('.')[0];
   
-  console.log(`Request to ${host} - Subdomain: ${subdomain}`);
-  
   // Route based on subdomain
   if (subdomain === 'app') {
     // Route to app (port 3001)

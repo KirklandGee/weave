@@ -14,7 +14,6 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 @router.post("/chat/stream")
 async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_user)):
     try:
-        print("Calling API")
         return StreamingResponse(
             call_llm(
                 messages=req.messages,

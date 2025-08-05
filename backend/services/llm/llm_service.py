@@ -49,7 +49,6 @@ async def call_llm(
     session_id: Optional[str] = None,
     **overrides,
 ):
-    print("Calling LLM")
     if isinstance(messages, LLMMessage):
         messages = [messages]
 
@@ -59,7 +58,6 @@ async def call_llm(
 
     # Convert to langchain messages
     langchain_messages = to_langchain_messages(messages, context=context)
-    print(langchain_messages)
 
     # Count input tokens
     input_tokens = TokenCounter.count_tokens_in_langchain_messages(
@@ -99,8 +97,6 @@ async def call_llm(
         else:
             result = await llm.ainvoke(langchain_messages)
             full_response = str(result.text())
-            print("status=success")
-            print(f"response_preview={full_response[:200]}")
             yield full_response
 
         # Record usage after successful completion
@@ -113,9 +109,6 @@ async def call_llm(
                 output_tokens=output_tokens,
                 campaign_id=campaign_id,
                 session_id=session_id,
-            )
-            print(
-                f"Recorded usage: {input_tokens} input + {output_tokens} output tokens for user {user_id}"
             )
 
     except Exception as e:

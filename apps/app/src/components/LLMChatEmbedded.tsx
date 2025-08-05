@@ -73,8 +73,7 @@ export default function LLMChatEmbedded({
     setIsLoading(true);
 
     try {
-      console.log('contextString:', contextString); // Add this line
-      console.log('typeof contextString:', typeof contextString);
+
 
       const chatRequest: ChatRequest = {
         user_id: 'demo-user',

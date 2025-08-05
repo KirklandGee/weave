@@ -15,7 +15,6 @@ async def get_sidebar_nodes(
     user_id: str = Depends(get_current_user),
 ):
     try:
-        print(f"User ID: {user_id}")
         records = query(
             """
             MATCH (u:User {id:$user_id})
@@ -43,7 +42,6 @@ async def get_sidebar_nodes(
             user_id=user_id,
             cid=campaign_id if campaign_id != "global" else None,
         )
-        print(f"Sidebar records: {records}")
 
         return [r["node"] for r in records]
     except Exception as exc:

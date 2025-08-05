@@ -38,17 +38,13 @@ async def get_current_user(request: Request) -> str:
     """
     try:
         auth_header = request.headers.get("authorization")
-        print(f"Debug: Auth header present: {bool(auth_header)}")
 
         if not auth_header or not auth_header.startswith("Bearer "):
-            print(f"Debug: Missing or invalid auth header: {auth_header}")
             raise HTTPException(status_code=401, detail="Missing authorization header")
 
         token = auth_header.split(" ")[1]
-        print(f"Debug: Token length: {len(token)}")
 
         # Use Clerk's built-in authentication
-        print(f"Debug: Calling clerk authenticate_request")
         request_state = clerk_client.authenticate_request(
             request,
             AuthenticateRequestOptions(
@@ -65,9 +61,7 @@ async def get_current_user(request: Request) -> str:
             ),
         )
 
-        print(f"Debug: is_signed_in: {request_state.is_signed_in}")
         if not request_state.is_signed_in:
-            print(f"Debug: Authentication failed - not signed in")
             raise HTTPException(status_code=401, detail="Not authenticated")
 
         # Get user_id from the payload

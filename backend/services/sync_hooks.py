@@ -45,8 +45,6 @@ class SyncEmbeddingHook:
         if not self.nodes_to_check:
             return
 
-        print(f"🤖 Checking embeddings for {len(self.nodes_to_check)} changed nodes...")
-
         update_service = get_embedding_update_service()
         updated_count = 0
 
@@ -56,13 +54,8 @@ class SyncEmbeddingHook:
                 result = update_service.update_node_embedding(node_id)
                 if result.get("updated"):
                     updated_count += 1
-                    print(
-                        f"   📝 Updated embedding for {node_id} (change ratio: {result.get('change_ratio', 0):.2f})"
-                    )
             except Exception as e:
                 print(f"   ❌ Failed to update embedding for {node_id}: {e}")
-
-        print(f"✅ Updated {updated_count} embeddings")
 
         # Clear the set
         self.nodes_to_check.clear()
