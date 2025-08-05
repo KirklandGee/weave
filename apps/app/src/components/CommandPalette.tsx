@@ -108,7 +108,7 @@ export function CommandPalette({
     }, 150);
 
     return () => clearTimeout(timeoutId);
-  }, [query, searchNotes]);
+  }, [query, handleSearch]);
 
   // Filter commands based on query
   const filteredCommands = useMemo(() => {
@@ -168,7 +168,7 @@ export function CommandPalette({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, allResults, selectedIndex]);
+  }, [isOpen, allResults, selectedIndex, executeSelected, onClose]);
 
   const executeSelected = () => {
     if (allResults.length === 0) return;

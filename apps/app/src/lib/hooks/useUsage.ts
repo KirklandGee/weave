@@ -94,7 +94,7 @@ export function useUsage() {
     if (user?.id) {
       fetchUsageSummary()
     }
-  }, [user?.id])
+  }, [user?.id, fetchUsageSummary])
 
   return {
     summary,

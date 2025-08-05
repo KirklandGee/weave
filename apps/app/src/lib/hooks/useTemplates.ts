@@ -41,7 +41,7 @@ export function useTemplates() {
     return () => {
       mounted = false;
     };
-  }, []); // Empty dependency array - run only once
+  }, [authFetch]); // Include authFetch dependency
 
   return {
     templates,

@@ -87,7 +87,7 @@ export function useTemplateGeneration(campaignSlug: string) {
       // Update the note in the database
       await db.nodes.put(updatedNote);
       
-      (`Template generation completed for note ${noteId}`);
+      console.log(`Template generation completed for note ${noteId}`);
     } catch (error) {
       console.error(`Error updating note ${noteId} on completion:`, error);
     }
@@ -243,10 +243,11 @@ export function useTemplateGeneration(campaignSlug: string) {
 
     // Cleanup on unmount
     return () => {
-      pollingIntervalsRef.current.forEach((intervalId) => {
+      const intervals = pollingIntervalsRef.current;
+      intervals.forEach((intervalId) => {
         clearInterval(intervalId);
       });
-      pollingIntervalsRef.current.clear();
+      intervals.clear();
     };
   }, [campaignSlug, startPollingForGeneratingNotes]);
 
