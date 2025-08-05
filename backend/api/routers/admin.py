@@ -391,6 +391,75 @@ async def get_embedding_system_status(
         raise HTTPException(status_code=500, detail=f"Failed to get embedding system status: {str(e)}")
 
 
+@router.post("/embeddings/setup")
+async def setup_embeddings(
+    current_user: str = Depends(get_current_user)
+):
+    """Set up vector indexes and generate initial embeddings."""
+    try:
+        from backend.services.neo4j.setup_embeddings import create_vector_index, check_vector_index
+        from backend.services.embeddings.service import get_embedding_service
+        from backend.services.neo4j import query
+        import hashlib
+        
+        # Create vector indexes
+        create_vector_index()
+        
+        # Check index status
+        indexes = check_vector_index()
+        
+        # Generate embeddings for nodes that don't have them
+        nodes_query = """
+        MATCH (n)
+        WHERE n.title IS NOT NULL 
+        AND n.embedding IS NULL
+        AND (n:Campaign OR n:Session OR n:NPC OR n:Character OR n:Location OR n:Note)
+        RETURN n.id AS id, n.title AS title, n.markdown AS markdown, labels(n)[0] AS type
+        ORDER BY n.createdAt DESC
+        LIMIT 100
+        """
+        
+        nodes = query(nodes_query)
+        
+        if nodes:
+            embedding_service = get_embedding_service()
+            success_count = 0
+            
+            for node in nodes:
+                try:
+                    text_to_embed = f"{node['title']}\n{node['markdown'] or ''}"
+                    embedding = embedding_service.generate_embedding(text_to_embed)
+                    content_hash = hashlib.md5(text_to_embed.encode()).hexdigest()
+                    
+                    update_query = """
+                    MATCH (n {id: $node_id})
+                    SET n.embedding = $embedding, 
+                        n.embeddedAt = timestamp(),
+                        n.contentHash = $content_hash
+                    """
+                    query(update_query, node_id=node["id"], embedding=embedding, content_hash=content_hash)
+                    success_count += 1
+                except Exception as e:
+                    continue
+            
+            return {
+                "message": "Embedding setup complete",
+                "indexes_created": len(indexes),
+                "nodes_embedded": success_count,
+                "total_nodes_found": len(nodes)
+            }
+        else:
+            return {
+                "message": "Vector indexes created, no nodes need embedding",
+                "indexes_created": len(indexes),
+                "nodes_embedded": 0,
+                "total_nodes_found": 0
+            }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to setup embeddings: {str(e)}")
+
+
 @router.post("/embeddings/campaign/{campaign_id}")
 async def process_campaign_embeddings(
     campaign_id: str,

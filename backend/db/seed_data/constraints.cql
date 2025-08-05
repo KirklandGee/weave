@@ -34,12 +34,8 @@ CREATE INDEX title_loc_idx      IF NOT EXISTS FOR (n:Location)  ON (n.title);
 CREATE INDEX title_note_idx     IF NOT EXISTS FOR (n:Note)      ON (n.title);
 
 
-CREATE INDEX md_campaign_idx    IF NOT EXISTS FOR (n:Campaign)  ON (n.markdown);
-CREATE INDEX md_session_idx     IF NOT EXISTS FOR (n:Session)   ON (n.markdown);
-CREATE INDEX md_npc_idx         IF NOT EXISTS FOR (n:NPC)       ON (n.markdown);
-CREATE INDEX md_char_idx        IF NOT EXISTS FOR (n:Character) ON (n.markdown);
-CREATE INDEX md_loc_idx         IF NOT EXISTS FOR (n:Location)  ON (n.markdown);
-CREATE INDEX md_note_idx        IF NOT EXISTS FOR (n:Note)      ON (n.markdown);
+// Removed range indexes on markdown fields - they're covered by fulltext index below
+// and cause "Property value is too large to index" errors for large markdown content
 
 CREATE INDEX node_owner_idx     IF NOT EXISTS FOR (n:Campaign) ON (n.ownerId);
 CREATE INDEX node_owner_idx     IF NOT EXISTS FOR (n:Session) ON (n.ownerId);
