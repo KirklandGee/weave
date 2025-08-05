@@ -8,6 +8,7 @@ import {   SignInButton,
   SignedOut,
   UserButton,
 } from '@clerk/nextjs'
+import Image from 'next/image'
 import { CommandPalette, useCommandPalette } from './CommandPalette'
 import CampaignSelector from './CampaignSelector'
 import UsageModal from './UsageModal'
@@ -31,8 +32,15 @@ export default function Nav({
   return (
     <>
       <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900 backdrop-blur-sm relative z-50">
-        {/* Campaign Selector */}
-        <div className="flex items-center">
+        {/* Logo and Campaign Selector */}
+        <div className="flex items-center gap-3">
+          <Image
+            src="/weave-logo.png"
+            alt="Weave AI Logo"
+            width={32}
+            height={32}
+            className="flex-shrink-0"
+          />
           <div className="inline-flex min-w-0 w-auto">
             <CampaignSelector />
           </div>

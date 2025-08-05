@@ -51,7 +51,7 @@ export default function CampaignSelector({ className = '' }: CampaignSelectorPro
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          flex items-center w-auto min-w-[8rem] max-w-[28rem] 
+          flex items-center w-auto min-w-[16rem] max-w-[28rem] 
           bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2 
           hover:border-zinc-600 hover:bg-zinc-800 transition-colors text-left min-h-[2.5rem] h-10
         `}
