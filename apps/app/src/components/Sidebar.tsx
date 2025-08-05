@@ -51,8 +51,16 @@ export default function Sidebar({
   }
 
   // Group nodes by section and apply custom ordering or sort alphabetically
+  // Track used node IDs to prevent duplicates across sections
+  const usedNodeIds = new Set<string>()
   const grouped = Object.entries(sections).reduce((acc, [sectionName, section]) => {
-    const sectionNodes = nodes.filter(n => section.types.includes(n.type))
+    const sectionNodes = nodes.filter(n => {
+      if (!n || !n.id || usedNodeIds.has(n.id) || !section.types.includes(n.type)) {
+        return false
+      }
+      usedNodeIds.add(n.id)
+      return true
+    })
     
     // Apply custom ordering if it exists for this section
     if (customOrdering[sectionName]) {
@@ -290,7 +298,7 @@ export default function Sidebar({
                 }}
               >
                 <ul className="ml-5 space-y-1 py-1">
-                  {list.map(n => (
+                  {list.filter(n => n && n.id).map(n => (
                     <li key={n.id} className="relative">
                       {/* ---------- normal / rename view ---------- */}
                       {renaming === n.id ? (
@@ -390,10 +398,13 @@ export default function Sidebar({
               </div>
               
               {/* Show active note when category is collapsed */}
-              {!isOpen && list.some(n => n.id === activeId) && (
+              {!isOpen && activeId && list.length > 0 && list.find(n => n.id === activeId) && (
                 <div className="ml-5 space-y-1 py-1">
-                  {list.filter(n => n.id === activeId).map(n => (
-                    <div key={`collapsed-${n.id}`} className="relative">
+                  {(() => {
+                    const activeNote = list.find(n => n.id === activeId)
+                    return activeNote ? [activeNote] : []
+                  })().map(n => (
+                    <div key={`collapsed-active-${n.id}`} className="relative">
                       {renaming === n.id ? (
                         <input
                           aria-label='Rename note'
