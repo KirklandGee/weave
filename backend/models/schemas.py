@@ -73,6 +73,7 @@ class BatchEmbeddingResult(BaseModel):
     updated: int
     skipped: int
     errors: list[str] = []
+    task_id: str | None = None
 
 
 # Template system models

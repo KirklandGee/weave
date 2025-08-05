@@ -271,7 +271,6 @@ export default function Home() {
   const handleAction = (action: string) => {
     switch (action) {
       case 'quick-actions':
-        console.log('Opening quick actions')
         break
       case 'toggle-sidebar':
         setShowSidebar(prev => !prev)

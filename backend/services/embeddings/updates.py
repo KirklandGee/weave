@@ -2,8 +2,12 @@
 
 import hashlib
 from typing import Any
-from backend.services.neo4j import query
-from backend.services.embeddings.service import get_embedding_service
+try:
+    from backend.services.neo4j import query
+    from backend.services.embeddings.service import get_embedding_service
+except ImportError:
+    from services.neo4j import query
+    from services.embeddings.service import get_embedding_service
 
 
 class EmbeddingUpdateService:

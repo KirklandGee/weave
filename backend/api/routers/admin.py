@@ -4,8 +4,11 @@ from backend.models.schemas import (
     UsageSummary,
     SetUsageLimitRequest,
     UsageHistoryRequest,
+    BatchEmbeddingResult,
 )
 from backend.api.auth import get_current_user
+from backend.services.queue_service import get_task_queue, get_queue_stats
+from backend.services.sync_hooks import get_sync_embedding_hook
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
@@ -266,3 +269,153 @@ async def get_all_user_limits(current_user: str = Depends(get_current_user)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ───────────────────────────────────── EMBEDDING ADMIN ENDPOINTS ──
+@router.post("/embeddings/missing", response_model=BatchEmbeddingResult)
+async def process_missing_embeddings(
+    campaign_id: Optional[str] = Query(None, description="Campaign ID to process, or null for global"),
+    limit: int = Query(50, description="Maximum number of nodes to process"),
+    current_user: str = Depends(get_current_user)
+):
+    """Find and process nodes that don't have embeddings."""
+    try:
+        from backend.services.embeddings.tasks import find_and_process_missing_embeddings
+        
+        # Queue the missing embeddings task
+        queue = get_task_queue("priority")  # Use priority queue for admin tasks
+        
+        task = queue.enqueue(
+            find_and_process_missing_embeddings,
+            campaign_id=campaign_id,
+            limit=limit,
+            job_timeout='15m'  # Allow longer timeout for admin tasks
+        )
+        
+        return BatchEmbeddingResult(
+            message=f"Queued task to find and process up to {limit} missing embeddings",
+            processed=0,  # Will be updated when task completes
+            updated=0,
+            skipped=0,
+            errors=[],
+            task_id=task.id
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to queue missing embeddings task: {str(e)}")
+
+
+@router.post("/embeddings/sync-pending")
+async def force_process_sync_pending(
+    current_user: str = Depends(get_current_user)
+):
+    """Force process any pending embedding updates from sync operations."""
+    try:
+        hook = get_sync_embedding_hook()
+        result = hook.force_check_all_pending()
+        
+        return {
+            "message": result["message"],
+            "updated": result.get("updated", 0),
+            "errors": result.get("errors", []),
+            "task_id": result.get("task_id"),
+            "queued": result.get("queued", 0)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process pending embeddings: {str(e)}")
+
+
+@router.get("/embeddings/status")
+async def get_embedding_system_status(
+    current_user: str = Depends(get_current_user)
+):
+    """Get status of the embedding system including queue stats."""
+    try:
+        from backend.services.neo4j import query
+        import os
+        
+        # Get overall embedding statistics
+        stats_query = """
+        MATCH (n)
+        WHERE (n:Campaign OR n:Session OR n:NPC OR n:Character OR n:Location OR n:Note)
+        AND n.title IS NOT NULL
+        RETURN 
+            count(n) as total_nodes,
+            count(n.embedding) as embedded_nodes,
+            count(CASE WHEN n.embedding IS NULL OR size(n.embedding) = 0 THEN 1 END) as missing_embeddings,
+            count(CASE WHEN n.updatedAt > coalesce(n.embeddedAt, datetime('1970-01-01')) THEN 1 END) as stale_embeddings
+        """
+        
+        result = query(stats_query)
+        stats = result[0] if result else {
+            "total_nodes": 0,
+            "embedded_nodes": 0, 
+            "missing_embeddings": 0,
+            "stale_embeddings": 0
+        }
+        
+        # Get queue statistics
+        queue_stats = {
+            "default": get_queue_stats("default"),
+            "priority": get_queue_stats("priority"),
+            "long_running": get_queue_stats("long_running")
+        }
+        
+        # Get sync hook status
+        hook = get_sync_embedding_hook()
+        
+        return {
+            "embedding_stats": {
+                "total_nodes": stats["total_nodes"],
+                "embedded_nodes": stats["embedded_nodes"],
+                "missing_embeddings": stats["missing_embeddings"],
+                "stale_embeddings": stats["stale_embeddings"],
+                "embedding_coverage": stats["embedded_nodes"] / max(stats["total_nodes"], 1)
+            },
+            "sync_hook": {
+                "background_enabled": hook.use_background_queue,
+                "sync_threshold": hook.sync_count_threshold,
+                "current_sync_count": hook.sync_count,
+                "pending_nodes": len(hook.nodes_to_check)
+            },
+            "queue_stats": queue_stats,
+            "configuration": {
+                "background_enabled": os.getenv("EMBEDDING_BACKGROUND_ENABLED", "true"),
+                "sync_threshold": os.getenv("SYNC_EMBEDDING_THRESHOLD", "5"),
+                "embedding_model": os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get embedding system status: {str(e)}")
+
+
+@router.post("/embeddings/campaign/{campaign_id}")
+async def process_campaign_embeddings(
+    campaign_id: str,
+    force: bool = Query(False, description="Force re-embedding of all nodes"),
+    current_user: str = Depends(get_current_user)
+):
+    """Process embeddings for all nodes in a campaign."""
+    try:
+        from backend.services.embeddings.tasks import process_campaign_embeddings
+        
+        # Queue the campaign embeddings task
+        queue = get_task_queue("long_running")  # Use long-running queue for campaign-wide tasks
+        
+        task = queue.enqueue(
+            process_campaign_embeddings,
+            campaign_id=campaign_id,
+            force=force,
+            job_timeout='30m'  # Allow longer timeout for campaign-wide processing
+        )
+        
+        return {
+            "message": f"Queued task to process embeddings for campaign {campaign_id}",
+            "task_id": task.id,
+            "force": force
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to queue campaign embeddings task: {str(e)}")
