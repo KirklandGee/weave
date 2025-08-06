@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from backend.services.usage_service import UsageService
 from backend.models.schemas import (
     UsageSummary,
@@ -7,6 +7,7 @@ from backend.models.schemas import (
     BatchEmbeddingResult,
 )
 from backend.api.auth import get_current_user
+from backend.api.admin_auth import get_admin_api_key_from_header
 from backend.services.queue_service import get_task_queue, get_queue_stats
 from backend.services.sync_hooks import get_sync_embedding_hook
 from typing import List, Optional
@@ -392,7 +393,8 @@ async def get_embedding_system_status(
 
 @router.post("/embeddings/setup")
 async def setup_embeddings(
-    current_user: str = Depends(get_current_user)
+    request: Request,
+    api_key: str = Depends(get_admin_api_key_from_header)
 ):
     """Set up vector indexes and generate initial embeddings."""
     try:
