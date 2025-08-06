@@ -36,7 +36,7 @@ export function useUsage() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchUsageSummary = useCallback(async () => {
-    if (!user?.id) return
+    if (!user?.id || !authFetch) return
 
     try {
       setLoading(true)

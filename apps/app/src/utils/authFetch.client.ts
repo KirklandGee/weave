@@ -1,10 +1,11 @@
 'use client'
 import { useAuth } from '@clerk/nextjs';
+import { useCallback } from 'react';
 
 export function useAuthFetch() {
   const { getToken } = useAuth();
   
-  return async (url: string, options: RequestInit = {}) => {
+  return useCallback(async (url: string, options: RequestInit = {}) => {
     const token = await getToken();
     
     return fetch(url, {
@@ -15,5 +16,5 @@ export function useAuthFetch() {
         ...options.headers,
       },
     });
-  };
+  }, [getToken]);
 }
