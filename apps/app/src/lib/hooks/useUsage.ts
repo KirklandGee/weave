@@ -18,7 +18,6 @@ export interface UsageEvent {
   input_tokens: number
   output_tokens: number
   cost: string | number
-  campaign_id: string | null
 }
 
 export interface UsageHistory {

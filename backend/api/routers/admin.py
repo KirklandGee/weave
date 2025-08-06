@@ -66,7 +66,7 @@ async def get_user_usage_history(
         cypher += """
             RETURN u.timestamp as timestamp, u.model as model, 
                    u.input_tokens as input_tokens, u.output_tokens as output_tokens,
-                   u.cost as cost, u.campaign_id as campaign_id
+                   u.cost as cost
             ORDER BY u.timestamp DESC
             LIMIT $limit
         """
@@ -94,7 +94,6 @@ async def get_user_usage_history(
                     "input_tokens": record["input_tokens"],
                     "output_tokens": record["output_tokens"],
                     "cost": float(record["cost"]),
-                    "campaign_id": record["campaign_id"],
                 }
             )
 
