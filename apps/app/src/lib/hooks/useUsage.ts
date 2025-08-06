@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { authFetch } from '@/utils/authFetch.server'
+import { useAuthFetch } from '@/utils/authFetch.client'
 
 export interface UsageSummary {
   user_id: string
@@ -29,6 +29,7 @@ export interface UsageHistory {
 
 export function useUsage() {
   const { user } = useUser()
+  const authFetch = useAuthFetch()
   const [summary, setSummary] = useState<UsageSummary | null>(null)
   const [history, setHistory] = useState<UsageHistory | null>(null)
   const [loading, setLoading] = useState(false)
@@ -41,11 +42,7 @@ export function useUsage() {
       setLoading(true)
       setError(null)
       
-      const response = await authFetch(`/api/admin/users/${user.id}/usage`, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await authFetch(`/api/admin/users/${user.id}/usage`)
 
       if (!response.ok) {
         throw new Error(`Failed to fetch usage summary: ${response.statusText}`)
@@ -58,7 +55,7 @@ export function useUsage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user?.id, authFetch])
 
   const fetchUsageHistory = async (limit = 50) => {
     if (!user?.id) return
@@ -67,11 +64,7 @@ export function useUsage() {
       setLoading(true)
       setError(null)
       
-      const response = await authFetch(`/api/admin/users/${user.id}/usage/history?limit=${limit}`, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await authFetch(`/api/admin/users/${user.id}/usage/history?limit=${limit}`)
 
       if (!response.ok) {
         throw new Error(`Failed to fetch usage history: ${response.statusText}`)
