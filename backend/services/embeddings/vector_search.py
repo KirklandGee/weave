@@ -109,7 +109,7 @@ class VectorSearchService:
         """Search campaign embeddings."""
         search_query = """
         MATCH (u:User {id: $uid})
-        CALL db.index.vector.queryNodes('campaignEmbeddings', $limit, $embedding)
+        CALL db.index.vector.queryNodes('campaign_embedding_vec_idx', $limit, $embedding)
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
@@ -149,7 +149,7 @@ class VectorSearchService:
         """Search character embeddings."""
         search_query = """
         MATCH (u:User {id: $uid})
-        CALL db.index.vector.queryNodes('characterEmbeddings', $limit, $embedding)
+        CALL db.index.vector.queryNodes('character_embedding_vec_idx', $limit, $embedding)
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
@@ -194,7 +194,7 @@ class VectorSearchService:
         """Search location embeddings."""
         search_query = """
         MATCH (u:User {id: $uid})
-        CALL db.index.vector.queryNodes('locationEmbeddings', $limit, $embedding)
+        CALL db.index.vector.queryNodes('location_embedding_vec_idx', $limit, $embedding)
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
@@ -239,7 +239,7 @@ class VectorSearchService:
         """Search note embeddings."""
         search_query = """
         MATCH (u:User {id: $uid})
-        CALL db.index.vector.queryNodes('noteEmbeddings', $limit, $embedding)
+        CALL db.index.vector.queryNodes('note_embedding_vec_idx', $limit, $embedding)
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
@@ -284,7 +284,7 @@ class VectorSearchService:
         """Search NPC embeddings."""
         search_query = """
         MATCH (u:User {id: $uid})
-        CALL db.index.vector.queryNodes('npcEmbeddings', $limit, $embedding)
+        CALL db.index.vector.queryNodes('npc_embedding_vec_idx', $limit, $embedding)
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
@@ -329,7 +329,7 @@ class VectorSearchService:
         """Search session embeddings."""
         search_query = """
         MATCH (u:User {id: $uid})
-        CALL db.index.vector.queryNodes('sessionEmbeddings', $limit, $embedding)
+        CALL db.index.vector.queryNodes('session_embedding_vec_idx', $limit, $embedding)
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
