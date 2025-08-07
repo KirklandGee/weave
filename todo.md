@@ -4,9 +4,16 @@
 - Part 1: https://www.loom.com/share/6967d18257934535b24f033c60861014
 - Part 2: https://www.loom.com/share/dbf454b856174b08a2d4097c321430fb
 
+## Top Priority
+- [ ] Build basic agent framework for creating notes, updating notes, adding and removing relationships, etc.
+  - This can all just work in Dexie, no need to work directly with Neo4J. We can just use structured inputs/outputs for this and Langchain for prompt templating and tools
+- [ ] Integrate Stripe for payments with Clerk
+  - [ ] Gate LLM access behind payments
+  - [ ] Add some kind of payment tracking to the user nodes in some way
+
 
 ## BUGS
-
+- [ ] For markdown imports, handle Obsidian internal links. So if it is [[word]] without any link after, just remove that. And a bunch of other formatting stuff
 
 ## TODO
 
@@ -20,21 +27,24 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 **LLMS**
 - [ ] Build endpoint to summarize the contents of a given note, including it's relationships (if relevant). 
   - Will be a pretty basic endpoint, but needs a solid prompt chain/template behing the scenes
+- [ ] For all calls, get actual relationships, but if none are found, get the top 3 most-similar notes. 
+  - Need to prompt this in particular to say there's no direct relationship, but it could be relevant
 
 **Prompt Templates**
 - [ ] Create a new NPC based on all Lore documents in your workspace
 - [ ] Generate a new location (Realm, Region, Town, etc.) based on the existing locations, and some general instructions
 - [ ] Generate a special item uniquely for a character or a location (based on a note and it's relationships)
 - [ ] Generate session ideas based on all previous sessions and what could potentially come next (Think about all characters in the campaign, all sessions, )
-- [ ]
 
 **API**
 - [ ] Build a `/summarize` endpoint to auto-compress old chat history
 - [ ] Add simple concurrency metrics (thread-pool utilization) and tune thread-pool size  
-- [ ] Dedupe relationships in DB
 
 ### Frontend
-- [ ] Add “summarize history” trigger to collapse older messages into a summary  
+- [ ] Add “summarize history” trigger to collapse older messages into a summary 
+- [ ] Cache the related suggestions in Redis, probably? TTL of a day, I think. Check that first, THEN run the embeddings check. And also show a small loading skeleton/indicator, and "none found" if it doesn't find any. 
+- [ ] Add the ability to make folders/organize your notes however you want, with some default folders for "Characters" "Locations" and "Lore" or something
+- [ ] Rethink note and relationship types—do we need to change those? 
 
 ### Infrastructure & Observability
 - [ ] Add request-scoped logging middleware (timings, errors, token counts)  
@@ -47,6 +57,7 @@ For now, I started building out some models and endpoints for basic CRUD of thes
 
 ### Marketing Site
 - [ ] Add simplified version of app that users can demo to see how adding relationships works, how the markdown editor feels.
+- [ ] Make this simpler
 
 ### DONE
 - [x] Authentication

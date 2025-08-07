@@ -32,10 +32,19 @@ export async function pushPull(
     return
   }
 
-  // Check if already syncing
+  // Check if already syncing (with timeout to prevent deadlock)
   const currentSyncState = await getSyncState(campaignSlug)
   if (currentSyncState === 'syncing') {
-    return
+    // Check if sync has been stuck for too long (more than 10 seconds)
+    const db = getDb(campaignSlug)
+    const syncStateMeta = await db.metadata.get('syncState')
+    const stuckTime = syncStateMeta ? Date.now() - syncStateMeta.updatedAt : 0
+    
+    if (stuckTime > 10000) {
+      await setSyncState(campaignSlug, 'idle')
+    } else {
+      return
+    }
   }
 
   try {

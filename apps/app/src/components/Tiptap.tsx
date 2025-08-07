@@ -241,11 +241,23 @@ export default function Tiptap({
   const typingTimer = useRef<NodeJS.Timeout | null>(null)
   const lastContent = useRef<string>('')
 
+  // Track if this component instance is still active
+  const isActiveRef = useRef(true)
+  
   // create a fresh debouncer every time the callback changes (i.e. node switch)
-  const debouncedSave = useMemo(
-    () => debounce((html: string) => onContentChange(htmlToMd(html)), 400),
-    [onContentChange],
-  )
+  const debouncedSave = useMemo(() => {
+    isActiveRef.current = true // Mark this instance as active
+    const currentContent = content // Capture current content when debouncer is created
+    
+    return debounce((html: string) => {
+      
+      // Only save if content hasn't changed since debouncer was created (indicating same node)
+      // Allow saves even if isActive is false, as long as we're still on the same content/node
+      if (content === currentContent) {
+        onContentChange(htmlToMd(html))
+      } 
+    }, 400)
+  }, [onContentChange, content])
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -286,13 +298,15 @@ export default function Tiptap({
   useEffect(() => {
     if (!editor) return
     
-    // Don't update if user is actively typing
-    if (isTyping.current) {
-      return
-    }
-    
     // Only update if content actually changed and is different from last known content
     if (content !== lastContent.current && content !== editor.getHTML()) {
+      // Clear typing state when switching notes to prevent stale saves
+      isTyping.current = false
+      if (typingTimer.current) {
+        clearTimeout(typingTimer.current)
+        typingTimer.current = null
+      }
+      
       // Save cursor position before updating
       const { from, to } = editor.state.selection
       const isFocused = editor.isFocused
@@ -322,6 +336,7 @@ export default function Tiptap({
     if (!editor) return
 
     return () => {
+      isActiveRef.current = false         // Mark this instance as inactive
       debouncedSave.cancel()              // kill any pending save
       if (typingTimer.current) {
         clearTimeout(typingTimer.current)

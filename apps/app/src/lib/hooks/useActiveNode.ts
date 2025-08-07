@@ -18,8 +18,15 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
   // Convert markdown → html for the editor
   const htmlContent = node ? mdToHtml(node.markdown ?? '') : ''
   const title = node?.title ?? 'Untitled'
+  
 
   const updateMarkdown = useCallback(async (md: string) => {
+    // Defensive check: ensure we have a valid nodeId before attempting to update
+    if (!nodeId || !campaign) {
+      console.warn('updateMarkdown called without valid nodeId or campaign')
+      return
+    }
+    
     const ts = Date.now()
 
     await db.transaction('rw', db.nodes, db.changes, async () => {
