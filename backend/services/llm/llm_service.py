@@ -14,23 +14,26 @@ from typing import Optional
 # Alternative: Always ensure there's a system message
 def to_langchain_messages(messages, context=""):
     langchain_messages = []
-    has_system = any(msg.role == "system" for msg in messages)
-
-    if context and not has_system:
-        # Add a system message with just the context
-        langchain_messages.append(
-            SystemMessage(content=f"Additional Context:\n{context}")
-        )
-
+    
+    # STATIC CONTENT FIRST (cacheable)
+    # Add system messages without context injection to maximize caching
     for msg in messages:
-        if msg.role == "system" and context:
-            enhanced_content = f"{msg.content}\n\nAdditional Context:\n{context}"
-            langchain_messages.append(SystemMessage(content=enhanced_content))
-        else:
+        if msg.role == "system":
+            langchain_messages.append(SystemMessage(content=msg.content))
+    
+    # Add context as separate system message if provided
+    # This keeps static system prompts cacheable while adding dynamic context
+    if context:
+        langchain_messages.append(SystemMessage(content=f"Additional Context:\n{context}"))
+    
+    # DYNAMIC CONTENT LAST
+    # Add non-system messages at the end
+    for msg in messages:
+        if msg.role != "system":
             langchain_messages.append(
                 ROLE_MAP.get(msg.role, HumanMessage)(content=msg.content)
             )
-
+    
     return langchain_messages
 
 
