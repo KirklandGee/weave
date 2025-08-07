@@ -14,11 +14,12 @@ export type ChatRequest = {
 }
 
 export type LLMChatEmbeddedProps = {
-  className?: string;
   title?: string;
   placeholder?: string;
   campaign: string;
   activeNodeId: string;
   isOpen?: boolean;
   onToggle?: () => void;
+  onClose?: () => void;
 }
+

@@ -6,8 +6,8 @@ import { useActiveNode } from '@/lib/hooks/useActiveNode'
 import { createNodeOps } from '@/lib/hooks/useNodeOps'
 import { useCampaign } from '@/contexts/AppContext'
 import { useTemplateGeneration } from '@/lib/hooks/useTemplateGeneration'
-import Sidebar from '@/components/Sidebar'
-import Inspector from '@/components/Inspector'
+import LeftSidebar from '@/components/LeftSidebar'
+import RightSidebar from '@/components/RightSidebar'
 import Nav from '@/components/Nav'
 import Tiptap from '@/components/Tiptap'
 import DocumentHeader from '@/components/DocumentHeader'
@@ -17,7 +17,6 @@ import EmptyCampaignsState from '@/components/EmptyCampaignsState'
 import { nanoid } from 'nanoid'
 import { Note } from '@/types/node'
 import { USER_ID } from '@/lib/constants'
-import LLMChatEmbedded from '@/components/LLMChatEmbedded'
 import { Allotment } from "allotment"
 import "allotment/dist/style.css"
 import { updateLastActivity } from '@/lib/utils/activityTracker'
@@ -66,22 +65,7 @@ export default function Home() {
     }
   }, [nodes, activeId])
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey && e.shiftKey && e.key === 'n') {
-        e.preventDefault()
-        setIsAddModalOpen(true)
-      }
-      if (e.metaKey && e.key === "[") {
-        e.preventDefault()
-        setShowAiAssistant(prev => !prev)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  // Keyboard shortcuts will be set up after state declarations
 
   /* 3. typing state tracking */
   const [isTyping, setIsTyping] = useState(false)
@@ -272,14 +256,19 @@ export default function Home() {
     switch (action) {
       case 'quick-actions':
         break
-      case 'toggle-sidebar':
-        setShowSidebar(prev => !prev)
+      case 'toggle-left-sidebar':
+        setShowLeftSidebar(prev => !prev)
         break
-      case 'toggle-inspector':
-        setShowInspector(prev => !prev)
+      case 'toggle-right-sidebar':
+        setShowRightSidebar(prev => !prev)
         break
       case 'toggle-ai-assistant':
-        setShowAiAssistant(prev => !prev)
+        if (rightSidebarMode === 'ai-chat' && showRightSidebar) {
+          setRightSidebarMode('relationships')
+        } else {
+          setShowRightSidebar(true)
+          setRightSidebarMode('ai-chat')
+        }
         break
       case 'add-note':
         setIsAddModalOpen(true)
@@ -324,9 +313,9 @@ export default function Home() {
     )
   }
 
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [showInspector, setShowInspector] = useState(true);
-  const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
+  const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [rightSidebarMode, setRightSidebarMode] = useState<'relationships' | 'ai-chat'>('relationships');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   
@@ -358,6 +347,28 @@ export default function Home() {
     localStorage.setItem(`sidebar-ordering-${currentCampaign.slug}`, JSON.stringify(newOrdering));
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.shiftKey && e.key === 'n') {
+        e.preventDefault()
+        setIsAddModalOpen(true)
+      }
+      if (e.metaKey && e.key === "[") {
+        e.preventDefault()
+        if (rightSidebarMode === 'ai-chat' && showRightSidebar) {
+          setRightSidebarMode('relationships')
+        } else {
+          setShowRightSidebar(true)
+          setRightSidebarMode('ai-chat')
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [rightSidebarMode, showRightSidebar]);
+
   // Handle campaigns loading state
   if (isLoading) {
     return (
@@ -376,7 +387,7 @@ export default function Home() {
           <Allotment>
             <Allotment.Pane minSize={180} maxSize={350} preferredSize={240}>
               <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
-                <Sidebar
+                <LeftSidebar
                   nodes={[]}
                   activeId=""
                   onSelect={() => {}}
@@ -433,7 +444,7 @@ export default function Home() {
           <Allotment>
             <Allotment.Pane minSize={180} maxSize={350} preferredSize={240}>
               <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
-                <Sidebar
+                <LeftSidebar
                   nodes={[]}
                   activeId=""
                   onSelect={() => {}}
@@ -476,7 +487,7 @@ export default function Home() {
           <Allotment>
             <Allotment.Pane minSize={180} maxSize={350} preferredSize={240}>
               <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
-                <Sidebar
+                <LeftSidebar
                   nodes={nodes}
                   activeId=""
                   onSelect={async (node) => {
@@ -562,14 +573,14 @@ export default function Home() {
         } as React.CSSProperties}
       >
         <Allotment>
-          <Allotment.Pane minSize={showSidebar ? 180 : 40} maxSize={showSidebar ? 350 : 40} preferredSize={showSidebar ? 240 : 40}>
+          <Allotment.Pane minSize={showLeftSidebar ? 180 : 40} maxSize={showLeftSidebar ? 350 : 40} preferredSize={showLeftSidebar ? 240 : 40}>
             <div className="bg-zinc-900 border-r border-zinc-800 h-full overflow-hidden relative">
               <div 
                 className={`absolute inset-0 transition-transform duration-300 ease-out ${
-                  showSidebar ? 'translate-x-0' : '-translate-x-full'
+                  showLeftSidebar ? 'translate-x-0' : '-translate-x-full'
                 }`}
               >
-                <Sidebar
+                <LeftSidebar
                   nodes={nodes}
                   activeId={activeId}
                   onSelect={async (node) => {
@@ -583,22 +594,29 @@ export default function Home() {
                   onRename={async (id, title) => {
                     if (nodeOps) await nodeOps.renameNode(id, title)
                   }}
-                  onHide={() => setShowSidebar(false)}
-                  onToggleAiAssistant={() => setShowAiAssistant(prev => !prev)}
+                  onHide={() => setShowLeftSidebar(false)}
+                  onToggleAiAssistant={() => {
+                    if (rightSidebarMode === 'ai-chat' && showRightSidebar) {
+                      setRightSidebarMode('relationships')
+                    } else {
+                      setShowRightSidebar(true)
+                      setRightSidebarMode('ai-chat')
+                    }
+                  }}
                   onReorder={handleReorder}
                   customOrdering={customOrdering}
                 />
               </div>
               <div 
                 className={`absolute inset-0 transition-transform duration-300 ease-out ${
-                  showSidebar ? 'translate-x-full' : 'translate-x-0'
+                  showLeftSidebar ? 'translate-x-full' : 'translate-x-0'
                 }`}
               >
                 <div className="h-full flex flex-col items-center py-3 w-10">
                   <button
-                    onClick={() => setShowSidebar(true)}
+                    onClick={() => setShowLeftSidebar(true)}
                     className="flex items-center justify-center w-8 h-8 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-md transition-colors duration-200 mb-4"
-                    title="Show sidebar"
+                    title="Show left sidebar"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -637,45 +655,51 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <LLMChatEmbedded
-                    campaign={currentCampaign.slug}
-                    activeNodeId={activeId}
-                    isOpen={showAiAssistant}
-                    onToggle={() => setShowAiAssistant(prev => !prev)}
-                  />
-                  
-                  
-                  {/* Inspector Toggle */}
-                  {!showInspector && (
-                    <button
-                      onClick={() => setShowInspector(true)}
-                      className="absolute right-2 top-20 z-20 bg-zinc-800/90 backdrop-blur-sm text-zinc-300 px-2 py-1 rounded hover:bg-zinc-700 hover:text-white transition-colors"
-                      aria-label="Show inspector"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 16v-4M12 8h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </button>
-                  )}
                 </div>
               </Allotment.Pane>
               
-              {showInspector && (
-                <Allotment.Pane minSize={250} maxSize={500} preferredSize={320}>
-                  <div className="bg-zinc-900 border-l border-zinc-800 h-full overflow-hidden">
-                    <Inspector
+              <Allotment.Pane minSize={showRightSidebar ? 250 : 40} maxSize={showRightSidebar ? 500 : 40} preferredSize={showRightSidebar ? 320 : 40}>
+                <div className="bg-zinc-900 border-l border-zinc-800 h-full overflow-hidden relative">
+                  <div 
+                    className={`absolute inset-0 transition-transform duration-300 ease-out ${
+                      showRightSidebar ? 'translate-x-0' : 'translate-x-full'
+                    }`}
+                  >
+                    <RightSidebar
                       node={node}
+                      campaign={currentCampaign.slug}
+                      activeNodeId={activeId}
+                      initialMode={rightSidebarMode}
+                      onModeChange={(mode) => setRightSidebarMode(mode)}
                       onNavigateToNote={async (noteId) => {
                         setActiveId(noteId);
                         if (currentCampaign?.slug) {
                           await updateLastActivity(currentCampaign.slug)
                         }
                       }}
-                      onHide={() => setShowInspector(false)}
+                      onHide={() => setShowRightSidebar(false)}
                     />
                   </div>
-                </Allotment.Pane>
-              )}
+                  <div 
+                    className={`absolute inset-0 transition-transform duration-300 ease-out ${
+                      showRightSidebar ? 'translate-x-full' : 'translate-x-0'
+                    }`}
+                  >
+                    <div className="h-full flex flex-col items-center py-3 w-10">
+                      <button
+                        onClick={() => setShowRightSidebar(true)}
+                        className="flex items-center justify-center w-8 h-8 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-md transition-colors duration-200 mb-4"
+                        title="Show right sidebar"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      <div className="flex-1 w-px bg-zinc-800"></div>
+                    </div>
+                  </div>
+                </div>
+              </Allotment.Pane>
             </Allotment>
           </Allotment.Pane>
         </Allotment>

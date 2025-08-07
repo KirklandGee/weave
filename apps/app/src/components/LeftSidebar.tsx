@@ -6,7 +6,7 @@ import React from 'react'
 import { AddNoteModal } from './AddNoteModal'
 import { Skeleton } from './ui/Skeleton'
 
-export default function Sidebar({
+export default function LeftSidebar({
   nodes,
   activeId,
   onSelect,
