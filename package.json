@@ -46,5 +46,8 @@
     "backend/**/*.py": [
       "cd backend && uv run black"
     ]
+  },
+  "dependencies": {
+    "remark-gfm": "^4.0.1"
   }
 }
