@@ -2,6 +2,14 @@ import React from 'react';
 import { LLMMessage } from '@/types/llm';
 import { Trash2, Send } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { ToolApprovalModal } from './ToolApprovalModal';
+
+interface ToolCall {
+  id: string;
+  name: string;
+  description: string;
+  args: Record<string, unknown>;
+}
 
 interface LLMChatPanelProps {
   messages: LLMMessage[];
@@ -12,6 +20,14 @@ interface LLMChatPanelProps {
   onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
   placeholder?: string;
+  // Agent mode props
+  agentMode?: boolean;
+  onAgentModeToggle?: () => void;
+  pendingTools?: ToolCall[];
+  showToolApproval?: boolean;
+  isExecutingTools?: boolean;
+  onToolApproval?: (approvedTools: ToolCall[]) => void;
+  onToolDecline?: () => void;
 }
 
 export default function LLMChatPanel({
@@ -22,7 +38,15 @@ export default function LLMChatPanel({
   messagesEndRef,
   onSubmit,
   onClear,
-  placeholder = 'Ask me anything...'
+  placeholder = 'Ask me anything...',
+  // Agent mode props with defaults
+  agentMode = false,
+  onAgentModeToggle = () => {},
+  pendingTools = [],
+  showToolApproval = false,
+  isExecutingTools = false,
+  onToolApproval = () => {},
+  onToolDecline = () => {}
 }: LLMChatPanelProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -36,13 +60,28 @@ export default function LLMChatPanel({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 flex-shrink-0">
         <h4 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">AI Assistant</h4>
-        <button 
-          onClick={onClear}
-          className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
-          title="Clear Chat History"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Agent Mode Toggle */}
+          <button 
+            onClick={onAgentModeToggle}
+            className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+              agentMode 
+                ? 'text-green-400 bg-green-900/20' 
+                : 'text-zinc-400 hover:text-green-400 hover:bg-green-900/20'
+            }`}
+            title={`Agent Mode: ${agentMode ? 'ON' : 'OFF'}`}
+          >
+            🤖
+          </button>
+          
+          <button 
+            onClick={onClear}
+            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
+            title="Clear Chat History"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -57,15 +96,17 @@ export default function LLMChatPanel({
             <div key={idx} className={`flex items-start gap-3 p-3 rounded-lg shadow-sm transition-colors ${
               msg.role === 'human' 
                 ? 'bg-amber-600/10 border border-amber-600/20 hover:bg-amber-600/15' 
+                : msg.role === 'system'
+                ? 'bg-blue-600/10 border border-blue-600/20 hover:bg-blue-600/15'
                 : 'bg-zinc-800/15 border border-zinc-800/25 hover:bg-zinc-800/20'
             }`}>
               <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium bg-zinc-700 text-zinc-300">
-                {msg.role === 'human' ? 'U' : 'A'}
+                {msg.role === 'human' ? 'U' : msg.role === 'system' ? 'S' : 'A'}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-sm font-medium text-zinc-300">
-                    {msg.role === 'human' ? 'User' : 'Assistant'}
+                    {msg.role === 'human' ? 'User' : msg.role === 'system' ? 'System' : 'Assistant'}
                   </span>
                 </div>
                 <div className="text-sm text-zinc-100 leading-relaxed">
@@ -126,6 +167,16 @@ export default function LLMChatPanel({
           </button>
         </form>
       </div>
+      
+      {/* Tool Approval Modal */}
+      {showToolApproval && (
+        <ToolApprovalModal
+          tools={pendingTools}
+          onApprove={onToolApproval}
+          onDecline={onToolDecline}
+          isExecuting={isExecutingTools}
+        />
+      )}
     </div>
   );
 }

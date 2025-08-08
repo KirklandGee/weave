@@ -46,6 +46,14 @@ export default function RightSidebar({
     messagesEndRef,
     handleSubmit,
     clearChat,
+    // Agent mode functionality
+    agentMode,
+    setAgentMode,
+    pendingTools,
+    showToolApproval,
+    isExecutingTools,
+    handleToolApproval,
+    handleToolDecline,
   } = useLLMChat(campaign, activeNodeId);
 
   if (!node) return null;
@@ -113,6 +121,14 @@ export default function RightSidebar({
             messagesEndRef={messagesEndRef}
             onSubmit={handleSubmit}
             onClear={clearChat}
+            // Agent mode props
+            agentMode={agentMode}
+            onAgentModeToggle={() => setAgentMode(!agentMode)}
+            pendingTools={pendingTools}
+            showToolApproval={showToolApproval}
+            isExecutingTools={isExecutingTools}
+            onToolApproval={handleToolApproval}
+            onToolDecline={handleToolDecline}
           />
         )}
       </div>

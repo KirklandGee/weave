@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import campaigns, notes, sync, llm, embed, search, admin
+from .routers import campaigns, notes, sync, llm, embed, search, admin, agents
 
 app = FastAPI()
 
@@ -53,6 +53,7 @@ app.include_router(llm.router)
 app.include_router(search.router)
 app.include_router(embed.router)
 app.include_router(admin.router)
+app.include_router(agents.router)
 
 
 @app.get("/")
