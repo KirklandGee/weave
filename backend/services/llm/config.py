@@ -2,8 +2,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from decimal import Decimal
 
 DEFAULT_LLM_CONFIG = {
-    "model": "gpt-5-mini",
-    "temperature": 0.7,
+    "model": "gpt-4o",
     "max_tokens": 4096,
     "streaming": True,
 }

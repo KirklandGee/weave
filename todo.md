@@ -10,6 +10,7 @@
 - [ ] Integrate Stripe for payments with Clerk
   - [ ] Gate LLM access behind payments
   - [ ] Add some kind of payment tracking to the user nodes in some way
+- [ ] Build prompt injection detection
 
 
 ## BUGS

@@ -1,5 +1,4 @@
 import os
-from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -18,13 +17,7 @@ def create_openai_provider(config):
     clean_config = {k: v for k, v in config.items() if k != 'streaming'}
     return ChatOpenAI(**clean_config)
 
-def create_ollama_provider(config):
-    # Remove streaming from config for Ollama to avoid conflicts
-    clean_config = {k: v for k, v in config.items() if k != 'streaming'}
-    return ChatOllama(base_url="http://host.docker.internal:11434", **clean_config)
-
 LLM_PROVIDERS = {
-    "llama": create_ollama_provider,
     "gpt": create_openai_provider,
     "gemini": create_gemini_provider,
 }

@@ -7,19 +7,21 @@ from backend.models.schemas import LLMMessage
 class TokenCounter:
     """Utility class for counting tokens in messages and text."""
 
-    # Model to encoding mapping
-    MODEL_ENCODINGS = {
-        "gpt-4o": "o200k_base",
-        "gpt-4o-mini": "o200k_base",
-        # For local models, we'll use a reasonable approximation
-        "llama3.1": "cl100k_base",
-        "llama3": "cl100k_base",
-    }
-
     @staticmethod
     def get_encoding_for_model(model: str) -> tiktoken.Encoding:
         """Get the appropriate encoding for a model."""
-        encoding_name = TokenCounter.MODEL_ENCODINGS.get(model, "cl100k_base")
+        model_lower = model.lower()
+        
+        # Pattern matching for model families
+        if model_lower.startswith("gpt"):
+            # All GPT models (including gpt-4o, gpt-5, etc.) use o200k_base
+            encoding_name = "o200k_base"
+        elif model_lower.startswith("gemini"):
+            # All Gemini models use o200k_base as approximation (they actually use SentencePiece)
+            encoding_name = "o200k_base"
+        else:
+            # Default to cl100k_base
+            encoding_name = "cl100k_base"
         return tiktoken.get_encoding(encoding_name)
 
     @staticmethod

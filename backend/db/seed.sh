@@ -6,7 +6,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Config -- works with both Docker and local Neo4j
 NEO4J_USER=${NEO4J_USER:-neo4j}
-NEO4J_PASS=${NEO4J_PASS:-password}
+NEO4J_PASS=${NEO4J_PASS:-secretgraph}
 NEO4J_BOLT=${NEO4J_BOLT:-bolt://localhost:7687}
 
 FILES=(
@@ -19,16 +19,17 @@ FILES=(
   seed_data/sessions.cql
   seed_data/notes.cql
   seed_data/relationships.cql
+  seed_data/users_and_relationships.cql
 )
 # ---------------------------------------------------------------------------
 
 # sanity check
-for f in $FILES; do
-  [[ -r $f ]] || { echo "❌  Missing file: $f"; exit 1 }
+for f in "${FILES[@]}"; do
+  [[ -r $f ]] || { echo "❌  Missing file: $f"; exit 1; }
 done
 
 echo "▶️  Seeding Neo4j at $NEO4J_BOLT …"
-for f in $FILES; do
+for f in "${FILES[@]}"; do
   echo "   • $f"
   # cat → stdin keeps cypher-shell quiet about prompts
   cat "$f" | cypher-shell -a "$NEO4J_BOLT" -u "$NEO4J_USER" -p "$NEO4J_PASS"

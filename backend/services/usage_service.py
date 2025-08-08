@@ -60,7 +60,6 @@ class UsageService:
                 input_tokens: $input_tokens,
                 output_tokens: $output_tokens,
                 cost: $cost,
-                campaign_id: $campaign_id,
                 session_id: $session_id
             })
         """,
@@ -70,7 +69,6 @@ class UsageService:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             cost=float(cost),
-            campaign_id=campaign_id,
             session_id=session_id,
         )
 
