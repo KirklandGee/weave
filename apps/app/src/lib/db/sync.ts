@@ -87,6 +87,15 @@ export async function pushPull(
     const camelEdges = freshEdges.map(edgeSnakeToCamel);
 
     if (freshEdges.length) await db.edges.bulkPut(camelEdges);
+    
+    // 4. pull fresh folders
+    const lastFolder = (await db.folders.orderBy('updatedAt').last())?.updatedAt ?? 0;
+    const freshFolders = await authFetch(
+      `${API}/${campaignSlug}/folders/since/${lastFolder}`,
+      { headers: { 'Content-Type':'application/json' } }
+    ).then(r => r.json());
+
+    if (freshFolders.length) await db.folders.bulkPut(freshFolders);
 
     await setSyncState(campaignSlug, 'idle')
   } catch (error) {

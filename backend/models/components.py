@@ -50,8 +50,8 @@ class MarkdownNodeBase(BaseModel):
 
 
 class Change(BaseModel):
-    op: str  # create | update | delete
-    entity: Literal["node", "edge"]
+    op: str  # create | update | delete | upsert
+    entity: Literal["node", "edge", "folders"]
     entityId: str
     payload: dict[str, Any]
     ts: int  # epoch ms

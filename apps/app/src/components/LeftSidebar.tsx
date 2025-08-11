@@ -1,148 +1,140 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import type { Note } from '@/types/node'
-import { ChevronDown, ChevronRight, Trash, Pencil, Plus, Map, Users, Calendar, MessageSquare, AlertCircle } from 'lucide-react'
+import { ChevronDown, ChevronRight, Trash, Pencil, Map, Users, Calendar, AlertCircle, Folder, FileText, FolderPlus, Copy } from 'lucide-react'
 import React from 'react'
-import { AddNoteModal } from './AddNoteModal'
 import { Skeleton } from './ui/Skeleton'
+import { FolderTree } from './FolderTree'
+import { useFolders } from '@/lib/hooks/useFolders'
 
 export default function LeftSidebar({
   nodes,
   activeId,
   onSelect,
   onCreate,
+  onNoteCreated,
   onDelete,
-  onRename,
   onHide,
-  onToggleAiAssistant,
-  onReorder,
-  customOrdering = {},
   isLoading = false,
+  campaignSlug,
+  campaignId,
+  ownerId,
 }: {
   nodes: Note[]
   activeId: string
   onSelect: (node: Note) => void
-  onCreate: (type?: string, title?: string) => void
+  onCreate: (type?: string, title?: string) => Promise<void>
+  onNoteCreated?: () => void
   onDelete: (node: Note) => void
-  onRename: (id: string, title: string) => void
   onHide?: () => void
-  onToggleAiAssistant?: () => void
-  onReorder?: (sectionName: string, orderedIds: string[]) => void
-  customOrdering?: Record<string, string[]>
   isLoading?: boolean
+  campaignSlug: string
+  campaignId: string
+  ownerId: string
 }) {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  
+  /* ---------- folder management ---------- */
+  const {
+    folderTree,
+    expandedFolders,
+    uncategorizedNoteIds,
+    isLoading: foldersLoading,
+    error: folderError,
+    toggleFolder,
+    createFolder,
+    renameFolder,
+    deleteFolder,
+    moveNoteToFolder,
+    moveFolder,
+    reorderFolders,
+    refreshFolders,
+  } = useFolders(campaignSlug, campaignId, ownerId)
   
   /* ---------- drag and drop state ---------- */
-  const [draggedItem, setDraggedItem] = useState<{ id: string; section: string } | null>(null)
+  const [draggedItem, setDraggedItem] = useState<{ id: string; type: 'note' | 'folder'; parentId?: string } | null>(null)
   const [dragOverItem, setDragOverItem] = useState<string | null>(null)
 
-  /* ---------- group + accordion state ---------- */
-  // Define section groupings
-  const sections = {
-    'Notes': {
-      icon: Map,
-      types: ['Location', 'Quest', 'Event', 'Lore', 'Rule', 'Item', 'Note', 'Character', 'NPC']
-    },
-    'Sessions': {
-      icon: Calendar,
-      types: ['Session']
-    }
-  }
-
-  // Group nodes by section and apply custom ordering or sort alphabetically
-  // Track used node IDs to prevent duplicates across sections
-  const usedNodeIds = new Set<string>()
-  const grouped = Object.entries(sections).reduce((acc, [sectionName, section]) => {
-    const sectionNodes = nodes.filter(n => {
-      if (!n || !n.id || usedNodeIds.has(n.id) || !section.types.includes(n.type)) {
-        return false
-      }
-      usedNodeIds.add(n.id)
-      return true
-    })
-    
-    // Apply custom ordering if it exists for this section
-    if (customOrdering[sectionName]) {
-      const customOrder = customOrdering[sectionName]
-      const orderedNodes: Note[] = []
-      const unorderedNodes: Note[] = []
-      
-      // First, add nodes in custom order
-      for (const nodeId of customOrder) {
-        const node = sectionNodes.find(n => n.id === nodeId)
-        if (node) orderedNodes.push(node)
-      }
-      
-      // Then add any new nodes that aren't in the custom order (alphabetically)
-      for (const node of sectionNodes) {
-        if (!customOrder.includes(node.id)) {
-          unorderedNodes.push(node)
-        }
-      }
-      unorderedNodes.sort((a, b) => a.title.localeCompare(b.title))
-      
-      acc[sectionName] = [...orderedNodes, ...unorderedNodes]
-    } else {
-      // Sort alphabetically by title if no custom ordering
-      acc[sectionName] = sectionNodes.sort((a, b) => a.title.localeCompare(b.title))
-    }
-    
-    return acc
-  }, {} as Record<string, Note[]>)
+  /* ---------- uncategorized notes ---------- */
+  const uncategorizedNotes = nodes.filter(note => uncategorizedNoteIds.includes(note.id))
 
   /* ---------- drag and drop handlers ---------- */
-  const handleDragStart = (e: React.DragEvent, noteId: string, sectionName: string) => {
-    setDraggedItem({ id: noteId, section: sectionName })
-    e.dataTransfer.effectAllowed = 'move'
+  const handleDragStart = (item: { id: string; type: 'note' | 'folder'; parentId?: string }) => {
+    setDraggedItem(item)
   }
 
-  const handleDragOver = (e: React.DragEvent, noteId: string) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setDragOverItem(noteId)
+  const handleDragOver = (id: string) => {
+    setDragOverItem(id)
   }
 
   const handleDragLeave = () => {
     setDragOverItem(null)
   }
 
-  const handleDrop = (e: React.DragEvent, targetNoteId: string, sectionName: string) => {
-    e.preventDefault()
+  const handleDrop = async (targetId: string, targetType: 'folder' | 'note') => {
+    if (!draggedItem) return
+
     setDragOverItem(null)
-    
-    if (!draggedItem || draggedItem.section !== sectionName) {
-      setDraggedItem(null)
-      return
+
+    try {
+      if (draggedItem.type === 'note' && targetType === 'folder') {
+        // Move note to folder
+        await moveNoteToFolder(draggedItem.id, targetId)
+      } else if (draggedItem.type === 'folder' && targetType === 'folder') {
+        // Move folder to become child of target folder
+        const draggedFolder = folderTree.find(f => f.folder.id === draggedItem.id)
+        if (draggedFolder && draggedFolder.folder.id !== targetId) {
+          // Prevent moving a folder into itself or its descendants
+          const isDescendant = (folderId: string, potentialAncestorId: string): boolean => {
+            const folder = folderTree.find(f => f.folder.id === folderId)
+            if (!folder) return false
+            if (folder.folder.parentId === potentialAncestorId) return true
+            if (folder.folder.parentId) return isDescendant(folder.folder.parentId, potentialAncestorId)
+            return false
+          }
+
+          if (!isDescendant(targetId, draggedItem.id)) {
+            await moveFolder(draggedItem.id, targetId)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling drop:', error)
     }
 
-    const sectionNodes = grouped[sectionName]
-    const draggedIndex = sectionNodes.findIndex(n => n.id === draggedItem.id)
-    const targetIndex = sectionNodes.findIndex(n => n.id === targetNoteId)
-    
-    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
-      setDraggedItem(null)
-      return
+    setDraggedItem(null)
+  }
+
+  const handleDropToRoot = async () => {
+    if (!draggedItem || draggedItem.type !== 'folder') return
+
+    setDragOverItem(null)
+
+    try {
+      // Move folder to root level (no parent)
+      await moveFolder(draggedItem.id, undefined)
+    } catch (error) {
+      console.error('Error moving folder to root:', error)
     }
 
-    // Reorder the nodes
-    const newOrder = [...sectionNodes]
-    const [draggedNode] = newOrder.splice(draggedIndex, 1)
-    newOrder.splice(targetIndex, 0, draggedNode)
-    
-    // Call the onReorder callback with the new order
-    if (onReorder) {
-      onReorder(sectionName, newOrder.map(n => n.id))
-    }
-    
     setDraggedItem(null)
   }
   
-  const [open, setOpen] = useState<Record<string, boolean>>({'Sessions': true})
+  /* ---------- folder creation handlers ---------- */
+  const handleCreateFolder = async (parentId?: string) => {
+    try {
+      const newFolder = await createFolder('New Folder', parentId)
+      // Start renaming the newly created folder immediately
+      if (newFolder && newFolder.id) {
+        setRenaming(newFolder.id)
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error)
+    }
+  }
 
   /* ---------- context-menu state ---------- */
-  const [menu, setMenu] = useState<{
-    id: string
+  const [contextMenu, setContextMenu] = useState<{
+    id?: string  // Optional - only present when right-clicking on a specific item
     top: number
     left: number
   } | null>(null)
@@ -158,25 +150,52 @@ export default function LeftSidebar({
 
   /* close menu on escape / outside click */
   useEffect(() => {
-    if (!menu) return
-    const close = () => setMenu(null)
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(null)
+    if (!contextMenu) return
+    const close = () => setContextMenu(null)
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setContextMenu(null)
     window.addEventListener('click', close)
     window.addEventListener('keydown', esc)
     return () => {
       window.removeEventListener('click', close)
       window.removeEventListener('keydown', esc)
     }
-  }, [menu])
+  }, [contextMenu])
 
   /* helper: start rename then hide menu */
   const triggerRename = (id: string) => {
-    setMenu(null)
+    setContextMenu(null)
     setRenaming(id)
   }
 
+  /* helper: calculate menu position to avoid main content area */
+  const calculateMenuPosition = (clientX: number, clientY: number) => {
+    const menuWidth = 160  // Approximate menu width
+    const menuHeight = 220 // Approximate menu height
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    let left = clientX
+    let top = clientY
+    
+    // If menu would go off right edge, show it to the left of cursor
+    if (left + menuWidth > viewportWidth - 10) {
+      left = clientX - menuWidth
+    }
+    
+    // If menu would go off bottom, show it above cursor
+    if (top + menuHeight > viewportHeight - 10) {
+      top = clientY - menuHeight
+    }
+    
+    // Ensure minimum distances from edges
+    left = Math.max(10, left)
+    top = Math.max(10, top)
+    
+    return { left, top }
+  }
+
   // Render loading skeleton if loading
-  if (isLoading) {
+  if (isLoading || foldersLoading) {
     return (
       <aside className="h-full flex flex-col overflow-hidden text-zinc-200">
         <div className="flex-shrink-0 p-3 border-b border-zinc-800 flex items-center justify-between">
@@ -242,21 +261,24 @@ export default function LeftSidebar({
         <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Notes</h3>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-amber-400 hover:bg-amber-900/20 rounded-md transition-colors group border border-dashed border-transparent hover:border-amber-500/30"
+            onClick={async () => {
+              await onCreate('Note', 'Untitled')
+              // Refresh folders after a brief delay to update uncategorized notes
+              setTimeout(refreshFolders, 150)
+              onNoteCreated?.()
+            }}
+            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-blue-400 hover:bg-blue-900/20 rounded-md transition-colors group border border-dashed border-transparent hover:border-blue-500/30"
             title="Add Note (⌘N)"
           >
-            <Plus size={14} />
+            <FileText size={14} />
           </button>
-          {onToggleAiAssistant && (
-            <button
-              onClick={onToggleAiAssistant}
-              className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-green-400 hover:bg-green-900/20 rounded-md transition-colors group"
-              title="AI Assistant (⌘⇧T)"
-            >
-              <MessageSquare size={14} />
-            </button>
-          )}
+          <button
+            onClick={() => handleCreateFolder()}
+            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-amber-400 hover:bg-amber-900/20 rounded-md transition-colors group"
+            title="New Folder"
+          >
+            <FolderPlus size={14} />
+          </button>
           {onHide && (
             <button
               onClick={onHide}
@@ -272,243 +294,238 @@ export default function LeftSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
-        {Object.entries(grouped).map(([sectionName, list]) => {
-          const isOpen = open[sectionName] ?? false
-          const section = sections[sectionName as keyof typeof sections]
-          const IconComponent = section.icon
-          return (
-            <section key={sectionName} className="mb-4">
-              <button
-                onClick={() => setOpen(o => ({ ...o, [sectionName]: !isOpen }))}
-                className="flex w-full items-center justify-between font-semibold uppercase tracking-wide text-zinc-400 hover:text-zinc-100 transition-colors mb-2"
-              >
-                <div className="flex items-center gap-2">
-                  <IconComponent size={14} />
-                  <span className="text-xs">{sectionName}</span>
-                </div>
-                {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
+        {/* Error Display */}
+        {folderError && (
+          <div className="text-red-400 text-sm mb-4 p-2 border border-red-800 rounded">
+            {folderError}
+          </div>
+        )}
 
-              <div 
-                className={`overflow-hidden transition-all duration-300 ease-out ${
-                  isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
-                }`}
-                style={{
-                  maxHeight: isOpen ? `${list.length * 2.5}rem` : '0'
-                }}
-              >
-                <ul className="ml-5 space-y-1 py-1">
-                  {list.filter(n => n && n.id).map(n => (
-                    <li key={n.id} className="relative">
-                      {/* ---------- normal / rename view ---------- */}
-                      {renaming === n.id ? (
-                        <input
-                          aria-label='Rename note'
-                          ref={renameInput}
-                          defaultValue={n.title}
-                          className="w-full rounded bg-zinc-800 px-2 py-1 text-sm text-white outline-none border border-zinc-600 focus:border-amber-500"
-                          onBlur={e => {
-                            const v = e.currentTarget.value.trim()
-                            if (v && v !== n.title) onRename(n.id, v)
-                            setRenaming(null)
-                          }}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') e.currentTarget.blur()
-                            if (e.key === 'Escape') {
-                              e.preventDefault()
-                              setRenaming(null)
-                            }
-                          }}
-                        />
-                      ) : (
-                        <button
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, n.id, sectionName)}
-                          onDragOver={(e) => handleDragOver(e, n.id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, n.id, sectionName)}
-                          onClick={() => onSelect(n)}
-                          onContextMenu={e => {
-                            e.preventDefault()
-                            setMenu({
-                              id: n.id,
-                              top: e.clientY,
-                              left: e.clientX,
-                            })
-                          }}
-                          className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 cursor-move ${
-                            n.id === activeId 
-                              ? 'bg-amber-600 text-white font-medium' 
-                              : 'hover:bg-zinc-800 hover:text-white'
-                          } ${
-                            dragOverItem === n.id ? 'border-2 border-amber-400 border-dashed' : ''
-                          } ${
-                            draggedItem?.id === n.id ? 'opacity-50' : ''
-                          }`}
-                        >
-                          {n.attributes?.generation_status === 'generating' && (
-                            <div className="w-3 h-3 border border-zinc-400 border-t-amber-500 rounded-full animate-spin flex-shrink-0" />
-                          )}
-                          {n.attributes?.generation_status === 'error' && (
-                            <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
-                          )}
-                          <span className="truncate">{n.title}</span>
-                        </button>
-                      )}
+        {/* Root Level Drop Zone */}
+        <div
+          className={`min-h-[20px] transition-colors ${
+            draggedItem?.type === 'folder' && dragOverItem === 'root'
+              ? 'bg-amber-900/20 border border-dashed border-amber-500/50 rounded'
+              : ''
+          }`}
+          onDragOver={(e) => {
+            if (draggedItem?.type === 'folder') {
+              e.preventDefault()
+              handleDragOver('root')
+            }
+          }}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => {
+            if (draggedItem?.type === 'folder') {
+              e.preventDefault()
+              handleDropToRoot()
+            }
+          }}
+        />
 
-                      {/* ---------- pop-up menu ---------- */}
-                      {menu && menu.id === n.id && (
-                        <div
-                          className="fixed z-50"
-                          style={{
-                            top: `${menu.top}px`,
-                            left: `${menu.left}px`,
-                          }}
-                          /* stop both click & mousedown so outside-click
-                             handler won't run before our buttons */
-                          onMouseDown={e => e.stopPropagation()}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <div className="flex flex-col bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[120px]">
-                            {/* rename */}
-                            <button
-                              onClick={() => triggerRename(n.id)}
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
-                            >
-                              <Pencil size={14} />
-                              Rename
-                            </button>
-                            {/* delete */}
-                            <button
-                              onClick={() => {
-                                onDelete(n)
-                                setMenu(null)
-                              }}
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
-                            >
-                              <Trash size={14} />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+        {/* Folder Tree */}
+        <div
+          onContextMenu={(e) => {
+            // Only show context menu if right-clicking on empty space, not on folder/note items
+            if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-folder-item]') === null) {
+              e.preventDefault()
+              const position = calculateMenuPosition(e.clientX, e.clientY)
+              setContextMenu({
+                top: position.top,
+                left: position.left,
+              })
+            }
+          }}
+        >
+          <FolderTree
+            folderTree={folderTree}
+            notes={nodes}
+            activeId={activeId}
+            onSelectNote={onSelect}
+            onCreateFolder={handleCreateFolder}
+            onRenameFolder={renameFolder}
+            onDeleteFolder={deleteFolder}
+            onMoveNote={moveNoteToFolder}
+            onMoveFolder={moveFolder}
+            onReorderFolders={reorderFolders}
+            expandedFolders={expandedFolders}
+            onToggleFolder={toggleFolder}
+            draggedItem={draggedItem}
+            onDragStart={handleDragStart}
+            onDrop={handleDrop}
+            dragOverItem={dragOverItem}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onContextMenu={(id, clientX, clientY) => {
+              const position = calculateMenuPosition(clientX, clientY)
+              setContextMenu({
+                id,
+                top: position.top,
+                left: position.left,
+              })
+            }}
+            renamingFolder={renaming}
+            onSetRenamingFolder={setRenaming}
+          />
+        </div>
+
+        {/* Uncategorized Notes */}
+        {uncategorizedNotes.length > 0 && (
+          <section 
+            className="mt-4"
+            onContextMenu={(e) => {
+              if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-note-item]') === null) {
+                e.preventDefault()
+                const position = calculateMenuPosition(e.clientX, e.clientY)
+                setContextMenu({
+                  top: position.top,
+                  left: position.left,
+                })
+              }
+            }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} className="text-zinc-500" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Uncategorized
+                </span>
               </div>
-              
-              {/* Show active note when category is collapsed */}
-              {!isOpen && activeId && list.length > 0 && list.find(n => n.id === activeId) && (
-                <div className="ml-5 space-y-1 py-1">
-                  {(() => {
-                    const activeNote = list.find(n => n.id === activeId)
-                    return activeNote ? [activeNote] : []
-                  })().map(n => (
-                    <div key={`collapsed-active-${n.id}`} className="relative">
-                      {renaming === n.id ? (
-                        <input
-                          aria-label='Rename note'
-                          ref={renameInput}
-                          defaultValue={n.title}
-                          className="w-full rounded bg-zinc-800 px-2 py-1 text-sm text-white outline-none border border-zinc-600 focus:border-amber-500"
-                          onBlur={e => {
-                            const v = e.currentTarget.value.trim()
-                            if (v && v !== n.title) onRename(n.id, v)
-                            setRenaming(null)
-                          }}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') e.currentTarget.blur()
-                            if (e.key === 'Escape') {
-                              e.preventDefault()
-                              setRenaming(null)
-                            }
-                          }}
-                        />
-                      ) : (
-                        <button
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, n.id, sectionName)}
-                          onDragOver={(e) => handleDragOver(e, n.id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, n.id, sectionName)}
-                          onClick={() => onSelect(n)}
-                          onContextMenu={e => {
-                            e.preventDefault()
-                            setMenu({
-                              id: n.id,
-                              top: e.clientY,
-                              left: e.clientX,
-                            })
-                          }}
-                          className={`w-full truncate text-left text-sm px-2 py-1 rounded transition-colors flex items-center gap-2 cursor-move ${
-                            n.id === activeId 
-                              ? 'bg-amber-600 text-white font-medium' 
-                              : 'hover:bg-zinc-800 hover:text-white'
-                          } ${
-                            dragOverItem === n.id ? 'border-2 border-amber-400 border-dashed' : ''
-                          } ${
-                            draggedItem?.id === n.id ? 'opacity-50' : ''
-                          }`}
-                        >
-                          {n.attributes?.generation_status === 'generating' && (
-                            <div className="w-3 h-3 border border-zinc-400 border-t-amber-500 rounded-full animate-spin flex-shrink-0" />
-                          )}
-                          {n.attributes?.generation_status === 'error' && (
-                            <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
-                          )}
-                          <span className="truncate">{n.title}</span>
-                        </button>
-                      )}
-
-                      {/* Context menu for collapsed active note */}
-                      {menu && menu.id === n.id && (
-                        <div
-                          className="fixed z-50"
-                          style={{
-                            top: `${menu.top}px`,
-                            left: `${menu.left}px`,
-                          }}
-                          onMouseDown={e => e.stopPropagation()}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <div className="flex flex-col bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[120px]">
-                            <button
-                              onClick={() => triggerRename(n.id)}
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
-                            >
-                              <Pencil size={14} />
-                              Rename
-                            </button>
-                            <button
-                              onClick={() => {
-                                onDelete(n)
-                                setMenu(null)
-                              }}
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
-                            >
-                              <Trash size={14} />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+              <button
+                onClick={() => handleCreateFolder()}
+                className="p-1 hover:bg-zinc-700 rounded text-zinc-500 hover:text-amber-400"
+                title="Create folder for these notes"
+              >
+                <Folder size={12} />
+              </button>
+            </div>
+            <div className="ml-4 space-y-1">
+              {uncategorizedNotes.map(note => (
+                <div
+                  key={note.id}
+                  data-note-item
+                  className={`flex items-center gap-2 py-1 px-2 rounded transition-colors cursor-pointer ${
+                    note.id === activeId 
+                      ? 'bg-amber-600 text-white font-medium' 
+                      : 'hover:bg-zinc-800 hover:text-white text-zinc-400'
+                  }`}
+                  draggable
+                  onDragStart={() => handleDragStart({ id: note.id, type: 'note' })}
+                  onClick={() => onSelect(note)}
+                  onContextMenu={e => {
+                    e.preventDefault()
+                    const position = calculateMenuPosition(e.clientX, e.clientY)
+                    setContextMenu({
+                      id: note.id,
+                      top: position.top,
+                      left: position.left,
+                    })
+                  }}
+                >
+                  {note.attributes?.generation_status === 'generating' && (
+                    <div className="w-3 h-3 border border-zinc-400 border-t-amber-500 rounded-full animate-spin flex-shrink-0" />
+                  )}
+                  {note.attributes?.generation_status === 'error' && (
+                    <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                  )}
+                  <span className="truncate text-sm">{note.title}</span>
                 </div>
-              )}
-            </section>
-          )
-        })}
+              ))}
+            </div>
+          </section>
+        )}
+
       </div>
       
-      <AddNoteModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onCreate={(type, title) => {
-          onCreate(type, title)
-          setIsAddModalOpen(false)
-        }}
-      />
+
+
+      {/* Unified Context Menu - rendered outside sidebar to avoid positioning issues */}
+      {contextMenu && (
+        <div
+          className="fixed z-[9999]"
+          style={{
+            top: `${contextMenu.top}px`,
+            left: `${contextMenu.left}px`,
+          }}
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex flex-col bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[160px]">
+            {/* Create Actions */}
+            <button
+              onClick={async () => {
+                setContextMenu(null)
+                await onCreate('Note', 'Untitled')
+                // Refresh folders after a brief delay to update uncategorized notes
+                setTimeout(refreshFolders, 150)
+                onNoteCreated?.()
+              }}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 transition-colors"
+            >
+              <FileText size={14} />
+              Add Note
+            </button>
+            <button
+              onClick={() => {
+                setContextMenu(null)
+                handleCreateFolder()
+              }}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 hover:bg-amber-900/30 hover:text-amber-300 transition-colors"
+            >
+              <FolderPlus size={14} />
+              New Folder
+            </button>
+            
+            {/* Item-specific actions - only show if we clicked on a specific item */}
+            {contextMenu.id && (
+              <>
+                {/* Separator */}
+                <div className="h-px bg-zinc-700 my-1 mx-2"></div>
+                
+                {/* Note Actions */}
+                <button
+                  onClick={() => {
+                    const note = nodes.find(n => n.id === contextMenu.id)
+                    if (note) {
+                      // Create a duplicate with a new title
+                      onCreate(note.type, `${note.title} (Copy)`)
+                    }
+                    setContextMenu(null)
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                >
+                  <Copy size={14} />
+                  Duplicate
+                </button>
+                
+                <button
+                  onClick={() => triggerRename(contextMenu.id!)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                >
+                  <Pencil size={14} />
+                  Rename
+                </button>
+                
+                {/* Separator */}
+                <div className="h-px bg-zinc-700 my-1 mx-2"></div>
+                
+                {/* Destructive Actions */}
+                <button
+                  onClick={() => {
+                    const note = nodes.find(n => n.id === contextMenu.id)
+                    if (note) onDelete(note)
+                    setContextMenu(null)
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
+                >
+                  <Trash size={14} />
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

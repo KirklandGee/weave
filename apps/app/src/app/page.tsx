@@ -11,7 +11,6 @@ import RightSidebar from '@/components/RightSidebar'
 import Nav from '@/components/Nav'
 import Tiptap from '@/components/Tiptap'
 import DocumentHeader from '@/components/DocumentHeader'
-import { AddNoteModal } from '@/components/AddNoteModal'
 import { ImportMarkdownModal } from '@/components/ImportMarkdownModal'
 import EmptyCampaignsState from '@/components/EmptyCampaignsState'
 import { nanoid } from 'nanoid'
@@ -42,10 +41,16 @@ export default function Home() {
     }
     
     // For campaign switches, replace entirely. For same campaign, merge optimistically.
-    setNodes(() => {
-      // If we have dbNodes, use them as the source of truth
+    setNodes(prevNodes => {
+      // If we have dbNodes, use them as the source of truth but preserve order of optimistic updates
       const newNodes = dbNodes.filter(n => n && typeof n === 'object' && 'id' in n) as Note[]
-      return newNodes
+      
+      // If we have optimistic nodes that aren't in dbNodes yet, keep them at the front
+      const dbNodeIds = new Set(newNodes.map(n => n.id))
+      const optimisticNodes = prevNodes.filter(n => !dbNodeIds.has(n.id))
+      
+      // Combine optimistic nodes (at front) with db nodes, avoiding duplicates
+      return [...optimisticNodes, ...newNodes]
     })
   }, [dbNodes])
 
@@ -70,7 +75,10 @@ export default function Home() {
   /* 3. typing state tracking */
   const [isTyping, setIsTyping] = useState(false)
   
-  /* 4. content + updater for the active node */
+  /* 4. track when a newly created note should start title editing */
+  const [editingNoteTitle, setEditingNoteTitle] = useState(false)
+  
+  /* 5. content + updater for the active node */
   const { htmlContent, updateMarkdown } = useActiveNode(
     currentCampaign?.slug ?? '',
     activeId ?? '',
@@ -100,13 +108,20 @@ export default function Home() {
       attributes: {},
       ownerId: USER_ID,
       campaignId: currentCampaign?.id || null,
-    campaignIds: currentCampaign ? [currentCampaign.id] : []
+      campaignIds: currentCampaign ? [currentCampaign.id] : []
     }
     
     if (!nodeOps) return
     const nodeId = await nodeOps.createNode(newRow)
     setActiveId(nodeId)
-    setNodes(prev => [{ ...newRow, id: nodeId }, ...prev])
+    setEditingNoteTitle(true)
+    // Add optimistically, but useLiveQuery will eventually sync and deduplicate
+    setNodes(prev => {
+      // Check if note already exists to prevent duplicates
+      const exists = prev.some(n => n.id === nodeId)
+      if (exists) return prev
+      return [{ ...newRow, id: nodeId }, ...prev]
+    })
   }
 
   // Handle importing markdown files
@@ -271,7 +286,7 @@ export default function Home() {
         }
         break
       case 'add-note':
-        setIsAddModalOpen(true)
+        handleCreateNote()
         break
       case 'import-markdown':
         setIsImportModalOpen(true)
@@ -283,25 +298,7 @@ export default function Home() {
 
   /* create a blank node and switch to it */
   async function handleCreate(type?: string, title?: string) {
-    const ts = Date.now()
-    const id = nanoid()
-
-    const newRow = {
-      id,
-      type: type || 'Note',
-      title: title || 'Untitled',
-      markdown: '',
-      updatedAt: ts,
-      createdAt: ts,
-      attributes: {},
-      ownerId: USER_ID,
-      campaignId: currentCampaign?.id || null,
-      campaignIds: currentCampaign ? [currentCampaign.id] : []
-    }
-    if (!nodeOps) return
-    const nodeId = await nodeOps.createNode(newRow);   // use the real id
-    setActiveId(nodeId);
-    setNodes(prev => [{ ...newRow, id: nodeId }, ...prev]);
+    await handleCreateNote(type, title)
   }
 
   async function handleDelete(node: Note) {
@@ -316,43 +313,14 @@ export default function Home() {
   const [showLeftSidebar, setShowLeftSidebar] = useState(true);
   const [showRightSidebar, setShowRightSidebar] = useState(true);
   const [rightSidebarMode, setRightSidebarMode] = useState<'relationships' | 'ai-chat'>('relationships');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  
-  // Custom ordering state for sidebar nodes
-  const [customOrdering, setCustomOrdering] = useState<Record<string, string[]>>({});
-
-  // Load custom ordering from localStorage on mount
-  useEffect(() => {
-    if (currentCampaign?.slug) {
-      const stored = localStorage.getItem(`sidebar-ordering-${currentCampaign.slug}`);
-      if (stored) {
-        try {
-          setCustomOrdering(JSON.parse(stored));
-        } catch (e) {
-          console.warn('Failed to parse stored ordering:', e);
-        }
-      }
-    }
-  }, [currentCampaign?.slug]);
-
-  // Handle reordering of sidebar nodes
-  const handleReorder = (sectionName: string, orderedIds: string[]) => {
-    if (!currentCampaign?.slug) return;
-    
-    const newOrdering = { ...customOrdering, [sectionName]: orderedIds };
-    setCustomOrdering(newOrdering);
-    
-    // Persist to localStorage
-    localStorage.setItem(`sidebar-ordering-${currentCampaign.slug}`, JSON.stringify(newOrdering));
-  };
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey && e.shiftKey && e.key === 'n') {
         e.preventDefault()
-        setIsAddModalOpen(true)
+        handleCreateNote()
       }
       if (e.metaKey && e.key === "[") {
         e.preventDefault()
@@ -391,12 +359,12 @@ export default function Home() {
                   nodes={[]}
                   activeId=""
                   onSelect={() => {}}
-                  onCreate={() => {}}
+                  onCreate={async () => {}}
                   onDelete={() => {}}
-                  onRename={() => {}}
-                  onReorder={() => {}}
-                  customOrdering={{}}
                   isLoading={true}
+                  campaignSlug=""
+                  campaignId=""
+                  ownerId={USER_ID}
                 />
               </div>
             </Allotment.Pane>
@@ -448,12 +416,12 @@ export default function Home() {
                   nodes={[]}
                   activeId=""
                   onSelect={() => {}}
-                  onCreate={() => {}}
+                  onCreate={async () => {}}
                   onDelete={() => {}}
-                  onRename={() => {}}
-                  onReorder={() => {}}
-                  customOrdering={{}}
                   isLoading={true}
+                  campaignSlug=""
+                  campaignId=""
+                  ownerId={USER_ID}
                 />
               </div>
             </Allotment.Pane>
@@ -498,11 +466,9 @@ export default function Home() {
                   }}
                   onCreate={handleCreate}
                   onDelete={handleDelete}
-                  onRename={async (id, title) => {
-                    if (nodeOps) await nodeOps.renameNode(id, title)
-                  }}
-                  onReorder={handleReorder}
-                  customOrdering={customOrdering}
+                  campaignSlug={currentCampaign?.slug || ''}
+                  campaignId={currentCampaign?.id || ''}
+                  ownerId={USER_ID}
                 />
               </div>
             </Allotment.Pane>
@@ -522,12 +488,6 @@ export default function Home() {
             </Allotment.Pane>
           </Allotment>
         </div>
-        
-        <AddNoteModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onCreate={handleCreateNote}
-        />
         
         <ImportMarkdownModal
           isOpen={isImportModalOpen}
@@ -591,20 +551,10 @@ export default function Home() {
                   }}
                   onCreate={handleCreate}
                   onDelete={handleDelete}
-                  onRename={async (id, title) => {
-                    if (nodeOps) await nodeOps.renameNode(id, title)
-                  }}
                   onHide={() => setShowLeftSidebar(false)}
-                  onToggleAiAssistant={() => {
-                    if (rightSidebarMode === 'ai-chat' && showRightSidebar) {
-                      setRightSidebarMode('relationships')
-                    } else {
-                      setShowRightSidebar(true)
-                      setRightSidebarMode('ai-chat')
-                    }
-                  }}
-                  onReorder={handleReorder}
-                  customOrdering={customOrdering}
+                  campaignSlug={currentCampaign?.slug || ''}
+                  campaignId={currentCampaign?.id || ''}
+                  ownerId={USER_ID}
                 />
               </div>
               <div 
@@ -641,6 +591,8 @@ export default function Home() {
                     onTypeChange={async (id, newType) => {
                       if (nodeOps) await nodeOps.updateNodeType(id, newType)
                     }}
+                    startEditing={editingNoteTitle}
+                    onStartEditingHandled={() => setEditingNoteTitle(false)}
                   />
                   
                   {/* Document Content */}
@@ -704,12 +656,6 @@ export default function Home() {
           </Allotment.Pane>
         </Allotment>
       </div>
-      
-      <AddNoteModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onCreate={handleCreateNote}
-      />
       
       <ImportMarkdownModal
         isOpen={isImportModalOpen}

@@ -23,20 +23,39 @@ interface DocumentHeaderProps {
   htmlContent: string
   onTitleChange: (id: string, newTitle: string) => void
   onTypeChange?: (id: string, newType: string) => void
+  startEditing?: boolean
+  onStartEditingHandled?: () => void
 }
 
-export default function DocumentHeader({ node, htmlContent, onTitleChange, onTypeChange }: DocumentHeaderProps) {
+export default function DocumentHeader({ node, htmlContent, onTitleChange, onTypeChange, startEditing, onStartEditingHandled }: DocumentHeaderProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editingTitle, setEditingTitle] = useState(node.title)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   // Fix: Update editingTitle when node changes
   useEffect(() => {
     setEditingTitle(node.title)
   }, [node.id, node.title])
+
+  // Handle external editing trigger
+  useEffect(() => {
+    if (startEditing) {
+      setIsEditing(true)
+      onStartEditingHandled?.()
+    }
+  }, [startEditing, onStartEditingHandled])
+
+  // Focus the input when editing starts
+  useEffect(() => {
+    if (isEditing && titleInputRef.current) {
+      titleInputRef.current.focus()
+      titleInputRef.current.select() // Select all text for easy replacement
+    }
+  }, [isEditing])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -102,6 +121,7 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
         <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
         {isEditing ? (
           <input
+            ref={titleInputRef}
             title='document title'
             type="text"
             value={editingTitle}
@@ -109,7 +129,6 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
             onBlur={handleTitleSave}
             onKeyDown={handleKeyDown}
             className="text-zinc-100 font-medium text-lg bg-transparent border-none outline-none focus:ring-0 min-w-0"
-            autoFocus
           />
         ) : (
           <h1 

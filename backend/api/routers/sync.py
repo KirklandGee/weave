@@ -119,7 +119,44 @@ async def push_changes(
                         """,
                         rid=ch.entityId,
                     )
-            if ch.entity == "node":
+            elif ch.entity == "folders":
+                # ---------- CREATE/UPDATE ----------
+                if ch.op in ["create", "upsert"]:
+                    props = {**ch.payload, "updatedAt": ch.ts}
+                    
+                    _ = query(
+                        """
+                        CALL apoc.merge.node(['FOLDER'], {id:$fid}, $props) YIELD node
+                        SET  node.createdAt = coalesce(node.createdAt, $ts),
+                             node.updatedAt = $ts
+                        WITH node
+                        MATCH (u:User {id:$user_id})
+                        OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})
+                        FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
+                            MERGE (node)-[:PART_OF]->(c)
+                        )
+                        MERGE (u)-[:PART_OF]->(node)
+                        """,
+                        user_id=user_id,
+                        cid=cid,
+                        fid=ch.entityId,
+                        ts=ch.ts,
+                        props=props,
+                    )
+
+                # ---------- DELETE ----------
+                elif ch.op == "delete":
+                    _ = query(
+                        """
+                        MATCH (u:User {id:$user_id})-[:OWNS]->(c:Campaign {id:$cid})
+                            <-[:PART_OF]-(f:FOLDER {id:$fid})
+                        DETACH DELETE f
+                        """,
+                        user_id=user_id,
+                        cid=cid,
+                        fid=ch.entityId,
+                    )
+            elif ch.entity == "node":
 
                 # ---------- UPDATE ----------
                 if ch.op == "update":
@@ -306,6 +343,7 @@ async def get_node_edges(
             MATCH (u:User {id:$user_id})-[:OWNS]->(c:Campaign {id:$cid})
                 <-[:PART_OF]-(n {id:$nid})
             MATCH (n)-[r]-(m)
+            WHERE type(r) <> 'CONTAINS'  // Exclude folder relationships
             RETURN {
             id:        r.id,
             from_id:   startNode(r).id,
@@ -329,5 +367,98 @@ async def get_node_edges(
             nid=nid,
         )
         return [r["edge"] for r in records]  # <-- alias is edge
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ───────────────────────────────────────────────── folder sync ──
+@router.get("/{cid}/folders/since/{ts}")
+async def get_folder_updates(
+    cid: str,
+    ts: int,
+    user_id: str = Depends(get_current_user),
+):
+    try:
+        records = query(
+            """
+            MATCH (u:User {id:$user_id})
+            OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(f:FOLDER)
+            OPTIONAL MATCH (u)-[:PART_OF]->(f2:FOLDER)
+            WITH coalesce(f, f2) AS folder
+            WHERE folder IS NOT NULL AND folder.updatedAt > $ts
+            WITH folder, properties(folder) AS props
+            
+            // Get contained notes
+            OPTIONAL MATCH (folder)-[:CONTAINS]->(note)
+            WITH folder, props, collect(note.id) AS noteIds
+            
+            // Get child folders  
+            OPTIONAL MATCH (folder)-[:CONTAINS]->(child:FOLDER)
+            WITH folder, props, noteIds, collect(child.id) AS childFolderIds
+            
+            RETURN {
+                id: props.id,
+                name: props.name,
+                parentId: props.parentId,
+                position: props.position,
+                campaignId: props.campaignId,
+                ownerId: props.ownerId,
+                createdAt: props.createdAt,
+                updatedAt: props.updatedAt,
+                noteIds: noteIds,
+                childFolderIds: childFolderIds
+            } AS folder
+            """,
+            user_id=user_id,
+            cid=cid if cid != "global" else None,
+            ts=ts,
+        )
+        return [r["folder"] for r in records]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/{cid}/folders")
+async def get_all_folders(
+    cid: str,
+    user_id: str = Depends(get_current_user),
+):
+    try:
+        records = query(
+            """
+            MATCH (u:User {id:$user_id})
+            OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(f:FOLDER)
+            OPTIONAL MATCH (u)-[:PART_OF]->(f2:FOLDER)
+            WITH coalesce(f, f2) AS folder
+            WHERE folder IS NOT NULL
+            WITH folder, properties(folder) AS props
+            
+            // Get contained notes
+            OPTIONAL MATCH (folder)-[:CONTAINS]->(note)
+            WHERE NOT note:FOLDER
+            WITH folder, props, collect(note.id) AS noteIds
+            
+            // Get child folders  
+            OPTIONAL MATCH (folder)-[:CONTAINS]->(child:FOLDER)
+            WITH folder, props, noteIds, collect(child.id) AS childFolderIds
+            
+            RETURN {
+                id: props.id,
+                name: props.name,
+                parentId: props.parentId,
+                position: props.position,
+                campaignId: props.campaignId,
+                ownerId: props.ownerId,
+                createdAt: props.createdAt,
+                updatedAt: props.updatedAt,
+                noteIds: noteIds,
+                childFolderIds: childFolderIds
+            } AS folder
+            ORDER BY folder.position
+            """,
+            user_id=user_id,
+            cid=cid if cid != "global" else None,
+        )
+        return [r["folder"] for r in records]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

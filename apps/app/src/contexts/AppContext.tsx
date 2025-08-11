@@ -72,13 +72,15 @@ export function AppProvider({ children }: AppProviderProps) {
       
       const data = await response.json()
       
-      const campaigns = (data || []).map((campaign: {
+      interface RawCampaign {
         id: string
         title: string
         slug?: string
         created_at?: string
         updated_at?: string
-      }) => ({
+      }
+      
+      const campaigns: Campaign[] = (data || []).map((campaign: RawCampaign) => ({
         id: campaign.id,
         title: campaign.title,
         slug: campaign.slug || campaign.id,
@@ -86,7 +88,12 @@ export function AppProvider({ children }: AppProviderProps) {
         updatedAt: campaign.updated_at ? new Date(campaign.updated_at).getTime() : Date.now(),
       }))
       
-      return campaigns
+      // Deduplicate campaigns by ID
+      const uniqueCampaigns = campaigns.filter((campaign, index, self) => 
+        index === self.findIndex(c => c.id === campaign.id)
+      )
+      
+      return uniqueCampaigns
     } catch (error) {
       console.error('💥 [FETCH] Error fetching campaigns:', error)
       return []

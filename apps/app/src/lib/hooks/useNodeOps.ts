@@ -17,15 +17,20 @@ export function createNodeOps(campaignSlug: string) {
 
     const node: Note = {
       id: id,
-      ownerId: currentUserId,
-      campaignId: activeCampaignId,  // legacy field
-      campaignIds: [activeCampaignId], // new array field
+      ownerId: defaults.ownerId ?? currentUserId,
+      campaignId: defaults.campaignId ?? activeCampaignId,  // Use provided campaignId or fallback to slug
+      campaignIds: defaults.campaignIds ?? [activeCampaignId], // Use provided campaignIds or fallback
       type: defaults.type ?? 'Note',
       title: defaults.title ?? 'Untitled',
       markdown: defaults.markdown ?? '',
       updatedAt: ts,
       createdAt: ts,
       attributes: defaults.attributes ?? {},
+    }
+
+    // Ensure campaignId is not null for the compound index
+    if (!node.campaignId) {
+      node.campaignId = activeCampaignId
     }
 
     await db.transaction('rw', db.nodes, db.changes, async () => {

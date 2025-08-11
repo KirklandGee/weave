@@ -7,11 +7,25 @@ interface MetadataRow {
   updatedAt: number
 }
 
+interface FolderCache {
+  id: string
+  name: string
+  parentId?: string
+  position: number
+  noteIds: string[]
+  childFolderIds: string[]
+  campaignId: string
+  ownerId: string
+  createdAt: number
+  updatedAt: number
+}
+
 class CampaignDB extends Dexie {
   nodes!: Table<Note, string>
   edges!: Table<Relationship, string>
   changes!: Table<Change, number>
   metadata!: Table<MetadataRow, string>
+  folders!: Table<FolderCache, string>
   constructor(campaignSlug: string) {
     super(`dnd-campaign-${campaignSlug}`)
     this.version(1).stores({
@@ -51,6 +65,14 @@ class CampaignDB extends Dexie {
       metadata: 'id, updatedAt'
     })
   
+    this.version(7).stores({
+      nodes:   'id, ownerId, campaignId, type, updatedAt, hasEmbedding, [ownerId+campaignId]',
+      edges: 'id, fromId, toId, relType, updatedAt, [ownerId+campaignId]',
+      changes: '++id, entity, entityId, op, ts',
+      metadata: 'id, updatedAt',
+      folders: 'id, parentId, campaignId, ownerId, position, updatedAt, [ownerId+campaignId]'
+    })
+  
   }
 }
 
@@ -68,3 +90,5 @@ export function getDb(campaignSlug?: string): CampaignDB {
   _dbCache.set(slug, db);
   return db;
 }
+
+export type { FolderCache }

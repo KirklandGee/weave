@@ -60,7 +60,7 @@ class VectorSearchService:
         # Get the target node's embedding
         target_query = """
             MATCH (n {id: $node_id})
-            WHERE n.embedding IS NOT NULL
+            WHERE n.embedding IS NOT NULL AND NOT n:FOLDER
             RETURN n.embedding AS embedding
         """
 
@@ -113,6 +113,7 @@ class VectorSearchService:
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
+        AND NOT n:FOLDER
         AND (
             (u)-[:OWNS]->(n) OR 
             (u)-[:PART_OF]->(n)
@@ -153,6 +154,7 @@ class VectorSearchService:
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
+        AND NOT n:FOLDER
         
         OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id: $cid})<-[:PART_OF]-(n)
         OPTIONAL MATCH (u)-[:PART_OF]->(n2)
@@ -198,6 +200,7 @@ class VectorSearchService:
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
+        AND NOT n:FOLDER
         
         OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id: $cid})<-[:PART_OF]-(n)
         OPTIONAL MATCH (u)-[:PART_OF]->(n2)
@@ -243,6 +246,7 @@ class VectorSearchService:
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
+        AND NOT n:FOLDER
         
         OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id: $cid})<-[:PART_OF]-(n)
         OPTIONAL MATCH (u)-[:PART_OF]->(n2)
@@ -288,6 +292,7 @@ class VectorSearchService:
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
+        AND NOT n:FOLDER
         
         OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id: $cid})<-[:PART_OF]-(n)
         OPTIONAL MATCH (u)-[:PART_OF]->(n2)
@@ -333,6 +338,7 @@ class VectorSearchService:
         YIELD node AS n, score
         WHERE score >= $threshold 
         AND ($exclude_id IS NULL OR n.id <> $exclude_id)
+        AND NOT n:FOLDER
         
         OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id: $cid})<-[:PART_OF]-(n)
         OPTIONAL MATCH (u)-[:PART_OF]->(n2)
