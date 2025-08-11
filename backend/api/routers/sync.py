@@ -2,6 +2,7 @@ import json
 from typing import Annotated
 from fastapi import APIRouter, Header, Depends, HTTPException
 from backend.models.components import Note, Change, Edge
+from backend.models.folders import Folder, FolderWithChildren
 from backend.services.neo4j import query
 from backend.api.auth import get_current_user
 
@@ -23,19 +24,19 @@ async def get_sidebar_nodes(
             OPTIONAL MATCH (u)-[:PART_OF]->(n2)
             WHERE $cid IS NULL
 
-            WITH coalesce(n1,n2) AS n WHERE n IS NOT NULL
+            WITH coalesce(n1,n2) AS n WHERE n IS NOT NULL AND NOT n:FOLDER
             WITH n, properties(n) AS props
             RETURN {
               id:        props.id,
-              type:      props.type,
-              title:     props.title,
+              type:      coalesce(props.type, 'Note'),
+              title:     coalesce(props.title, props.name, 'Untitled'),
               ownerId:   props.ownerId,      // ← ADD THIS
               campaignId: props.campaignId,  // ← ADD THIS  
               markdown:  props.markdown,
-              updatedAt: props.updatedAt,
-              createdAt: props.createdAt,
+              updatedAt: coalesce(props.updatedAt, 0),
+              createdAt: coalesce(props.createdAt, 0),
               attributes: apoc.map.removeKeys(
-                 props,['id','type','title','markdown','updatedAt','createdAt']
+                 props,['id','type','title','name','markdown','updatedAt','createdAt']
               )
             } AS node
             """,
@@ -123,11 +124,14 @@ async def push_changes(
                 # ---------- CREATE/UPDATE ----------
                 if ch.op in ["create", "upsert"]:
                     props = {**ch.payload, "updatedAt": ch.ts}
+                    print(f"DEBUG: Folder sync payload: {ch.payload}")
+                    print(f"DEBUG: Final props: {props}")
                     
                     _ = query(
                         """
-                        CALL apoc.merge.node(['FOLDER'], {id:$fid}, $props) YIELD node
-                        SET  node.createdAt = coalesce(node.createdAt, $ts),
+                        MERGE (node:FOLDER {id:$fid})
+                        SET  node += $props,
+                             node.createdAt = coalesce(node.createdAt, $ts),
                              node.updatedAt = $ts
                         WITH node
                         MATCH (u:User {id:$user_id})
@@ -243,17 +247,17 @@ async def get_updates(
             OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})<-[:PART_OF]-(n1)
             OPTIONAL MATCH (u)-[:PART_OF]->(n2)
             WITH coalesce(n1,n2) AS n
-            WHERE n.updatedAt > $ts
+            WHERE n.updatedAt > $ts AND NOT n:FOLDER
             WITH n, properties(n) AS props
             RETURN {
               id:        props.id,
-              type:      props.type,
-              title:     props.title,
+              type:      coalesce(props.type, 'Note'),
+              title:     coalesce(props.title, props.name, 'Untitled'),
               markdown:  props.markdown,
-              updatedAt: props.updatedAt,
-              createdAt: props.createdAt,
+              updatedAt: coalesce(props.updatedAt, 0),
+              createdAt: coalesce(props.createdAt, 0),
               attributes: apoc.map.removeKeys(
-                 props,['id','type','title','markdown','updatedAt','createdAt']
+                 props,['id','type','title','name','markdown','updatedAt','createdAt']
               )
             } AS node
             """,
@@ -372,7 +376,7 @@ async def get_node_edges(
 
 
 # ───────────────────────────────────────────────── folder sync ──
-@router.get("/{cid}/folders/since/{ts}")
+@router.get("/{cid}/folders/since/{ts}", response_model=list[FolderWithChildren])
 async def get_folder_updates(
     cid: str,
     ts: int,
@@ -388,23 +392,19 @@ async def get_folder_updates(
             WHERE folder IS NOT NULL AND folder.updatedAt > $ts
             WITH folder, properties(folder) AS props
             
-            // Get contained notes
-            OPTIONAL MATCH (folder)-[:CONTAINS]->(note)
-            WITH folder, props, collect(note.id) AS noteIds
-            
-            // Get child folders  
-            OPTIONAL MATCH (folder)-[:CONTAINS]->(child:FOLDER)
-            WITH folder, props, noteIds, collect(child.id) AS childFolderIds
+            // Note: CONTAINS relationships will be implemented later
+            // For now, return empty arrays to avoid warnings
+            WITH folder, props, [] AS noteIds, [] AS childFolderIds
             
             RETURN {
                 id: props.id,
                 name: props.name,
                 parentId: props.parentId,
-                position: props.position,
+                position: coalesce(props.position, 0),
                 campaignId: props.campaignId,
                 ownerId: props.ownerId,
-                createdAt: props.createdAt,
-                updatedAt: props.updatedAt,
+                createdAt: coalesce(props.createdAt, 0),
+                updatedAt: coalesce(props.updatedAt, 0),
                 noteIds: noteIds,
                 childFolderIds: childFolderIds
             } AS folder
@@ -418,7 +418,7 @@ async def get_folder_updates(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/{cid}/folders")
+@router.get("/{cid}/folders", response_model=list[FolderWithChildren])
 async def get_all_folders(
     cid: str,
     user_id: str = Depends(get_current_user),
@@ -446,11 +446,11 @@ async def get_all_folders(
                 id: props.id,
                 name: props.name,
                 parentId: props.parentId,
-                position: props.position,
+                position: coalesce(props.position, 0),
                 campaignId: props.campaignId,
                 ownerId: props.ownerId,
-                createdAt: props.createdAt,
-                updatedAt: props.updatedAt,
+                createdAt: coalesce(props.createdAt, 0),
+                updatedAt: coalesce(props.updatedAt, 0),
                 noteIds: noteIds,
                 childFolderIds: childFolderIds
             } AS folder
