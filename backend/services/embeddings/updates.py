@@ -47,7 +47,7 @@ class EmbeddingUpdateService:
                n.markdown AS markdown,
                n.embedding AS embedding,
                n.contentHash AS contentHash,
-               n.updatedAt AS updatedAt,
+               n.updatedAt AS updatedAt
         """
 
         node_result = query(node_query, node_id=node_id)
@@ -74,8 +74,7 @@ class EmbeddingUpdateService:
             update_query = """
             MATCH (n {id: $node_id})
             SET n.embedding = $embedding,
-                n.embeddedAt = int(datetime.now().timestamp() * 1000)
-
+                n.embeddedAt = int(datetime.now().timestamp() * 1000),
                 n.contentHash = $content_hash
             """
 
@@ -107,7 +106,7 @@ class EmbeddingUpdateService:
                    n.markdown AS markdown,
                    n.embedding AS embedding,
                    n.contentHash AS contentHash,
-                   n.updatedAt AS updatedAt,
+                   n.updatedAt AS updatedAt
             ORDER BY n.updatedAt DESC
             """
             params = {}
@@ -121,7 +120,7 @@ class EmbeddingUpdateService:
                    n.markdown AS markdown,
                    n.embedding AS embedding,
                    n.contentHash AS contentHash,
-                   n.updatedAt AS updatedAt,
+                   n.updatedAt AS updatedAt
             ORDER BY n.updatedAt DESC
             """
             params = {"campaign_id": campaign_id}

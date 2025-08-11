@@ -33,8 +33,8 @@ async def get_sidebar_nodes(
               ownerId:   props.ownerId,      // ← ADD THIS
               campaignId: props.campaignId,  // ← ADD THIS  
               markdown:  props.markdown,
-              updatedAt: coalesce(props.updatedAt, 0),
-              createdAt: coalesce(props.createdAt, 0),
+              updatedAt: props.updatedAt,
+              createdAt: props.createdAt,
               attributes: apoc.map.removeKeys(
                  props,['id','type','title','name','markdown','updatedAt','createdAt']
               )
@@ -254,8 +254,8 @@ async def get_updates(
               type:      coalesce(props.type, 'Note'),
               title:     coalesce(props.title, props.name, 'Untitled'),
               markdown:  props.markdown,
-              updatedAt: coalesce(props.updatedAt, 0),
-              createdAt: coalesce(props.createdAt, 0),
+              updatedAt: props.updatedAt,
+              createdAt: props.createdAt,
               attributes: apoc.map.removeKeys(
                  props,['id','type','title','name','markdown','updatedAt','createdAt']
               )

@@ -19,8 +19,8 @@ def ensure_user_exists(user_id: str):
         result = query(
             """
             MERGE (u:User {id: $user_id})
-            ON CREATE SET u.created_at = datetime(), u.updated_at = datetime()
-            ON MATCH SET u.updated_at = datetime()
+            ON CREATE SET u.createdAt = timestamp(), u.updatedAt = timestamp()
+            ON MATCH SET u.updatedAt = timestamp()
             RETURN u.id as id
             """,
             user_id=user_id,

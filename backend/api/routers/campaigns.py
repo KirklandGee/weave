@@ -35,21 +35,42 @@ async def add_campaign(
                 id: $campaign_id,
                 title: $title,
                 markdown: $markdown,
-                created_at: $created_at,
-                updated_at: $updated_at
+                createdAt: $createdAt,
+                updatedAt: $updatedAt
             })
             CREATE (u)-[:OWNS]->(c)
-            RETURN c.id as id, c.title as title, c.created_at as created_at, c.updated_at as updated_at
+            RETURN c.id as id, c.title as title, c.createdAt as createdAt, c.updatedAt as updatedAt
             """,
             user_id=current_user,
             campaign_id=campaign_id,
             title=campaign_data.title,
             markdown=campaign_data.markdown,
-            created_at=metadata.created_at.isoformat(),
-            updated_at=metadata.updated_at.isoformat(),
+            createdAt=int(metadata.created_at.timestamp() * 1000),
+            updatedAt=int(metadata.updated_at.timestamp() * 1000),
         )
 
         if result:
+            # Trigger embedding generation for the new campaign
+            try:
+                from backend.services.sync_hooks import get_sync_embedding_hook
+                from backend.models.components import Change
+                
+                hook = get_sync_embedding_hook()
+                
+                # Create a change object to trigger embedding
+                change = Change(
+                    entity="node",
+                    entityId=campaign_id,
+                    op="create",
+                    payload={"title": campaign_data.title, "markdown": campaign_data.markdown},
+                    ts=int(metadata.created_at.timestamp() * 1000)
+                )
+                
+                hook.on_sync_changes([change])
+            except Exception as e:
+                print(f"Warning: Failed to trigger embedding for new campaign: {e}")
+                # Don't fail the request if embedding fails
+            
             return {"message": "Campaign created successfully!", "campaign": result[0]}
         else:
             raise HTTPException(status_code=500, detail="Failed to create campaign")
@@ -82,8 +103,8 @@ async def get_user_campaigns(current_user: str = Depends(get_current_user)):
         result = query(
             """
             MATCH (u:User {id: $user_id})-[:OWNS]->(c:Campaign)
-            RETURN c.id as id, c.title as title, c.created_at as created_at, c.updated_at as updated_at
-            ORDER BY c.updated_at DESC
+            RETURN c.id as id, c.title as title, c.createdAt as createdAt, c.updatedAt as updatedAt
+            ORDER BY c.updatedAt DESC
             """,
             user_id=current_user,
         )
@@ -95,8 +116,8 @@ async def get_user_campaigns(current_user: str = Depends(get_current_user)):
                     "id": record["id"],
                     "title": record["title"],
                     "slug": record["id"],  # Use ID as slug for now
-                    "created_at": record["created_at"],
-                    "updated_at": record["updated_at"],
+                    "created_at": record["createdAt"],
+                    "updated_at": record["updatedAt"],
                 }
             )
 

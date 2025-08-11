@@ -19,6 +19,7 @@ from backend.services.neo4j import query, verify
 from backend.services.neo4j.setup_embeddings import (
     create_vector_index,
     check_vector_index,
+    migrate_to_new_dimensions,
 )
 from backend.services.embeddings.service import get_embedding_service
 
@@ -80,10 +81,13 @@ async def generate_initial_embeddings():
                 content_hash = hashlib.md5(text_to_embed.encode()).hexdigest()
 
                 # Store embedding
+                import time
+                timestamp = int(time.time() * 1000)
+                
                 update_query = """
                 MATCH (n {id: $node_id})
                 SET n.embedding = $embedding, 
-                    n.embeddedAt = int(datetime.now().timestamp() * 1000)
+                    n.embeddedAt = $timestamp,
                     n.contentHash = $content_hash
                 """
                 query(
@@ -91,6 +95,7 @@ async def generate_initial_embeddings():
                     node_id=node["id"],
                     embedding=embedding,
                     content_hash=content_hash,
+                    timestamp=timestamp,
                 )
 
                 success_count += 1
@@ -117,7 +122,15 @@ async def generate_initial_embeddings():
 
 async def main():
     """Main setup function."""
-    print("🚀 Starting embedding setup for AI RPG Manager...")
+    import sys
+    
+    # Check if migration flag is passed
+    migrate = "--migrate" in sys.argv
+    
+    if migrate:
+        print("🚀 Starting embedding migration to OpenAI dimensions...")
+    else:
+        print("🚀 Starting embedding setup for AI RPG Manager...")
 
     try:
         # Verify Neo4j connection
@@ -125,10 +138,14 @@ async def main():
         verify()
         print("✅ Neo4j connection verified")
 
-        # Set up vector index
-        if not await setup_vector_index():
-            print("❌ Failed to set up vector index. Aborting.")
-            return
+        if migrate:
+            # Run migration process
+            migrate_to_new_dimensions()
+        else:
+            # Set up vector index (normal setup)
+            if not await setup_vector_index():
+                print("❌ Failed to set up vector index. Aborting.")
+                return
 
         # Wait a moment for index to be ready
         print("\n⏳ Waiting for index to be ready...")

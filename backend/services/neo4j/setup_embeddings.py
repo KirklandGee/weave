@@ -14,7 +14,7 @@ def create_vector_index():
     try:
         query(
             """
-        CREATE VECTOR INDEX campaignEmbeddings IF NOT EXISTS
+        CREATE VECTOR INDEX campaignEmbeddings
         FOR (n:Campaign)
         ON n.embedding
         OPTIONS { 
@@ -34,7 +34,7 @@ def create_vector_index():
     try:
         query(
             """
-        CREATE VECTOR INDEX sessionEmbeddings IF NOT EXISTS
+        CREATE VECTOR INDEX sessionEmbeddings
         FOR (n:Session)
         ON n.embedding
         OPTIONS { 
@@ -54,7 +54,7 @@ def create_vector_index():
     try:
         query(
             """
-        CREATE VECTOR INDEX npcEmbeddings IF NOT EXISTS
+        CREATE VECTOR INDEX npcEmbeddings
         FOR (n:NPC)
         ON n.embedding
         OPTIONS { 
@@ -74,7 +74,7 @@ def create_vector_index():
     try:
         query(
             """
-        CREATE VECTOR INDEX characterEmbeddings IF NOT EXISTS
+        CREATE VECTOR INDEX characterEmbeddings
         FOR (n:Character)
         ON n.embedding
         OPTIONS { 
@@ -94,7 +94,7 @@ def create_vector_index():
     try:
         query(
             """
-        CREATE VECTOR INDEX locationEmbeddings IF NOT EXISTS
+        CREATE VECTOR INDEX locationEmbeddings
         FOR (n:Location)
         ON n.embedding
         OPTIONS { 
@@ -114,7 +114,7 @@ def create_vector_index():
     try:
         query(
             """
-        CREATE VECTOR INDEX noteEmbeddings IF NOT EXISTS
+        CREATE VECTOR INDEX noteEmbeddings
         FOR (n:Note)
         ON n.embedding
         OPTIONS { 
@@ -156,9 +156,51 @@ def drop_vector_indexes():
             index_name = idx.get("name")
             if index_name and "Embeddings" in index_name:
                 try:
-                    query("DROP INDEX $index_name", index_name=index_name)
+                    query(f"DROP INDEX {index_name}")
                     print(f"Dropped vector index: {index_name}")
                 except Exception as e:
                     print(f"Error dropping index {index_name}: {e}")
     except Exception as e:
         print(f"Error listing indexes to drop: {e}")
+
+
+def clear_all_embeddings():
+    """Clear all existing embeddings and content hashes from the database."""
+    try:
+        result = query(
+            """
+            MATCH (n)
+            WHERE n.embedding IS NOT NULL
+            SET n.embedding = NULL, 
+                n.contentHash = NULL,
+                n.embeddedAt = NULL
+            RETURN count(n) as cleared
+            """
+        )
+        
+        if result:
+            count = result[0].get("cleared", 0)
+            print(f"Cleared embeddings from {count} nodes")
+        else:
+            print("No embeddings found to clear")
+    except Exception as e:
+        print(f"Error clearing embeddings: {e}")
+
+
+def migrate_to_new_dimensions():
+    """Complete migration process: drop indexes, clear embeddings, recreate indexes."""
+    print("🔄 Starting migration to new embedding dimensions...")
+    
+    # Step 1: Drop existing vector indexes
+    print("\n1. Dropping existing vector indexes...")
+    drop_vector_indexes()
+    
+    # Step 2: Clear all existing embeddings
+    print("\n2. Clearing existing embeddings...")
+    clear_all_embeddings()
+    
+    # Step 3: Recreate indexes with new dimensions
+    print("\n3. Creating new vector indexes...")
+    create_vector_index()
+    
+    print("\n✅ Migration completed successfully!")

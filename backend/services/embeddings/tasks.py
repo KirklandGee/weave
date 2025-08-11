@@ -57,7 +57,7 @@ def process_node_embedding(node_id: str, force: bool = False) -> Dict[str, Any]:
                 """
                 MATCH (n {id: $node_id})
                 SET n.embedding = $embedding, 
-                    n.embeddedAt = datetime(),
+                    n.embeddedAt = timestamp(),
                     n.contentHash = $content_hash
                 """,
                 node_id=node_id,

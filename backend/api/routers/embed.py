@@ -48,7 +48,7 @@ async def embed_node(node_id: str, uid: UserIdHeader, force: bool = False):
                 """
                 MATCH (n {id: $node_id})
                 SET n.embedding = $embedding, 
-                    n.embeddedAt = datetime(),
+                    n.embeddedAt = timestamp(),
                     n.contentHash = $content_hash
             """,
                 node_id=node_id,
