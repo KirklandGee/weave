@@ -78,6 +78,7 @@ services:
     # Remove volumes for production-like build (use for development if needed)
     volumes:
       - .:/app
+      - /app/backend/.venv
     working_dir: /app/backend
     command: uv run python worker.py
 
