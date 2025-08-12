@@ -57,8 +57,14 @@ export async function searchNotes(
   try {
     const db = getDb(currentCampaign)
 
-    // Get all notes in campaign
+    // Get all notes in campaign, excluding chat-related types
     let allNotes = await db.nodes.toArray()
+
+    // Always exclude chat sessions and chat messages from search
+    allNotes = allNotes.filter(note => 
+      note.type !== 'ChatSession' && 
+      note.type !== 'ChatMessage'
+    )
 
     // Filter by types if specified
     if (types.length > 0) {

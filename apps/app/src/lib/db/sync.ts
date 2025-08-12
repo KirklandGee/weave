@@ -97,6 +97,24 @@ export async function pushPull(
 
     if (freshFolders.length) await db.folders.bulkPut(freshFolders);
 
+    // 5. pull fresh chat sessions
+    const lastChat = (await db.chats.orderBy('updatedAt').last())?.updatedAt ?? 0;
+    const freshChats = await authFetch(
+      `${API}/${campaignSlug}/chats/since/${lastChat}`,
+      { headers: { 'Content-Type':'application/json' } }
+    ).then(r => r.json());
+
+    if (freshChats.length) await db.chats.bulkPut(freshChats);
+
+    // 6. pull fresh chat messages
+    const lastChatMessage = (await db.chatMessages.orderBy('createdAt').last())?.createdAt ?? 0;
+    const freshChatMessages = await authFetch(
+      `${API}/${campaignSlug}/chat-messages/since/${lastChatMessage}`,
+      { headers: { 'Content-Type':'application/json' } }
+    ).then(r => r.json());
+
+    if (freshChatMessages.length) await db.chatMessages.bulkPut(freshChatMessages);
+
     await setSyncState(campaignSlug, 'idle')
   } catch (error) {
     console.error('Sync failed:', error)

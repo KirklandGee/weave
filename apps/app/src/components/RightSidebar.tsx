@@ -43,9 +43,17 @@ export default function RightSidebar({
     input,
     setInput,
     isLoading,
+    isCompacting,
     messagesEndRef,
     handleSubmit,
     clearChat,
+    chatSessions,
+    currentChatId,
+    onNewChat,
+    onSwitchChat,
+    onDeleteChat,
+    onCompactChat,
+    checkCompactionStatus,
   } = useLLMChat(campaign, activeNodeId);
 
   if (!node) return null;
@@ -110,9 +118,17 @@ export default function RightSidebar({
             input={input}
             setInput={setInput}
             isLoading={isLoading}
+            isCompacting={isCompacting}
             messagesEndRef={messagesEndRef}
             onSubmit={handleSubmit}
             onClear={clearChat}
+            chatSessions={chatSessions}
+            currentChatId={currentChatId}
+            onNewChat={onNewChat}
+            onSwitchChat={onSwitchChat}
+            onDeleteChat={onDeleteChat}
+            onCompactChat={onCompactChat}
+            checkCompactionStatus={checkCompactionStatus}
           />
         )}
       </div>

@@ -1,17 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LLMMessage } from '@/types/llm';
-import { Trash2, Send } from 'lucide-react';
+import { Trash2, Send, Plus, MessageSquare, ChevronDown, Zap, AlertTriangle } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { ChatSession } from '@/lib/db/campaignDB';
 
 interface LLMChatPanelProps {
   messages: LLMMessage[];
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
+  isCompacting?: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onSubmit: (e: React.FormEvent) => void;
   onClear: () => void;
   placeholder?: string;
+  // Chat session management
+  chatSessions?: ChatSession[];
+  currentChatId?: string | null;
+  onNewChat?: () => void;
+  onSwitchChat?: (chatId: string) => void;
+  onDeleteChat?: (chatId: string) => void;
+  onCompactChat?: () => Promise<any>;
+  checkCompactionStatus?: (chatId: string) => Promise<{ needsCompaction: boolean; messageCount: number; estimatedTokens: number }>;
 }
 
 export default function LLMChatPanel({
@@ -19,11 +29,33 @@ export default function LLMChatPanel({
   input,
   setInput,
   isLoading,
+  isCompacting = false,
   messagesEndRef,
   onSubmit,
   onClear,
-  placeholder = 'Ask me anything...'
+  placeholder = 'Ask me anything...',
+  chatSessions = [],
+  currentChatId,
+  onNewChat,
+  onSwitchChat,
+  onDeleteChat,
+  onCompactChat,
+  checkCompactionStatus
 }: LLMChatPanelProps) {
+  const [showChatDropdown, setShowChatDropdown] = useState(false);
+  const [compactionStatus, setCompactionStatus] = useState<{ needsCompaction: boolean; messageCount: number; estimatedTokens: number } | null>(null);
+  
+  // Check compaction status when currentChatId changes
+  useEffect(() => {
+    if (currentChatId && checkCompactionStatus) {
+      checkCompactionStatus(currentChatId).then(status => {
+        setCompactionStatus(status);
+      });
+    } else {
+      setCompactionStatus(null);
+    }
+  }, [currentChatId, messages.length, checkCompactionStatus]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -31,18 +63,124 @@ export default function LLMChatPanel({
     }
   };
 
+  const handleCompact = async () => {
+    if (onCompactChat) {
+      const result = await onCompactChat();
+      if (result) {
+        // Refresh compaction status
+        if (currentChatId && checkCompactionStatus) {
+          const status = await checkCompactionStatus(currentChatId);
+          setCompactionStatus(status);
+        }
+      }
+    }
+  };
+
+  const currentChat = chatSessions.find(chat => chat.id === currentChatId);
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 flex-shrink-0">
-        <h4 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">AI Assistant</h4>
-        <button 
-          onClick={onClear}
-          className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
-          title="Clear Chat History"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">AI Assistant</h4>
+          {chatSessions.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowChatDropdown(!showChatDropdown)}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-300 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700 transition-colors"
+              >
+                <MessageSquare size={12} />
+                <span className="max-w-24 truncate">
+                  {currentChat?.title || 'Select Chat'}
+                </span>
+                <ChevronDown size={12} className={`transition-transform ${showChatDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showChatDropdown && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-zinc-800 border border-zinc-700 rounded shadow-lg z-50">
+                  <div className="max-h-48 overflow-y-auto">
+                    {onNewChat && (
+                      <button
+                        onClick={() => {
+                          onNewChat();
+                          setShowChatDropdown(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 flex items-center gap-2 border-b border-zinc-700"
+                      >
+                        <Plus size={12} />
+                        New Chat
+                      </button>
+                    )}
+                    {chatSessions.map(chat => (
+                      <div key={chat.id} className="flex items-center">
+                        <button
+                          onClick={() => {
+                            onSwitchChat?.(chat.id);
+                            setShowChatDropdown(false);
+                          }}
+                          className={`flex-1 px-3 py-2 text-left text-xs hover:bg-zinc-700 transition-colors ${
+                            chat.id === currentChatId ? 'bg-zinc-700 text-amber-400' : 'text-zinc-300'
+                          }`}
+                        >
+                          <div className="truncate font-medium">{chat.title}</div>
+                          <div className="text-zinc-500 text-xs">
+                            {chat.messageCount} messages • {new Date(chat.updatedAt).toLocaleDateString()}
+                          </div>
+                        </button>
+                        {onDeleteChat && chatSessions.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteChat(chat.id);
+                            }}
+                            className="px-2 py-2 text-zinc-500 hover:text-red-400 hover:bg-red-900/20"
+                            title="Delete Chat"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-1">
+          {compactionStatus?.needsCompaction && onCompactChat && (
+            <button 
+              onClick={handleCompact}
+              disabled={isCompacting}
+              className="flex items-center justify-center w-7 h-7 text-amber-400 hover:text-amber-300 hover:bg-amber-900/20 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={`Compact chat (${compactionStatus.messageCount} messages, ~${compactionStatus.estimatedTokens} tokens)`}
+            >
+              {isCompacting ? (
+                <div className="w-3 h-3 border border-amber-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Zap size={14} />
+              )}
+            </button>
+          )}
+          {onNewChat && (
+            <button 
+              onClick={onNewChat}
+              className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-amber-400 hover:bg-amber-900/20 rounded-md transition-colors"
+              title="New Chat"
+            >
+              <Plus size={14} />
+            </button>
+          )}
+          <button 
+            onClick={onClear}
+            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
+            title="Clear Current Chat"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -51,6 +189,38 @@ export default function LLMChatPanel({
           {messages.length === 0 && (
             <div className="text-center py-8">
               <p className="text-zinc-500 text-sm">Ask me anything about your campaign!</p>
+            </div>
+          )}
+          {compactionStatus?.needsCompaction && (
+            <div className="bg-amber-900/20 border border-amber-600/20 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 text-amber-400">
+                <AlertTriangle size={16} />
+                <span className="text-sm font-medium">Chat Getting Long</span>
+              </div>
+              <p className="text-xs text-amber-300 mt-1">
+                {compactionStatus.messageCount} messages (~{compactionStatus.estimatedTokens} tokens). 
+                Consider compacting to improve performance and reduce costs.
+              </p>
+              {onCompactChat && (
+                <button
+                  onClick={handleCompact}
+                  disabled={isCompacting}
+                  className="mt-2 px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-800 text-white text-xs rounded disabled:cursor-not-allowed transition-colors"
+                >
+                  {isCompacting ? 'Compacting...' : 'Compact Now'}
+                </button>
+              )}
+            </div>
+          )}
+          {isCompacting && (
+            <div className="bg-blue-900/20 border border-blue-600/20 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 text-blue-400">
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium">Compacting conversation...</span>
+              </div>
+              <p className="text-xs text-blue-300 mt-1">
+                Summarizing older messages to reduce token usage.
+              </p>
             </div>
           )}
           {messages.map((msg, idx) => (

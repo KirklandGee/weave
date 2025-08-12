@@ -51,7 +51,7 @@ class MarkdownNodeBase(BaseModel):
 
 class Change(BaseModel):
     op: str  # create | update | delete | upsert
-    entity: Literal["node", "edge", "folders"]
+    entity: Literal["node", "edge", "folders", "chats", "chatMessages"]
     entityId: str
     payload: dict[str, Any]
     ts: int  # epoch ms

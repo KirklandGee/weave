@@ -20,12 +20,38 @@ interface FolderCache {
   updatedAt: number
 }
 
+interface ChatSession {
+  id: string
+  campaignId: string
+  ownerId: string
+  title: string
+  contextNodeId?: string
+  createdAt: number
+  updatedAt: number
+  messageCount: number
+  isCompacted?: boolean
+}
+
+interface ChatMessage {
+  id: string
+  chatId: string
+  campaignId: string
+  ownerId: string
+  role: 'human' | 'ai' | 'system'
+  content: string
+  createdAt: number
+  metadata?: Record<string, unknown>
+  isCompacted?: boolean
+}
+
 class CampaignDB extends Dexie {
   nodes!: Table<Note, string>
   edges!: Table<Relationship, string>
   changes!: Table<Change, number>
   metadata!: Table<MetadataRow, string>
   folders!: Table<FolderCache, string>
+  chats!: Table<ChatSession, string>
+  chatMessages!: Table<ChatMessage, string>
   constructor(campaignSlug: string) {
     super(`dnd-campaign-${campaignSlug}`)
     this.version(1).stores({
@@ -72,6 +98,16 @@ class CampaignDB extends Dexie {
       metadata: 'id, updatedAt',
       folders: 'id, parentId, campaignId, ownerId, position, updatedAt, [ownerId+campaignId]'
     })
+
+    this.version(8).stores({
+      nodes:   'id, ownerId, campaignId, type, updatedAt, hasEmbedding, [ownerId+campaignId]',
+      edges: 'id, fromId, toId, relType, updatedAt, [ownerId+campaignId]',
+      changes: '++id, entity, entityId, op, ts',
+      metadata: 'id, updatedAt',
+      folders: 'id, parentId, campaignId, ownerId, position, updatedAt, [ownerId+campaignId]',
+      chats: 'id, campaignId, ownerId, title, createdAt, updatedAt, [ownerId+campaignId]',
+      chatMessages: 'id, chatId, campaignId, ownerId, role, createdAt, [chatId+createdAt]'
+    })
   
   }
 }
@@ -91,4 +127,4 @@ export function getDb(campaignSlug?: string): CampaignDB {
   return db;
 }
 
-export type { FolderCache }
+export type { FolderCache, ChatSession, ChatMessage }

@@ -1,18 +1,41 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChatRequest, LLMMessage } from '@/types/llm';
 import { useLLMContext } from '@/lib/hooks/useLLMContext';
 import { useTemplateContext } from '@/lib/hooks/useTemplateContext';
 import { useAuthFetch } from '@/utils/authFetch.client';
+import { useChatHistory } from '@/lib/hooks/useChatHistory';
 
-export function useLLMChat(campaign: string, activeNodeId: string) {
+export function useLLMChat(campaign: string, activeNodeId: string, ownerId: string = 'demo-user') {
   const contextString = useLLMContext(campaign, activeNodeId);
   const templateContextString = useTemplateContext(campaign, activeNodeId);
   const authFetch = useAuthFetch();
   
-  const [messages, setMessages] = useState<LLMMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Use chat history hook for persistent storage
+  const {
+    chatSessions,
+    currentChatId, 
+    messages: chatMessages,
+    isLoading: chatLoading,
+    isCompacting,
+    createNewChat,
+    addMessage,
+    updateMessage,
+    switchToChat,
+    deleteChat,
+    clearCurrentChat,
+    compactCurrentChat,
+    checkCompactionStatus
+  } = useChatHistory(campaign, ownerId, authFetch);
+
+  // Convert chat messages to LLM format
+  const messages: LLMMessage[] = chatMessages.map(msg => ({
+    role: msg.role,
+    content: msg.content
+  }));
 
   // Note: Removed auto-scroll to avoid interrupting user reading experience
 
@@ -21,13 +44,15 @@ export function useLLMChat(campaign: string, activeNodeId: string) {
     if (!input.trim() || isLoading) return;
 
     const userMessage: LLMMessage = { role: 'human', content: input.trim() };
-    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
+    // Add user message to chat history
+    await addMessage('human', userMessage.content);
+
     try {
       const chatRequest: ChatRequest = {
-        user_id: 'demo-user',
+        user_id: ownerId,
         messages: [...messages, userMessage],
         metadata: {},
         context: contextString,
@@ -45,38 +70,72 @@ export function useLLMChat(campaign: string, activeNodeId: string) {
       if (!reader) throw new Error('No reader available');
 
       let accumulated = '';
-      setMessages(prev => [...prev, { role: 'ai', content: '' }]);
+      // Add placeholder AI message that will be updated
+      const placeholderMessageId = await addMessage('ai', '');
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = new TextDecoder().decode(value);
         accumulated += chunk;
-        setMessages(prev => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: 'ai', content: accumulated };
-          return copy;
-        });
+        
+        // Update the message in real-time for better UX
+        if (placeholderMessageId) {
+          await updateMessage(placeholderMessageId, accumulated);
+        }
+      }
+      
+      // Final update to ensure message is properly saved
+      if (accumulated && placeholderMessageId) {
+        await updateMessage(placeholderMessageId, accumulated);
       }
     } catch (err) {
       console.error(err);
-      setMessages(prev => [...prev, { role: 'ai', content: 'Error processing request, please try again.' }]);
+      await addMessage('ai', 'Error processing request, please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const clearChat = () => setMessages([]);
+  const handleNewChat = async () => {
+    await createNewChat(undefined, activeNodeId);
+  };
+
+  const handleSwitchChat = (chatId: string) => {
+    switchToChat(chatId);
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    await deleteChat(chatId);
+  };
+
+  const handleClearChat = async () => {
+    await clearCurrentChat();
+  };
+
+  const handleCompactChat = async () => {
+    if (!currentChatId) return null;
+    return await compactCurrentChat();
+  };
 
   return {
     messages,
     input,
     setInput,
-    isLoading,
+    isLoading: isLoading || chatLoading,
+    isCompacting,
     messagesEndRef,
     contextString,
     templateContextString,
     handleSubmit,
-    clearChat,
+    clearChat: handleClearChat,
+    // Chat session management
+    chatSessions,
+    currentChatId,
+    onNewChat: handleNewChat,
+    onSwitchChat: handleSwitchChat,
+    onDeleteChat: handleDeleteChat,
+    onCompactChat: handleCompactChat,
+    checkCompactionStatus,
   };
 }
