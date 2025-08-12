@@ -299,34 +299,44 @@ export default function Tiptap({
     if (!editor) return
     
     // Only update if content actually changed and is different from last known content
-    if (content !== lastContent.current && content !== editor.getHTML()) {
-      // Clear typing state when switching notes to prevent stale saves
-      isTyping.current = false
-      if (typingTimer.current) {
-        clearTimeout(typingTimer.current)
-        typingTimer.current = null
-      }
+    if (content !== lastContent.current) {
+      // Check if the new content would produce different HTML from what's currently in editor
+      // This avoids unnecessary updates when the markdown content is semantically the same
+      const currentMarkdownFromEditor = htmlToMd(editor.getHTML())
       
-      // Save cursor position before updating
-      const { from, to } = editor.state.selection
-      const isFocused = editor.isFocused
-      
-      localUpdate.current = true
-      lastContent.current = content
-      editor.commands.setContent(content, { emitUpdate: false })
-      
-      // Restore cursor position if editor was focused
-      if (isFocused) {
-        setTimeout(() => {
-          const maxPos = editor.state.doc.content.size
-          const safeFrom = Math.min(from, maxPos)
-          const safeTo = Math.min(to, maxPos)
-          
-          if (safeFrom <= maxPos && safeTo <= maxPos) {
-            editor.commands.setTextSelection({ from: safeFrom, to: safeTo })
-            editor.commands.focus()
-          }
-        }, 0)
+      // Only update if the markdown content is actually different
+      if (content !== currentMarkdownFromEditor) {
+        // Clear typing state when switching notes to prevent stale saves
+        isTyping.current = false
+        if (typingTimer.current) {
+          clearTimeout(typingTimer.current)
+          typingTimer.current = null
+        }
+        
+        // Save cursor position before updating
+        const { from, to } = editor.state.selection
+        const isFocused = editor.isFocused
+        
+        localUpdate.current = true
+        lastContent.current = content
+        editor.commands.setContent(content, { emitUpdate: false })
+        
+        // Restore cursor position if editor was focused
+        if (isFocused) {
+          setTimeout(() => {
+            const maxPos = editor.state.doc.content.size
+            const safeFrom = Math.min(from, maxPos)
+            const safeTo = Math.min(to, maxPos)
+            
+            if (safeFrom <= maxPos && safeTo <= maxPos) {
+              editor.commands.setTextSelection({ from: safeFrom, to: safeTo })
+              editor.commands.focus()
+            }
+          }, 0)
+        }
+      } else {
+        // Content is semantically the same, just update our tracking
+        lastContent.current = content
       }
     }
   }, [content, editor])
