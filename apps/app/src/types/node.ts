@@ -17,7 +17,7 @@ export interface Note {
 export type Change = {
   id?: number                 // Dexie auto-key
   op: 'create' | 'update' | 'delete' | 'upsert'
-  entity: 'node' | 'edge' | 'folders'
+  entity: 'node' | 'edge' | 'folders' | 'chats' | 'chatMessages'
   entityId: string,
   payload: Partial<Note> | Record<string, unknown> // Can be note data or folder data
   ts: number                  // epoch ms

@@ -243,11 +243,11 @@ export function useTemplateGeneration(campaignSlug: string) {
 
     // Cleanup on unmount
     return () => {
-      const intervals = pollingIntervalsRef.current;
-      intervals.forEach((intervalId) => {
+      const currentIntervals = pollingIntervalsRef.current;
+      currentIntervals.forEach((intervalId) => {
         clearInterval(intervalId);
       });
-      intervals.clear();
+      currentIntervals.clear();
     };
   }, [campaignSlug, startPollingForGeneratingNotes]);
 

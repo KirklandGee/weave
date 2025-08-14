@@ -20,7 +20,7 @@ interface LLMChatPanelProps {
   onNewChat?: () => void;
   onSwitchChat?: (chatId: string) => void;
   onDeleteChat?: (chatId: string) => void;
-  onCompactChat?: () => Promise<any>;
+  onCompactChat?: () => Promise<{ summarizedContent: string; messageCount: number; tokensSaved: number } | null>;
   checkCompactionStatus?: (chatId: string) => Promise<{ needsCompaction: boolean; messageCount: number; estimatedTokens: number }>;
 }
 

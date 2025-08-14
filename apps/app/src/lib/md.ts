@@ -46,7 +46,9 @@ const td = new TurndownService({
     if (node.nodeName === 'H6') {
       return '###### '
     }
-    return node.isBlock ? '\n\n' : ''
+    // Check if it's a block element
+    const blockElements = ['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'PRE', 'UL', 'OL', 'LI', 'HR', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH'];
+    return blockElements.includes(node.nodeName) ? '\n\n' : ''
   }
 })
 

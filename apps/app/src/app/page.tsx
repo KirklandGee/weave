@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useCampaignNodes } from '@/lib/hooks/useCampaignNodes'
 import { useActiveNode } from '@/lib/hooks/useActiveNode'
 import { createNodeOps } from '@/lib/hooks/useNodeOps'
@@ -94,7 +94,7 @@ export default function Home() {
   }
 
   // Handle creating new notes from command palette  
-  const handleCreateNote = async (type?: string, title?: string) => {
+  const handleCreateNote = useCallback(async (type?: string, title?: string) => {
     const ts = Date.now()
     const id = nanoid()
 
@@ -122,7 +122,7 @@ export default function Home() {
       if (exists) return prev
       return [{ ...newRow, id: nodeId }, ...prev]
     })
-  }
+  }, [nodeOps, currentCampaign, setActiveId, setEditingNoteTitle, setNodes])
 
   // Handle importing markdown files
   const handleImportMarkdown = async (files: File[], campaignSlug: string) => {
@@ -335,7 +335,7 @@ export default function Home() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [rightSidebarMode, showRightSidebar]);
+  }, [rightSidebarMode, showRightSidebar, handleCreateNote]);
 
   // Handle campaigns loading state
   if (isLoading) {

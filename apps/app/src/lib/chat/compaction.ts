@@ -1,4 +1,4 @@
-import { getDb, ChatMessage, ChatSession } from '@/lib/db/campaignDB';
+import { getDb, ChatMessage } from '@/lib/db/campaignDB';
 
 const COMPACTION_THRESHOLD = 50; // Messages before compaction
 const KEEP_RECENT_COUNT = 20; // Messages to keep uncompacted
@@ -20,19 +20,21 @@ export class ChatCompactionService {
 
   async shouldCompact(chatId: string): Promise<boolean> {
     const db = getDb(this.campaign);
-    const messageCount = await db.chatMessages.where('chatId').equals(chatId).count();
+    const messageCount: number = await db.chatMessages.where('chatId').equals(chatId).count();
     return messageCount > COMPACTION_THRESHOLD;
   }
 
   async compactChatHistory(chatId: string, authFetch: (url: string, options?: RequestInit) => Promise<Response>): Promise<CompactionResult | null> {
     const db = getDb(this.campaign);
     
-    // Get all messages for this chat, ordered by creation time
+    // Get all messages for this chat, then sort by creation time
     const allMessages = await db.chatMessages
       .where('chatId')
       .equals(chatId)
-      .orderBy('createdAt')
       .toArray();
+    
+    // Sort by createdAt in ascending order
+    allMessages.sort((a, b) => a.createdAt - b.createdAt);
 
     if (allMessages.length <= COMPACTION_THRESHOLD) {
       return null; // No need to compact
@@ -40,7 +42,7 @@ export class ChatCompactionService {
 
     // Split into messages to compact and recent messages to keep
     const messagesToCompact = allMessages.slice(0, -KEEP_RECENT_COUNT);
-    const recentMessages = allMessages.slice(-KEEP_RECENT_COUNT);
+    // const recentMessages = allMessages.slice(-KEEP_RECENT_COUNT);
 
     if (messagesToCompact.length === 0) {
       return null;

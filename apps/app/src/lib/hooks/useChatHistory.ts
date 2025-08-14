@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getDb, ChatSession, ChatMessage } from '@/lib/db/campaignDB';
 import { useChatCompaction } from '@/lib/chat/compaction';
 import { useChatCleanup } from '@/lib/chat/cleanup';
@@ -11,8 +11,42 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
   const [isCompacting, setIsCompacting] = useState(false);
 
   const db = getDb(campaign);
-  const { compactChat, shouldCompact, getStatus } = useChatCompaction(campaign, ownerId);
-  const { runCleanup, getCleanupStats } = useChatCleanup(campaign, ownerId, authFetch);
+  const { compactChat, getStatus } = useChatCompaction(campaign, ownerId);
+  const { runCleanup } = useChatCleanup(campaign, ownerId, authFetch);
+
+  const createNewChat = useCallback(async (title?: string, contextNodeId?: string): Promise<string> => {
+    const chatId = crypto.randomUUID();
+    const now = Date.now();
+    
+    const newChat: ChatSession = {
+      id: chatId,
+      campaignId: campaign,
+      ownerId,
+      title: title || 'New Chat',
+      contextNodeId,
+      createdAt: now,
+      updatedAt: now,
+      messageCount: 0,
+      isCompacted: false
+    };
+
+    await db.chats.add(newChat);
+    
+    // Add to changes for sync
+    await db.changes.add({
+      op: 'create',
+      entity: 'chats',
+      entityId: chatId,
+      payload: newChat,
+      ts: now
+    });
+
+    setChatSessions(prev => [newChat, ...prev]);
+    setCurrentChatId(chatId);
+    setMessages([]);
+    
+    return chatId;
+  }, [campaign, ownerId, db.chats, db.changes, setChatSessions, setCurrentChatId, setMessages]);
 
   // Load chat sessions on mount
   useEffect(() => {
@@ -48,7 +82,7 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     };
 
     loadChatSessions();
-  }, [campaign, ownerId]);
+  }, [campaign, ownerId, createNewChat, currentChatId, db.chats]);
 
   // Load messages when chat changes
   useEffect(() => {
@@ -86,51 +120,15 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     const runInitialCleanup = async () => {
       try {
         // Only run cleanup if it should actually run (checks 24hr interval)
-        const shouldCleanup = await getCleanupStats();
-        if (shouldCleanup.expiredChatsCount > 0) {
-          await runCleanup();
-        }
+        await runCleanup();
       } catch (error) {
         console.error('Initial cleanup failed:', error);
       }
     };
     
     runInitialCleanup();
-  }, []); // Empty dependency array - runs only once on mount
+  }, [runCleanup]); // Empty dependency array - runs only once on mount
 
-  const createNewChat = async (title?: string, contextNodeId?: string): Promise<string> => {
-    const chatId = crypto.randomUUID();
-    const now = Date.now();
-    
-    const newChat: ChatSession = {
-      id: chatId,
-      campaignId: campaign,
-      ownerId,
-      title: title || 'New Chat',
-      contextNodeId,
-      createdAt: now,
-      updatedAt: now,
-      messageCount: 0,
-      isCompacted: false
-    };
-
-    await db.chats.add(newChat);
-    
-    // Add to changes for sync
-    await db.changes.add({
-      op: 'create',
-      entity: 'chats',
-      entityId: chatId,
-      payload: newChat,
-      ts: now
-    });
-
-    setChatSessions(prev => [newChat, ...prev]);
-    setCurrentChatId(chatId);
-    setMessages([]);
-    
-    return chatId;
-  };
 
   const addMessage = async (role: 'human' | 'ai' | 'system', content: string, metadata?: Record<string, unknown>) => {
     if (!currentChatId) return;

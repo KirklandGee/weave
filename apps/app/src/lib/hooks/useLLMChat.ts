@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { ChatRequest, LLMMessage } from '@/types/llm';
 import { useLLMContext } from '@/lib/hooks/useLLMContext';
 import { useTemplateContext } from '@/lib/hooks/useTemplateContext';
