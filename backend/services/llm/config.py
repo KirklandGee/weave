@@ -2,7 +2,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from decimal import Decimal
 
 DEFAULT_LLM_CONFIG = {
-    "model": "gpt-5-mini",
+    "model": "gemini-2.5-flash-lite",
     "max_tokens": 4096,
     "streaming": True,
 }

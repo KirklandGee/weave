@@ -532,12 +532,8 @@ async def get_chat_updates(
 ):
     """Return chat sessions updated since timestamp."""
     try:
-        # Also run cleanup when syncing chats
-        from .chat_cleanup import cleanup_expired_chats
-        try:
-            await cleanup_expired_chats(cid, user_id)
-        except Exception:
-            pass  # Don't fail sync if cleanup fails
+        # Cleanup is now handled by frontend on a 24-hour schedule
+        # No need to run on every sync to avoid performance issues
         
         records = query(
             """

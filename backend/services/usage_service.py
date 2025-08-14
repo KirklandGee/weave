@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from calendar import monthrange
 from typing import Optional
+import time
 from backend.services.neo4j import query
 from backend.models.schemas import UsageEvent, UsageLimit, UsageSummary
 from backend.services.llm.config import MODEL_PRICING, DEFAULT_MONTHLY_LIMIT
@@ -9,6 +10,57 @@ from backend.services.llm.config import MODEL_PRICING, DEFAULT_MONTHLY_LIMIT
 
 class UsageService:
     """Service for tracking and managing user LLM usage and limits."""
+    
+    # Cache for usage data to avoid frequent database queries
+    _usage_cache = {}  # user_id -> (usage_data, timestamp)
+    _limit_cache = {}  # user_id -> (limit_data, timestamp)
+    CACHE_TTL = 60  # 1 minute cache for usage data
+    LIMIT_CACHE_TTL = 300  # 5 minutes cache for limit data
+
+    @staticmethod
+    def _is_cache_valid(timestamp: float, ttl: int) -> bool:
+        """Check if cache entry is still valid based on TTL."""
+        return time.time() - timestamp < ttl
+
+    @staticmethod
+    def _get_cached_usage(user_id: str) -> Optional[Decimal]:
+        """Get cached usage if valid."""
+        if user_id in UsageService._usage_cache:
+            usage, timestamp = UsageService._usage_cache[user_id]
+            if UsageService._is_cache_valid(timestamp, UsageService.CACHE_TTL):
+                return usage
+            else:
+                del UsageService._usage_cache[user_id]
+        return None
+
+    @staticmethod
+    def _cache_usage(user_id: str, usage: Decimal):
+        """Cache usage data."""
+        UsageService._usage_cache[user_id] = (usage, time.time())
+
+    @staticmethod
+    def _get_cached_limit(user_id: str) -> Optional[UsageLimit]:
+        """Get cached limit if valid."""
+        if user_id in UsageService._limit_cache:
+            limit, timestamp = UsageService._limit_cache[user_id]
+            if UsageService._is_cache_valid(timestamp, UsageService.LIMIT_CACHE_TTL):
+                return limit
+            else:
+                del UsageService._limit_cache[user_id]
+        return None
+
+    @staticmethod
+    def _cache_limit(user_id: str, limit: UsageLimit):
+        """Cache limit data."""
+        UsageService._limit_cache[user_id] = (limit, time.time())
+
+    @staticmethod
+    def _invalidate_user_caches(user_id: str):
+        """Invalidate all caches for a user (called when usage is recorded)."""
+        if user_id in UsageService._usage_cache:
+            del UsageService._usage_cache[user_id]
+        if user_id in UsageService._limit_cache:
+            del UsageService._limit_cache[user_id]
 
     @staticmethod
     def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> Decimal:
@@ -72,11 +124,19 @@ class UsageService:
             session_id=session_id,
         )
 
+        # Invalidate cache since usage has changed
+        UsageService._invalidate_user_caches(user_id)
+
         return usage_event
 
     @staticmethod
     def get_current_month_usage(user_id: str) -> Decimal:
-        """Get the total usage for the current month for a user."""
+        """Get the total usage for the current month for a user. Uses cache to reduce DB queries."""
+        # Check cache first
+        cached_usage = UsageService._get_cached_usage(user_id)
+        if cached_usage is not None:
+            return cached_usage
+            
         now = datetime.now(timezone.utc)
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
@@ -94,11 +154,21 @@ class UsageService:
         total_cost = (
             result[0].get("total_cost") if result and result[0].get("total_cost") else 0
         )
-        return Decimal(str(total_cost))
+        usage = Decimal(str(total_cost))
+        
+        # Cache the result
+        UsageService._cache_usage(user_id, usage)
+        
+        return usage
 
     @staticmethod
     def get_user_limit(user_id: str) -> UsageLimit:
-        """Get or create a user's usage limit."""
+        """Get or create a user's usage limit. Uses cache to reduce DB queries."""
+        # Check cache first
+        cached_limit = UsageService._get_cached_limit(user_id)
+        if cached_limit is not None:
+            return cached_limit
+            
         now = datetime.now(timezone.utc)
 
         # Check if user has a custom limit
@@ -156,12 +226,17 @@ class UsageService:
 
         current_usage = UsageService.get_current_month_usage(user_id)
 
-        return UsageLimit(
+        usage_limit = UsageLimit(
             user_id=user_id,
             monthly_limit=monthly_limit,
             current_usage=current_usage,
             reset_date=reset_date,
         )
+        
+        # Cache the result
+        UsageService._cache_limit(user_id, usage_limit)
+        
+        return usage_limit
 
     @staticmethod
     def check_usage_limit(user_id: str, estimated_cost: Decimal) -> bool:
@@ -186,6 +261,9 @@ class UsageService:
             monthly_limit=float(monthly_limit),
             reset_date=reset_date.isoformat(),
         )
+
+        # Invalidate cache since limit has changed
+        UsageService._invalidate_user_caches(user_id)
 
         current_usage = UsageService.get_current_month_usage(user_id)
 

@@ -162,17 +162,20 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
     }
 
     try {
+      console.log(`Running backend cleanup for campaign: ${campaign}`);
       const response = await authFetch(`/api/chat-cleanup/cleanup/${campaign}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
-        console.error('Backend cleanup failed:', response.status);
+        const errorText = await response.text();
+        console.error(`Backend cleanup failed: ${response.status} - ${errorText}`);
         return { deletedChats: 0, deletedMessages: 0 };
       }
 
       const result = await response.json();
+      console.log('Backend cleanup successful:', result);
       return {
         deletedChats: result.deleted_chats || 0,
         deletedMessages: result.deleted_messages || 0
@@ -184,10 +187,21 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
   };
 
   const runFullCleanup = async () => {
+    // Check if cleanup should run before making any calls
+    const shouldCleanup = await service.shouldRunCleanup();
+    if (!shouldCleanup) {
+      return {
+        deletedChats: 0,
+        deletedMessages: 0,
+        localResults: { deletedChats: 0, deletedMessages: 0 },
+        backendResults: { deletedChats: 0, deletedMessages: 0 }
+      };
+    }
+    
     // Run local cleanup first
     const localResults = await runChatCleanupForCampaign(campaign, ownerId);
     
-    // Then run backend cleanup
+    // Only run backend cleanup if local cleanup actually did something or if needed
     const backendResults = await runBackendCleanup();
     
     return {

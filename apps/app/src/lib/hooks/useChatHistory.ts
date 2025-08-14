@@ -18,9 +18,6 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
   useEffect(() => {
     const loadChatSessions = async () => {
       try {
-        // Run cleanup first (will be no-op if not needed)
-        await runCleanup();
-        
         const sessions = await db.chats
           .where('[ownerId+campaignId]')
           .equals([ownerId, campaign])
@@ -51,7 +48,7 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     };
 
     loadChatSessions();
-  }, [campaign, ownerId, runCleanup]);
+  }, [campaign, ownerId]);
 
   // Load messages when chat changes
   useEffect(() => {
@@ -83,6 +80,23 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
 
     loadMessages();
   }, [currentChatId, db]);
+
+  // Run cleanup only once on mount, not on every render
+  useEffect(() => {
+    const runInitialCleanup = async () => {
+      try {
+        // Only run cleanup if it should actually run (checks 24hr interval)
+        const shouldCleanup = await getCleanupStats();
+        if (shouldCleanup.expiredChatsCount > 0) {
+          await runCleanup();
+        }
+      } catch (error) {
+        console.error('Initial cleanup failed:', error);
+      }
+    };
+    
+    runInitialCleanup();
+  }, []); // Empty dependency array - runs only once on mount
 
   const createNewChat = async (title?: string, contextNodeId?: string): Promise<string> => {
     const chatId = crypto.randomUUID();

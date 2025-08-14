@@ -18,6 +18,7 @@ async def cleanup_expired_chats(
     This should be called by the frontend sync process.
     """
     try:
+        print(f"🧹 Starting chat cleanup for campaign: {campaign_slug}, user: {user_id}")
         # Calculate cutoff timestamp (30 days ago)
         cutoff_timestamp = int((time.time() - (CHAT_RETENTION_DAYS * 24 * 60 * 60)) * 1000)
         
