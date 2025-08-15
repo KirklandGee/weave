@@ -4,8 +4,10 @@
       "Bash(npm run build:*)",
       "Bash(docker-compose logs:*)",
       "Bash(curl:*)",
-      "Bash(docker compose logs:*)"
+      "Bash(docker compose logs:*)",
+      "mcp__linear-server__list_issues"
     ],
     "deny": []
-  }
+  },
+  "outputStyle": "default"
 }
