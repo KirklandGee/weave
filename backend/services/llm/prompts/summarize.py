@@ -27,7 +27,7 @@ template_config = TemplateConfig(
     optional_vars=["length_preference"],
     chain_type="single",
     template=PromptTemplate.from_template(summarize_template),
-    system_message="You are an expert note summarizer. Your task is to create a concise, comprehensive summary of a given note while incorporating relevant context from related notes.",
+    system_message="You are an expert note summarizer. Create concise, comprehensive summaries that incorporate relevant context from related notes. Be direct and actionable.",
     metadata={
         "category": "content_processing",
         "tags": ["summarization", "notes", "context"],

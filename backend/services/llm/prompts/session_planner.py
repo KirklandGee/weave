@@ -113,7 +113,7 @@ template_config = TemplateConfig(
     optional_vars=["session_type", "duration", "tone", "focus"],
     chain_type="single",
     template=PromptTemplate.from_template(session_template),
-    system_message="You are an expert RPG game master and session planner. Create engaging, well-structured sessions that advance the story while giving each player character meaningful moments to shine. Consider pacing, player agency, and narrative satisfaction.",
+    system_message="You are an expert RPG game master. Create engaging, practical session plans that advance the story and highlight each player character. Focus on actionable content and clear structure.",
     metadata={
         "category": "rpg_content",
         "tags": ["session_planning", "gamemaster", "story_development"],

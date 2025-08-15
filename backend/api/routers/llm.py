@@ -20,6 +20,7 @@ async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_u
                 context=req.context,
                 user_id=user_id,
                 stream=True,
+                verbosity=req.verbosity,
             ),
             media_type="text/plain",
         )

@@ -64,7 +64,7 @@ template_config = TemplateConfig(
     optional_vars=["personality_traits"],
     chain_type="single",
     template=PromptTemplate.from_template(npc_template),
-    system_message="You are an expert RPG game master and storyteller. Create rich, detailed NPCs that feel alive and contribute meaningfully to the game world. Draw inspiration from the context provided and ensure consistency with the established world.",
+    system_message="You are an expert RPG game master. Create rich, detailed NPCs that feel alive and contribute meaningfully to the game world. Be concise and focus on immediately useful details.",
     metadata={
         "category": "rpg_content",
         "tags": ["npc", "character_creation", "worldbuilding"],

@@ -20,6 +20,7 @@ class ChatRequest(BaseModel):
     model: str | None = (
         None  # Might use this at some point to hard-code specific models for things. We'll see.
     )
+    verbosity: str = "normal"  # "brief", "normal", or "detailed"
 
 
 class ChatResponse(BaseModel):

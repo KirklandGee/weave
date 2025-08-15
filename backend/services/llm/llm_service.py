@@ -3,6 +3,7 @@ from backend.models.schemas import LLMMessage
 from .llm_providers import get_llm_instance
 from .config import ROLE_MAP, DEFAULT_LLM_CONFIG
 from .token_counter import TokenCounter
+from .prompts.base_chat import get_base_system_prompt
 from backend.observability.trace import traced
 from backend.services.usage_service import UsageService
 from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
@@ -19,14 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 # Alternative: Always ensure there's a system message
-def to_langchain_messages(messages, context=""):
+def to_langchain_messages(messages, context="", verbosity="normal"):
     langchain_messages = []
     
     # STATIC CONTENT FIRST (cacheable)
     # Add base system prompt for latency optimization (from OpenAI guide)
     has_system_message = any(msg.role == "system" for msg in messages)
     if not has_system_message:
-        langchain_messages.append(SystemMessage(content="You are a helpful AI assistant for RPG campaign management. Be concise and direct in your responses."))
+        langchain_messages.append(SystemMessage(content=get_base_system_prompt(verbosity)))
     
     # Add user-provided system messages
     for msg in messages:
@@ -78,6 +79,7 @@ async def call_llm(
     stream: bool = True,
     campaign_id: Optional[str] = None,
     session_id: Optional[str] = None,
+    verbosity: str = "normal",
     **overrides,
 ):
     start_time = time.time()
@@ -94,7 +96,7 @@ async def call_llm(
     print(f"⚙️ Setup completed in {(setup_time - start_time)*1000:.1f}ms")
 
     # Convert to langchain messages
-    langchain_messages = to_langchain_messages(messages, context=context)
+    langchain_messages = to_langchain_messages(messages, context=context, verbosity=verbosity)
     
     message_time = time.time()
     print(f"📝 Message conversion completed in {(message_time - setup_time)*1000:.1f}ms")
