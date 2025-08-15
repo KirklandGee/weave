@@ -5,9 +5,16 @@ import { EditorContent, useEditor, Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { htmlToMd } from '@/lib/md'
 import StarterKit from '@tiptap/starter-kit'
+import Mention from '@tiptap/extension-mention'
 import MarkdownPasteExtension from './MarkdownPasteExtension'
+import { MentionSuggestion } from './MentionList'
 import debounce from 'lodash.debounce'
 import React from 'react'
+import { useCampaign } from '@/contexts/AppContext'
+import { createEdgeOps } from '@/lib/hooks/useEdgeOps'
+import { Note } from '@/types/node'
+import { ReactRenderer } from '@tiptap/react'
+import tippy from 'tippy.js'
 import { 
   Bold, 
   Italic, 
@@ -231,11 +238,16 @@ export default function Tiptap({
   content,
   onContentChange,
   onTypingStateChange,
+  currentNodeId,
+  onNavigateToNote,
 }: {
   content: string;
   onContentChange: (md: string) => void;
   onTypingStateChange?: (isTyping: boolean) => void;
+  currentNodeId?: string;
+  onNavigateToNote?: (note: Note) => void;
 }) {
+  const { currentCampaign } = useCampaign()
   const localUpdate = useRef<boolean>(false)
   const isTyping = useRef<boolean>(false)
   const typingTimer = useRef<NodeJS.Timeout | null>(null)
@@ -243,6 +255,11 @@ export default function Tiptap({
 
   // Track if this component instance is still active
   const isActiveRef = useRef(true)
+
+  // Edge operations for creating mention relationships
+  const edgeOps = useMemo(() => {
+    return currentCampaign ? createEdgeOps(currentCampaign.slug) : null
+  }, [currentCampaign])
   
   // create a fresh debouncer every time the callback changes (i.e. node switch)
   const debouncedSave = useMemo(() => {
@@ -272,7 +289,232 @@ export default function Tiptap({
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit, MarkdownPasteExtension],
+    extensions: [
+      StarterKit,
+      MarkdownPasteExtension,
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'mention',
+        },
+        renderHTML({ node }) {
+          return ['span', { class: 'mention', 'data-id': node.attrs.id }, node.attrs.label]
+        },
+        suggestion: {
+          items: () => {
+            // Return dummy items to trigger the suggestion system
+            // The actual search is handled in MentionSuggestion component
+            return [{ id: 'dummy', label: 'dummy' }]
+          },
+          char: '@',
+          startOfLine: false,
+          render: () => {
+            let component: ReactRenderer
+            let popup: unknown
+
+            return {
+              onStart: (props) => {
+                console.log('🎯 Mention suggestion onStart:', { query: props.query, range: props.range, hasClientRect: !!props.clientRect })
+                component = new ReactRenderer(MentionSuggestion, {
+                  props: {
+                    ...props,
+                    command: (item: Note) => {
+                      console.log('🔗 Mention selected:', { 
+                        itemId: item.id, 
+                        itemTitle: item.title, 
+                        currentNodeId, 
+                        hasEdgeOps: !!edgeOps,
+                        query: props.query
+                      })
+                      
+                      // Create mention edge when item is selected
+                      if (currentNodeId && edgeOps && item.id !== currentNodeId) {
+                        console.log('🔗 Creating edge...', { fromId: currentNodeId, toId: item.id, toTitle: item.title })
+                        
+                        // Look up the current node's title for the fromTitle
+                        if (currentCampaign) {
+                          import('@/lib/db/campaignDB').then(({ getDb }) => {
+                            const db = getDb(currentCampaign.slug)
+                            db.nodes.get(currentNodeId).then(fromNode => {
+                              const fromTitle = fromNode?.title || 'Unknown Note'
+                              console.log('🔗 Creating edge with fromTitle:', fromTitle)
+                              
+                              edgeOps.createEdge({
+                                fromId: currentNodeId,
+                                toId: item.id,
+                                fromTitle: fromTitle,
+                                toTitle: item.title,
+                                relType: 'MENTIONS',
+                              }).then(edgeId => {
+                                console.log('✅ Edge created successfully:', edgeId)
+                              }).catch(error => {
+                                console.error('❌ Edge creation failed:', error)
+                              })
+                            }).catch(error => {
+                              console.error('❌ Failed to lookup fromNode:', error)
+                              // Fallback to creating edge without fromTitle
+                              edgeOps.createEdge({
+                                fromId: currentNodeId,
+                                toId: item.id,
+                                fromTitle: 'Unknown Note',
+                                toTitle: item.title,
+                                relType: 'MENTIONS',
+                              }).catch(console.error)
+                            })
+                          })
+                        }
+                      } else {
+                        console.log('⚠️ Edge creation skipped:', { 
+                          hasCurrentNodeId: !!currentNodeId, 
+                          hasEdgeOps: !!edgeOps, 
+                          sameNode: item.id === currentNodeId 
+                        })
+                      }
+                      
+                      // Insert mention and execute original command
+                      console.log('📝 Inserting mention:', { id: item.id, label: item.title, originalQuery: props.query })
+                      try {
+                        props.command({
+                          id: item.id,
+                          label: item.title,
+                        })
+                      } catch (error) {
+                        console.error('❌ Mention insertion failed:', error)
+                      }
+                    },
+                  },
+                  editor: props.editor,
+                })
+
+                // Validate clientRect before creating popup
+                if (!props.clientRect) {
+                  return
+                }
+                
+                const rect = typeof props.clientRect === 'function' ? props.clientRect() : props.clientRect
+                if (!rect || isNaN(rect.bottom) || isNaN(rect.left) || isNaN(rect.top) || isNaN(rect.right)) {
+                  return
+                }
+
+                popup = tippy(document.createElement('div'), {
+                  getReferenceClientRect: props.clientRect as () => DOMRect,
+                  appendTo: () => document.body,
+                  content: component.element,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                  placement: 'bottom-start',
+                })
+              },
+
+              onUpdate(props) {
+                console.log('🎯 Mention suggestion onUpdate:', { query: props.query, range: props.range, hasClientRect: !!props.clientRect })
+                component?.updateProps({
+                  ...props,
+                  command: (item: Note) => {
+                    console.log('🔗 Mention selected (onUpdate):', { 
+                      itemId: item.id, 
+                      itemTitle: item.title, 
+                      currentNodeId, 
+                      hasEdgeOps: !!edgeOps,
+                      query: props.query
+                    })
+                    
+                    // Create mention edge when item is selected
+                    if (currentNodeId && edgeOps && item.id !== currentNodeId) {
+                      console.log('🔗 Creating edge (onUpdate)...', { fromId: currentNodeId, toId: item.id, toTitle: item.title })
+                      
+                      // Look up the current node's title for the fromTitle
+                      if (currentCampaign) {
+                        import('@/lib/db/campaignDB').then(({ getDb }) => {
+                          const db = getDb(currentCampaign.slug)
+                          db.nodes.get(currentNodeId).then(fromNode => {
+                            const fromTitle = fromNode?.title || 'Unknown Note'
+                            console.log('🔗 Creating edge (onUpdate) with fromTitle:', fromTitle)
+                            
+                            edgeOps.createEdge({
+                              fromId: currentNodeId,
+                              toId: item.id,
+                              fromTitle: fromTitle,
+                              toTitle: item.title,
+                              relType: 'MENTIONS',
+                            }).then(edgeId => {
+                              console.log('✅ Edge created successfully (onUpdate):', edgeId)
+                            }).catch(error => {
+                              console.error('❌ Edge creation failed (onUpdate):', error)
+                            })
+                          }).catch(error => {
+                            console.error('❌ Failed to lookup fromNode (onUpdate):', error)
+                            // Fallback to creating edge without fromTitle
+                            edgeOps.createEdge({
+                              fromId: currentNodeId,
+                              toId: item.id,
+                              fromTitle: 'Unknown Note',
+                              toTitle: item.title,
+                              relType: 'MENTIONS',
+                            }).catch(console.error)
+                          })
+                        })
+                      }
+                    } else {
+                      console.log('⚠️ Edge creation skipped (onUpdate):', { 
+                        hasCurrentNodeId: !!currentNodeId, 
+                        hasEdgeOps: !!edgeOps, 
+                        sameNode: item.id === currentNodeId 
+                      })
+                    }
+                    
+                    // Insert mention and execute original command
+                    console.log('📝 Inserting mention (onUpdate):', { id: item.id, label: item.title, originalQuery: props.query })
+                    try {
+                      props.command({
+                        id: item.id,
+                        label: item.title,
+                      })
+                    } catch (error) {
+                      console.error('❌ Mention insertion failed (onUpdate):', error)
+                    }
+                  },
+                })
+
+                // Validate clientRect before updating popup
+                if (!props.clientRect) {
+                  return
+                }
+                
+                const rect = typeof props.clientRect === 'function' ? props.clientRect() : props.clientRect
+                if (!rect || isNaN(rect.bottom) || isNaN(rect.left) || isNaN(rect.top) || isNaN(rect.right)) {
+                  return
+                }
+
+                if (Array.isArray(popup) && popup[0]) {
+                  popup[0].setProps({
+                    getReferenceClientRect: props.clientRect as () => DOMRect,
+                  })
+                }
+              },
+
+              onKeyDown(props) {
+                if (props.event.key === 'Escape') {
+                  if (Array.isArray(popup) && popup[0]) {
+                    popup[0].hide()
+                  }
+                  return true
+                }
+
+                return (component?.ref as { onKeyDown?: (event: KeyboardEvent) => boolean })?.onKeyDown?.(props.event) ?? false
+              },
+
+              onExit() {
+                if (Array.isArray(popup) && popup[0]) {
+                  popup[0].destroy()
+                }
+                component?.destroy()
+              },
+            }
+          },
+        },
+      }),
+    ],
     content,
     onUpdate({ editor, transaction }) {
       if (localUpdate.current) {            // ← ignore our own reset
@@ -367,7 +609,53 @@ export default function Tiptap({
     }
   }, [content, editor])
 
-  /* ---------- 4. clean up ---------- */
+  /* ---------- 4. Handle mention clicks ---------- */
+  useEffect(() => {
+    if (!editor || !onNavigateToNote) return
+
+    const handleMentionClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      console.log('👆 Click detected on:', target, { classList: target.classList, closest: target.closest('.mention') })
+      
+      if (target.classList.contains('mention') || target.closest('.mention')) {
+        console.log('👆 Mention click detected!')
+        event.preventDefault()
+        const mentionElement = target.classList.contains('mention') ? target : target.closest('.mention') as HTMLElement
+        const mentionId = mentionElement?.getAttribute('data-id')
+        console.log('👆 Mention ID:', mentionId, { mentionElement, currentCampaign: currentCampaign?.slug })
+        
+        if (mentionId && currentCampaign) {
+          console.log('👆 Looking up mention in database...')
+          // Find the mentioned note and navigate to it
+          import('@/lib/db/campaignDB').then(({ getDb }) => {
+            const db = getDb(currentCampaign.slug)
+            db.nodes.get(mentionId).then(note => {
+              console.log('👆 Found note:', note)
+              if (note && onNavigateToNote) {
+                console.log('👆 Navigating to note:', note.title)
+                onNavigateToNote(note)
+              } else {
+                console.log('👆 Navigation failed:', { hasNote: !!note, hasNavigateHandler: !!onNavigateToNote })
+              }
+            }).catch(error => {
+              console.error('👆 Database lookup failed:', error)
+            })
+          })
+        } else {
+          console.log('👆 Navigation conditions not met:', { hasMentionId: !!mentionId, hasCampaign: !!currentCampaign })
+        }
+      }
+    }
+
+    const editorElement = editor.view.dom
+    editorElement.addEventListener('click', handleMentionClick)
+
+    return () => {
+      editorElement.removeEventListener('click', handleMentionClick)
+    }
+  }, [editor, onNavigateToNote, currentCampaign])
+
+  /* ---------- 5. clean up ---------- */
   useEffect(() => {
     if (!editor) return
 
@@ -399,7 +687,7 @@ export default function Tiptap({
       )}
       <EditorContent
         editor={editor}
-        className="overflow-auto prose prose-invert max-w-none whitespace-pre-wrap"
+        className="overflow-auto prose prose-invert max-w-none whitespace-pre-wrap [&_.mention]:bg-blue-600 [&_.mention]:text-white [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:rounded [&_.mention]:cursor-pointer [&_.mention]:hover:bg-blue-700 [&_.mention]:transition-colors"
       />
     </>
   );

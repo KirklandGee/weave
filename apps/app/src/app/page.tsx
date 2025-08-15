@@ -603,6 +603,8 @@ export default function Home() {
                         content={htmlContent}
                         onContentChange={updateMarkdown}
                         onTypingStateChange={setIsTyping}
+                        currentNodeId={activeId}
+                        onNavigateToNote={handleNavigateToNote}
                       />
                     </div>
                   </div>
