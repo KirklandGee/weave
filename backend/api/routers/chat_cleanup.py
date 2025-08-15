@@ -29,7 +29,7 @@ async def cleanup_expired_chats(
         LIMIT 1
         """
         
-        check_result = query(check_query, {})
+        check_result = query(check_query)
         
         if not check_result or check_result[0]["total_chats"] == 0:
             return {
@@ -48,11 +48,9 @@ async def cleanup_expired_chats(
         
         count_result = query(
             count_query,
-            {
-                "user_id": user_id,
-                "campaign_id": campaign_slug if campaign_slug != "global" else None,
-                "cutoff_timestamp": cutoff_timestamp
-            }
+            user_id=user_id,
+            campaign_id=campaign_slug if campaign_slug != "global" else None,
+            cutoff_timestamp=cutoff_timestamp
         )
         
         expired_count = count_result[0]["expired_count"] if count_result else 0
@@ -74,11 +72,9 @@ async def cleanup_expired_chats(
         
         message_count_result = query(
             message_count_query,
-            {
-                "user_id": user_id,
-                "campaign_id": campaign_slug if campaign_slug != "global" else None,
-                "cutoff_timestamp": cutoff_timestamp
-            }
+            user_id=user_id,
+            campaign_id=campaign_slug if campaign_slug != "global" else None,
+            cutoff_timestamp=cutoff_timestamp
         )
         
         message_count = message_count_result[0]["message_count"] if message_count_result else 0
@@ -92,11 +88,9 @@ async def cleanup_expired_chats(
         
         query(
             delete_messages_query,
-            {
-                "user_id": user_id,
-                "campaign_id": campaign_slug if campaign_slug != "global" else None,
-                "cutoff_timestamp": cutoff_timestamp
-            }
+            user_id=user_id,
+            campaign_id=campaign_slug if campaign_slug != "global" else None,
+            cutoff_timestamp=cutoff_timestamp
         )
         
         # Then delete the chat sessions
@@ -108,11 +102,9 @@ async def cleanup_expired_chats(
         
         query(
             delete_chats_query,
-            {
-                "user_id": user_id,
-                "campaign_id": campaign_slug if campaign_slug != "global" else None,
-                "cutoff_timestamp": cutoff_timestamp
-            }
+            user_id=user_id,
+            campaign_id=campaign_slug if campaign_slug != "global" else None,
+            cutoff_timestamp=cutoff_timestamp
         )
         
         return {
@@ -150,11 +142,9 @@ async def get_cleanup_status(
         
         count_result = query(
             count_query,
-            {
-                "user_id": user_id,
-                "campaign_id": campaign_slug if campaign_slug != "global" else None,
-                "cutoff_timestamp": cutoff_timestamp
-            }
+            user_id=user_id,
+            campaign_id=campaign_slug if campaign_slug != "global" else None,
+            cutoff_timestamp=cutoff_timestamp
         )
         
         expired_count = count_result[0]["expired_count"] if count_result else 0
@@ -167,10 +157,8 @@ async def get_cleanup_status(
         
         total_result = query(
             total_query,
-            {
-                "user_id": user_id,
-                "campaign_id": campaign_slug if campaign_slug != "global" else None,
-            }
+            user_id=user_id,
+            campaign_id=campaign_slug if campaign_slug != "global" else None,
         )
         
         total_count = total_result[0]["total_count"] if total_result else 0

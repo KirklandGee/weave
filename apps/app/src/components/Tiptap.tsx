@@ -259,15 +259,30 @@ export default function Tiptap({
     }, 400)
   }, [onContentChange, content])
 
+  // Fast save for paste operations (50ms debounce)
+  const debouncedFastSave = useMemo(() => {
+    const currentContent = content
+    
+    return debounce((html: string) => {
+      if (content === currentContent) {
+        onContentChange(htmlToMd(html))
+      }
+    }, 50)
+  }, [onContentChange, content])
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [StarterKit, MarkdownPasteExtension],
     content,
-    onUpdate({ editor }) {
+    onUpdate({ editor, transaction }) {
       if (localUpdate.current) {            // ← ignore our own reset
         localUpdate.current = false
         return
       }
+      
+      // Check if this update was caused by a paste operation
+      const isPaste = transaction.getMeta('paste') || 
+                     transaction.steps.some(step => step.toJSON().type === 'replaceAround')
       
       // Mark as typing and reset timer
       if (!isTyping.current) {
@@ -283,12 +298,23 @@ export default function Tiptap({
         onTypingStateChange?.(false)
       }, 1000) // Consider typing stopped after 1 second of inactivity
       
-      debouncedSave(editor.getHTML())      // <-- debounce here
+      // Use fast save for paste operations, normal debounce for typing
+      if (isPaste) {
+        debouncedFastSave(editor.getHTML())
+      } else {
+        debouncedSave(editor.getHTML())
+      }
     },
     editorProps: {
       attributes: {
         class:
           "text-white prose prose-invert max-w-2xl min-h-[400px] focus:outline-none",
+        spellcheck: "false",
+      },
+      handlePaste() {
+        // Let TipTap handle the paste normally, but ensure onUpdate is triggered
+        // The paste will be detected in onUpdate via transaction meta
+        return false // Let default paste handling proceed
       },
     },
     shouldRerenderOnTransaction: false,
@@ -348,11 +374,12 @@ export default function Tiptap({
     return () => {
       isActiveRef.current = false         // Mark this instance as inactive
       debouncedSave.cancel()              // kill any pending save
+      debouncedFastSave.cancel()          // kill any pending fast save
       if (typingTimer.current) {
         clearTimeout(typingTimer.current)
       }
     }
-  }, [editor, debouncedSave])
+  }, [editor, debouncedSave, debouncedFastSave])
 
   return (
     <>
