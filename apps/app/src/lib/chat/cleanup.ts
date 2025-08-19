@@ -155,11 +155,39 @@ export async function runChatCleanupForCampaign(campaign: string, ownerId: strin
 export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (url: string, options?: RequestInit) => Promise<Response>) {
   const service = new ChatCleanupService(campaign, ownerId);
   
+  const shouldRunBackendCleanup = async (): Promise<boolean> => {
+    const db = getDb(campaign);
+    
+    try {
+      const lastBackendCleanup = await db.metadata.get('lastBackendChatCleanup');
+      if (!lastBackendCleanup) {
+        return true; // Never run backend cleanup before
+      }
+
+      const timeSinceLastCleanup = Date.now() - (lastBackendCleanup.value as number);
+      return timeSinceLastCleanup >= CLEANUP_INTERVAL_MS;
+
+    } catch (error) {
+      console.error('Error checking backend cleanup status:', error);
+      return true; // Run cleanup on error to be safe
+    }
+  };
+
   const runBackendCleanup = async (): Promise<{ deletedChats: number; deletedMessages: number }> => {
     if (!authFetch) {
       console.warn('AuthFetch not available, skipping backend cleanup');
       return { deletedChats: 0, deletedMessages: 0 };
     }
+
+    // Check if backend cleanup should run
+    const shouldCleanup = await shouldRunBackendCleanup();
+    if (!shouldCleanup) {
+      console.log('Skipping backend cleanup - ran within last 24 hours');
+      return { deletedChats: 0, deletedMessages: 0 };
+    }
+
+    const db = getDb(campaign);
+    const now = Date.now();
 
     try {
       console.log(`Running backend cleanup for campaign: ${campaign}`);
@@ -176,6 +204,14 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
 
       const result = await response.json();
       console.log('Backend cleanup successful:', result);
+      
+      // Store last backend cleanup timestamp
+      await db.metadata.put({
+        id: 'lastBackendChatCleanup',
+        value: now,
+        updatedAt: now
+      });
+
       return {
         deletedChats: result.deleted_chats || 0,
         deletedMessages: result.deleted_messages || 0
@@ -187,9 +223,11 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
   };
 
   const runFullCleanup = async () => {
-    // Check if cleanup should run before making any calls
-    const shouldCleanup = await service.shouldRunCleanup();
-    if (!shouldCleanup) {
+    // Check if local cleanup should run first
+    const shouldLocalCleanup = await service.shouldRunCleanup();
+    const shouldBackend = await shouldRunBackendCleanup();
+    
+    if (!shouldLocalCleanup && !shouldBackend) {
       return {
         deletedChats: 0,
         deletedMessages: 0,
@@ -198,10 +236,12 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
       };
     }
     
-    // Run local cleanup first
-    const localResults = await runChatCleanupForCampaign(campaign, ownerId);
+    // Run local cleanup first (but only if needed)
+    const localResults = shouldLocalCleanup 
+      ? await runChatCleanupForCampaign(campaign, ownerId)
+      : { deletedChats: 0, deletedMessages: 0 };
     
-    // Only run backend cleanup if local cleanup actually did something or if needed
+    // Run backend cleanup independently based on its own schedule
     const backendResults = await runBackendCleanup();
     
     return {
@@ -215,6 +255,7 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
   return {
     cleanupExpiredChats: service.cleanupExpiredChats.bind(service),
     shouldRunCleanup: service.shouldRunCleanup.bind(service),
+    shouldRunBackendCleanup,
     getCleanupStats: service.getCleanupStats.bind(service),
     runCleanup: runFullCleanup,
     runLocalCleanup: () => runChatCleanupForCampaign(campaign, ownerId),

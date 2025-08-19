@@ -1,7 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
-import { mdToHtml } from '@/lib/md'
 import { useEffect, useCallback } from 'react'
 import { USER_ID } from '@/lib/constants'
 import { useAuthFetch } from '@/utils/authFetch.client'
@@ -45,9 +44,8 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
   const node = useLiveQuery(() =>
     db.nodes.get(nodeId), [nodeId])
 
-  // Return editorJson if available, otherwise convert markdown → html for the editor
+  // Return editorJson for the editor (JSON-first approach)
   const editorContent = node?.editorJson || null
-  const htmlContent = node && !node.editorJson ? mdToHtml(node.markdown ?? '') : ''
   const title = node?.title ?? 'Untitled'
   
   // Migration: If we have a node with markdown but no editorJson, create editorJson from markdown
@@ -201,5 +199,5 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
     }
   }, [campaign, authFetch, isTyping])
 
-  return { title, htmlContent, editorContent, updateMarkdown, updateContent }
+  return { title, editorContent, updateMarkdown, updateContent }
 }

@@ -4,7 +4,6 @@ import { useMemo, useRef, useEffect, useState } from 'react'
 import { EditorContent, useEditor, Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
-import MarkdownPasteExtension from './MarkdownPasteExtension'
 import { Markdown } from '@kirklandgee/tiptap-markdown'
 import debounce from 'lodash.debounce'
 import React from 'react'
@@ -26,23 +25,23 @@ import {
 // Text Type Selector Component
 function TextTypeSelector({ editor }: { editor: Editor }) {
   const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   
-  // Close dropdown when editor loses focus or selection changes
+  // Close dropdown when clicking outside or editor loses focus
   useEffect(() => {
-    const handleUpdate = () => {
-      if (!editor.isFocused || editor.state.selection.empty) {
+    const handleBlur = () => setIsOpen(false)
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
     
-    editor.on('update', handleUpdate)
-    editor.on('selectionUpdate', handleUpdate)
-    editor.on('blur', handleUpdate)
+    editor.on('blur', handleBlur)
+    document.addEventListener('mousedown', handleClickOutside)
     
     return () => {
-      editor.off('update', handleUpdate)
-      editor.off('selectionUpdate', handleUpdate)
-      editor.off('blur', handleUpdate)
+      editor.off('blur', handleBlur)
+      document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [editor])
   
@@ -67,9 +66,16 @@ function TextTypeSelector({ editor }: { editor: Editor }) {
   const currentType = getCurrentTextType()
   
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setIsOpen(false)
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setIsOpen(!isOpen)
+          }
+        }}
         className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-sm"
       >
         <currentType.icon size={14} />
@@ -101,23 +107,23 @@ function TextTypeSelector({ editor }: { editor: Editor }) {
 // List Type Selector Component
 function ListTypeSelector({ editor }: { editor: Editor }) {
   const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   
-  // Close dropdown when editor loses focus or selection changes
+  // Close dropdown when clicking outside or editor loses focus
   useEffect(() => {
-    const handleUpdate = () => {
-      if (!editor.isFocused || editor.state.selection.empty) {
+    const handleBlur = () => setIsOpen(false)
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
     
-    editor.on('update', handleUpdate)
-    editor.on('selectionUpdate', handleUpdate)
-    editor.on('blur', handleUpdate)
+    editor.on('blur', handleBlur)
+    document.addEventListener('mousedown', handleClickOutside)
     
     return () => {
-      editor.off('update', handleUpdate)
-      editor.off('selectionUpdate', handleUpdate)
-      editor.off('blur', handleUpdate)
+      editor.off('blur', handleBlur)
+      document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [editor])
   
@@ -135,10 +141,17 @@ function ListTypeSelector({ editor }: { editor: Editor }) {
   const currentType = getCurrentListType()
   
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         title="chevron-decorative"
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setIsOpen(false)
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setIsOpen(!isOpen)
+          }
+        }}
         className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-sm"
       >
         <currentType.icon size={14} />
@@ -228,53 +241,31 @@ function NotionLikeBubbleMenu({ editor }: { editor: Editor }) {
 }
 
 export default function Tiptap({
-  content,
+  nodeId,
   editorContent,
   onContentChange,
   onTypingStateChange,
 }: {
-  content: string;
+  nodeId: string;
   editorContent?: object | null;
   onContentChange: (editorJson: object) => void;
   onTypingStateChange?: (isTyping: boolean) => void;
 }) {
-  const localUpdate = useRef<boolean>(false)
   const isTyping = useRef<boolean>(false)
   const typingTimer = useRef<NodeJS.Timeout | null>(null)
-  const lastContent = useRef<string>('')
-
-  // Track if this component instance is still active
-  const isActiveRef = useRef(true)
+  const previousNodeId = useRef<string>('')
   
-  // create a fresh debouncer every time the callback changes (i.e. node switch)
+  // Simple debounced save - no content comparison needed
   const debouncedSave = useMemo(() => {
-    isActiveRef.current = true // Mark this instance as active
-    const currentContent = editorContent || content // Capture current content when debouncer is created
-    
-    return debounce((editor: any) => {
-      // Only save if content hasn't changed since debouncer was created (indicating same node)
-      if ((editorContent || content) === currentContent) {
-        onContentChange(editor.getJSON())
-      } 
+    return debounce((editor: Editor) => {
+      onContentChange(editor.getJSON())
     }, 400)
-  }, [onContentChange, content, editorContent])
-
-  // Fast save for paste operations (50ms debounce)
-  const debouncedFastSave = useMemo(() => {
-    const currentContent = editorContent || content
-    
-    return debounce((editor: any) => {
-      if ((editorContent || content) === currentContent) {
-        onContentChange(editor.getJSON())
-      }
-    }, 50)
-  }, [onContentChange, content, editorContent])
+  }, [onContentChange])
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit, 
-      MarkdownPasteExtension,
       Markdown.configure({
         html: true,                 // Enable HTML input/output
         tightLists: true,          // Tight list formatting
@@ -286,17 +277,8 @@ export default function Tiptap({
         transformCopiedText: false, // Don't transform copied text
       })
     ],
-    content: editorContent || content,
-    onUpdate({ editor, transaction }) {
-      if (localUpdate.current) {            // ← ignore our own reset
-        localUpdate.current = false
-        return
-      }
-      
-      // Check if this update was caused by a paste operation
-      const isPaste = transaction.getMeta('paste') || 
-                     transaction.steps.some(step => step.toJSON().type === 'replaceAround')
-      
+    content: editorContent || { type: 'doc', content: [] },
+    onUpdate({ editor }) {
       // Mark as typing and reset timer
       if (!isTyping.current) {
         isTyping.current = true
@@ -311,12 +293,8 @@ export default function Tiptap({
         onTypingStateChange?.(false)
       }, 1000) // Consider typing stopped after 1 second of inactivity
       
-      // Use fast save for paste operations, normal debounce for typing
-      if (isPaste) {
-        debouncedFastSave(editor)
-      } else {
-        debouncedSave(editor)
-      }
+      // Save on every update
+      debouncedSave(editor)
     },
     editorProps: {
       attributes: {
@@ -324,67 +302,40 @@ export default function Tiptap({
           "text-white prose prose-invert max-w-2xl min-h-[400px] focus:outline-none",
         spellcheck: "false",
       },
-      handlePaste() {
-        // Let TipTap handle the paste normally, but ensure onUpdate is triggered
-        // The paste will be detected in onUpdate via transaction meta
-        return false // Let default paste handling proceed
-      },
     },
     shouldRerenderOnTransaction: false,
   });
 
-  /* ---------- 3. Dexie -> editor sync ---------- */
+  /* ---------- 3. Load content only on note switch ---------- */
   useEffect(() => {
     if (!editor) return
     
-    const newContent = editorContent || content
-    
-    // Only update if content actually changed and is different from last known content
-    if (newContent !== lastContent.current) {
-      // Clear typing state when switching notes to prevent stale saves
+    // Only load content when switching to a different note
+    if (nodeId !== previousNodeId.current) {
+      // Clear typing state when switching notes
       isTyping.current = false
       if (typingTimer.current) {
         clearTimeout(typingTimer.current)
         typingTimer.current = null
       }
       
-      // Save cursor position before updating
-      const { from, to } = editor.state.selection
-      const isFocused = editor.isFocused
-      
-      localUpdate.current = true
-      lastContent.current = newContent
-      editor.commands.setContent(newContent, { emitUpdate: false })
-      
-      // Restore cursor position if editor was focused
-      if (isFocused) {
-        setTimeout(() => {
-          const maxPos = editor.state.doc.content.size
-          const safeFrom = Math.min(from, maxPos)
-          const safeTo = Math.min(to, maxPos)
-          
-          if (safeFrom <= maxPos && safeTo <= maxPos) {
-            editor.commands.setTextSelection({ from: safeFrom, to: safeTo })
-            editor.commands.focus()
-          }
-        }, 0)
-      }
+      const contentToLoad = editorContent || { type: 'doc', content: [] }
+      editor.commands.setContent(contentToLoad, { emitUpdate: false })
+      previousNodeId.current = nodeId
     }
-  }, [content, editorContent, editor])
+  }, [nodeId, editor, editorContent])
 
   /* ---------- 4. clean up ---------- */
   useEffect(() => {
     if (!editor) return
 
     return () => {
-      isActiveRef.current = false         // Mark this instance as inactive
       debouncedSave.cancel()              // kill any pending save
-      debouncedFastSave.cancel()          // kill any pending fast save
       if (typingTimer.current) {
         clearTimeout(typingTimer.current)
       }
     }
-  }, [editor, debouncedSave, debouncedFastSave])
+  }, [editor, debouncedSave])
 
   return (
     <>
@@ -396,9 +347,11 @@ export default function Tiptap({
             if (!editor.isFocused) return false
             if (editor.isDestroyed) return false
             if (!state.selection || state.selection.empty) return false
+            // Don't show during text input to prevent interruptions
+            if (state.selection.from === state.selection.to) return false
             return true
-          }
-          }        >
+          }}
+        >
           <NotionLikeBubbleMenu editor={editor} />
         </BubbleMenu>
       )}

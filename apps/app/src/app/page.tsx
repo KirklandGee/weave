@@ -79,7 +79,7 @@ export default function Home() {
   const [editingNoteTitle, setEditingNoteTitle] = useState(false)
   
   /* 5. content + updater for the active node */
-  const { htmlContent, editorContent, updateMarkdown, updateContent } = useActiveNode(
+  const { editorContent, updateContent } = useActiveNode(
     currentCampaign?.slug ?? '',
     activeId ?? '',
     isTyping
@@ -584,7 +584,6 @@ export default function Home() {
                 <div className="flex-1 min-w-0 relative bg-zinc-950 h-full">
                   <DocumentHeader
                     node={node}
-                    htmlContent={htmlContent}
                     onTitleChange={async (id, title) => {
                       if (nodeOps) await nodeOps.renameNode(id, title)
                     }}
@@ -600,7 +599,7 @@ export default function Home() {
                     <div className="max-w-4xl mx-auto p-8">
                       <Tiptap
                         key={activeId}
-                        content={htmlContent}
+                        nodeId={activeId}
                         editorContent={editorContent}
                         onContentChange={updateContent}
                         onTypingStateChange={setIsTyping}

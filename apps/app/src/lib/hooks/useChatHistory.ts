@@ -127,7 +127,7 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     };
     
     runInitialCleanup();
-  }, [runCleanup]); // Empty dependency array - runs only once on mount
+  }, [campaign, ownerId]); // Only depend on stable values - runs once per campaign/owner
 
 
   const addMessage = async (role: 'human' | 'ai' | 'system', content: string, metadata?: Record<string, unknown>) => {
