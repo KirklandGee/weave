@@ -1,0 +1,31 @@
+services:
+  # Backend API - Development
+  backend:
+    volumes:
+      - .:/app
+      - backend_venv:/app/backend/.venv  # Named volume for venv
+    command: uv run python -m fastapi dev api/index.py --host 0.0.0.0 --port 8000 --reload
+
+  # RQ Worker - Development  
+  rq-worker:
+    volumes:
+      - .:/app
+      - backend_venv:/app/backend/.venv  # Shared venv volume
+    command: uv run python worker.py
+
+  # Frontend App - Development
+  app:
+    volumes:
+      - ./apps/app:/app
+      - /app/node_modules
+      - /app/.next
+
+  # Marketing Site - Development
+  marketing:
+    volumes:
+      - ./apps/marketing:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  backend_venv:

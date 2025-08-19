@@ -21,16 +21,16 @@ ON MATCH SET
 // Update existing campaigns to have ownership relationships
 MATCH (c:Campaign {id: 'camp-faerun-crisis'})
 MATCH (u:User {id: 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ'})
-MERGE (c)-[:OWNED_BY]->(u);
+MERGE (u)-[:OWNS]->(c);
 
 MATCH (c:Campaign {id: 'camp-storm-lords'})
 MATCH (u:User {id: 'demo-user'})
-MERGE (c)-[:OWNED_BY]->(u);
+MERGE (u)-[:OWNS]->(c);
 
 // Update the seed.cql campaign to have ownership
 MATCH (c:Campaign {id: 'campaign-1'})
 MATCH (u:User {id: 'demo-user'})
-MERGE (c)-[:OWNED_BY]->(u);
+MERGE (u)-[:OWNS]->(c);
 
 // Create some sample notes for testing tool functionality
 MERGE (n1:Note {id: 'note-dragon-encounter'})
@@ -66,3 +66,31 @@ MERGE (n)-[:PART_OF]->(c);
 
 MATCH (n:Note {id: 'note-magic-items'}), (c:Campaign {id: 'camp-storm-lords'})
 MERGE (n)-[:PART_OF]->(c);
+
+// Create sample usage events for testing usage tracking
+CREATE (ue1:UsageEvent {
+  id: 'usage-1',
+  user_id: 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ',
+  model: 'claude-3-sonnet',
+  timestamp: datetime('2024-01-15T10:30:00Z'),
+  tokens: 1250,
+  campaign_id: 'camp-faerun-crisis'
+});
+
+CREATE (ue2:UsageEvent {
+  id: 'usage-2',
+  user_id: 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ',
+  model: 'claude-3-haiku',
+  timestamp: datetime('2024-01-15T14:20:00Z'),
+  tokens: 800,
+  campaign_id: 'camp-faerun-crisis'
+});
+
+CREATE (ue3:UsageEvent {
+  id: 'usage-3',
+  user_id: 'demo-user',
+  model: 'claude-3-sonnet',
+  timestamp: datetime('2024-01-16T09:15:00Z'),
+  tokens: 2100,
+  campaign_id: 'camp-storm-lords'
+});

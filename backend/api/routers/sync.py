@@ -9,6 +9,43 @@ from backend.api.auth import get_current_user
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 
+def convert_neo4j_timestamps(obj):
+    """Convert any Neo4j DateTime objects to milliseconds for all fields in the object"""
+    if isinstance(obj, dict):
+        import time
+        # List of timestamp fields that should default to current time if None
+        timestamp_fields = ['createdAt', 'updatedAt', 'embedded_at', 'lastAccessed', 'expiredAt']
+        
+        for key, value in obj.items():
+            if value is not None and hasattr(value, 'to_native'):
+                # Convert Neo4j DateTime to Python datetime, then to milliseconds
+                dt = value.to_native()
+                obj[key] = int(dt.timestamp() * 1000)
+            elif value is None and key in timestamp_fields:
+                # Set None timestamp fields to current time in milliseconds
+                obj[key] = int(time.time() * 1000)
+            elif isinstance(value, dict):
+                # Recursively process nested objects
+                convert_neo4j_timestamps(value)
+    return obj
+
+
+def process_node_result(records):
+    """Process node records: deserialize editorJson and convert timestamps"""
+    result = []
+    for r in records:
+        node = r["node"]
+        if node.get("editorJson") and isinstance(node["editorJson"], str):
+            try:
+                node["editorJson"] = json.loads(node["editorJson"])
+            except (json.JSONDecodeError, TypeError):
+                node["editorJson"] = None
+        
+        convert_neo4j_timestamps(node)
+        result.append(node)
+    return result
+
+
 # ───────────────────────────────────────────────────────── sidebar list ──
 @router.get("/{campaign_id}/sidebar", response_model=list[Note])
 async def get_sidebar_nodes(
@@ -33,10 +70,11 @@ async def get_sidebar_nodes(
               ownerId:   props.ownerId,      // ← ADD THIS
               campaignId: props.campaignId,  // ← ADD THIS  
               markdown:  props.markdown,
+              editorJson: props.editorJson,
               updatedAt: props.updatedAt,
               createdAt: props.createdAt,
               attributes: apoc.map.removeKeys(
-                 props,['id','type','title','name','markdown','updatedAt','createdAt']
+                 props,['id','type','title','name','markdown','editorJson','updatedAt','createdAt']
               )
             } AS node
             """,
@@ -44,7 +82,7 @@ async def get_sidebar_nodes(
             cid=campaign_id if campaign_id != "global" else None,
         )
 
-        return [r["node"] for r in records]
+        return process_node_result(records)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -164,6 +202,12 @@ async def push_changes(
 
                 # ---------- UPDATE ----------
                 if ch.op == "update":
+                    payload = ch.payload.copy()
+                    # Serialize editorJson if it exists and is an object
+                    if "editorJson" in payload and payload["editorJson"] is not None:
+                        if isinstance(payload["editorJson"], dict):
+                            payload["editorJson"] = json.dumps(payload["editorJson"])
+                    
                     _ = query(
                         """
                         MATCH (u:User {id:$user_id})-[:OWNS]->(c:Campaign {id:$cid})
@@ -174,7 +218,7 @@ async def push_changes(
                         user_id=user_id,
                         cid=cid,
                         nid=ch.entityId,
-                        payload=ch.payload,
+                        payload=payload,
                         ts=ch.ts,
                     )
 
@@ -185,6 +229,11 @@ async def push_changes(
                     attrs = props.get("attributes")
                     if isinstance(attrs, dict):
                         props["attributes"] = json.dumps(attrs) if attrs else None
+                    
+                    # Serialize editorJson if it exists and is an object
+                    if "editorJson" in props and props["editorJson"] is not None:
+                        if isinstance(props["editorJson"], dict):
+                            props["editorJson"] = json.dumps(props["editorJson"])
 
                     _ = query(
                         """
@@ -313,10 +362,11 @@ async def get_updates(
               type:      coalesce(props.type, 'Note'),
               title:     coalesce(props.title, props.name, 'Untitled'),
               markdown:  props.markdown,
+              editorJson: props.editorJson,
               updatedAt: props.updatedAt,
               createdAt: props.createdAt,
               attributes: apoc.map.removeKeys(
-                 props,['id','type','title','name','markdown','updatedAt','createdAt']
+                 props,['id','type','title','name','markdown','editorJson','updatedAt','createdAt']
               )
             } AS node
             """,
@@ -324,7 +374,7 @@ async def get_updates(
             cid=cid if cid != "global" else None,
             ts=ts,
         )
-        return [r["node"] for r in records]
+        return process_node_result(records)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -380,12 +430,13 @@ async def get_edges(
             ts=ts,
         )
         
-        # Post-process records to generate UUIDs for None IDs
+        # Post-process records to generate UUIDs for None IDs and convert timestamps
         result = []
         for r in records:
             edge = r["edge"]
             if edge["id"] is None:
                 edge["id"] = f"edge-{str(uuid.uuid4())[:8]}"
+            convert_neo4j_timestamps(edge)
             result.append(edge)
         
         return result
@@ -429,7 +480,13 @@ async def get_node_edges(
             cid=cid,
             nid=nid,
         )
-        return [r["edge"] for r in records]  # <-- alias is edge
+        # Convert timestamps in edges
+        result = []
+        for r in records:
+            edge = r["edge"]
+            convert_neo4j_timestamps(edge)
+            result.append(edge)
+        return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -472,7 +529,13 @@ async def get_folder_updates(
             cid=cid if cid != "global" else None,
             ts=ts,
         )
-        return [r["folder"] for r in records]
+        # Convert timestamps in folders
+        result = []
+        for r in records:
+            folder = r["folder"]
+            convert_neo4j_timestamps(folder)
+            result.append(folder)
+        return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -518,7 +581,13 @@ async def get_all_folders(
             user_id=user_id,
             cid=cid if cid != "global" else None,
         )
-        return [r["folder"] for r in records]
+        # Convert timestamps in folders
+        result = []
+        for r in records:
+            folder = r["folder"]
+            convert_neo4j_timestamps(folder)
+            result.append(folder)
+        return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -559,7 +628,13 @@ async def get_chat_updates(
             cid=cid if cid != "global" else None,
             ts=ts,
         )
-        return [r["chat"] for r in records]
+        # Convert timestamps in chats
+        result = []
+        for r in records:
+            chat = r["chat"]
+            convert_neo4j_timestamps(chat)
+            result.append(chat)
+        return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -596,6 +671,12 @@ async def get_chat_message_updates(
             cid=cid if cid != "global" else None,
             ts=ts,
         )
-        return [r["message"] for r in records]
+        # Convert timestamps in messages
+        result = []
+        for r in records:
+            message = r["message"]
+            convert_neo4j_timestamps(message)
+            result.append(message)
+        return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

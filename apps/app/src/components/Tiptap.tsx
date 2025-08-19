@@ -3,9 +3,9 @@
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { EditorContent, useEditor, Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
-import { htmlToMd } from '@/lib/md'
 import StarterKit from '@tiptap/starter-kit'
 import MarkdownPasteExtension from './MarkdownPasteExtension'
+import { Markdown } from '@kirklandgee/tiptap-markdown'
 import debounce from 'lodash.debounce'
 import React from 'react'
 import { 
@@ -229,11 +229,13 @@ function NotionLikeBubbleMenu({ editor }: { editor: Editor }) {
 
 export default function Tiptap({
   content,
+  editorContent,
   onContentChange,
   onTypingStateChange,
 }: {
   content: string;
-  onContentChange: (md: string) => void;
+  editorContent?: object | null;
+  onContentChange: (editorJson: object) => void;
   onTypingStateChange?: (isTyping: boolean) => void;
 }) {
   const localUpdate = useRef<boolean>(false)
@@ -247,33 +249,44 @@ export default function Tiptap({
   // create a fresh debouncer every time the callback changes (i.e. node switch)
   const debouncedSave = useMemo(() => {
     isActiveRef.current = true // Mark this instance as active
-    const currentContent = content // Capture current content when debouncer is created
+    const currentContent = editorContent || content // Capture current content when debouncer is created
     
-    return debounce((html: string) => {
-      
+    return debounce((editor: any) => {
       // Only save if content hasn't changed since debouncer was created (indicating same node)
-      // Allow saves even if isActive is false, as long as we're still on the same content/node
-      if (content === currentContent) {
-        onContentChange(htmlToMd(html))
+      if ((editorContent || content) === currentContent) {
+        onContentChange(editor.getJSON())
       } 
     }, 400)
-  }, [onContentChange, content])
+  }, [onContentChange, content, editorContent])
 
   // Fast save for paste operations (50ms debounce)
   const debouncedFastSave = useMemo(() => {
-    const currentContent = content
+    const currentContent = editorContent || content
     
-    return debounce((html: string) => {
-      if (content === currentContent) {
-        onContentChange(htmlToMd(html))
+    return debounce((editor: any) => {
+      if ((editorContent || content) === currentContent) {
+        onContentChange(editor.getJSON())
       }
     }, 50)
-  }, [onContentChange, content])
+  }, [onContentChange, content, editorContent])
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit, MarkdownPasteExtension],
-    content,
+    extensions: [
+      StarterKit, 
+      MarkdownPasteExtension,
+      Markdown.configure({
+        html: true,                 // Enable HTML input/output
+        tightLists: true,          // Tight list formatting
+        tightListClass: 'tight',   // Class for tight lists
+        bulletListMarker: '-',     // Use dashes for bullet lists
+        linkify: false,            // Don't auto-convert URLs to links
+        breaks: false,             // Don't convert line breaks to <br>
+        transformPastedText: false, // Don't transform pasted text
+        transformCopiedText: false, // Don't transform copied text
+      })
+    ],
+    content: editorContent || content,
     onUpdate({ editor, transaction }) {
       if (localUpdate.current) {            // ← ignore our own reset
         localUpdate.current = false
@@ -300,9 +313,9 @@ export default function Tiptap({
       
       // Use fast save for paste operations, normal debounce for typing
       if (isPaste) {
-        debouncedFastSave(editor.getHTML())
+        debouncedFastSave(editor)
       } else {
-        debouncedSave(editor.getHTML())
+        debouncedSave(editor)
       }
     },
     editorProps: {
@@ -324,48 +337,40 @@ export default function Tiptap({
   useEffect(() => {
     if (!editor) return
     
+    const newContent = editorContent || content
+    
     // Only update if content actually changed and is different from last known content
-    if (content !== lastContent.current) {
-      // Check if the new content would produce different HTML from what's currently in editor
-      // This avoids unnecessary updates when the markdown content is semantically the same
-      const currentMarkdownFromEditor = htmlToMd(editor.getHTML())
+    if (newContent !== lastContent.current) {
+      // Clear typing state when switching notes to prevent stale saves
+      isTyping.current = false
+      if (typingTimer.current) {
+        clearTimeout(typingTimer.current)
+        typingTimer.current = null
+      }
       
-      // Only update if the markdown content is actually different
-      if (content !== currentMarkdownFromEditor) {
-        // Clear typing state when switching notes to prevent stale saves
-        isTyping.current = false
-        if (typingTimer.current) {
-          clearTimeout(typingTimer.current)
-          typingTimer.current = null
-        }
-        
-        // Save cursor position before updating
-        const { from, to } = editor.state.selection
-        const isFocused = editor.isFocused
-        
-        localUpdate.current = true
-        lastContent.current = content
-        editor.commands.setContent(content, { emitUpdate: false })
-        
-        // Restore cursor position if editor was focused
-        if (isFocused) {
-          setTimeout(() => {
-            const maxPos = editor.state.doc.content.size
-            const safeFrom = Math.min(from, maxPos)
-            const safeTo = Math.min(to, maxPos)
-            
-            if (safeFrom <= maxPos && safeTo <= maxPos) {
-              editor.commands.setTextSelection({ from: safeFrom, to: safeTo })
-              editor.commands.focus()
-            }
-          }, 0)
-        }
-      } else {
-        // Content is semantically the same, just update our tracking
-        lastContent.current = content
+      // Save cursor position before updating
+      const { from, to } = editor.state.selection
+      const isFocused = editor.isFocused
+      
+      localUpdate.current = true
+      lastContent.current = newContent
+      editor.commands.setContent(newContent, { emitUpdate: false })
+      
+      // Restore cursor position if editor was focused
+      if (isFocused) {
+        setTimeout(() => {
+          const maxPos = editor.state.doc.content.size
+          const safeFrom = Math.min(from, maxPos)
+          const safeTo = Math.min(to, maxPos)
+          
+          if (safeFrom <= maxPos && safeTo <= maxPos) {
+            editor.commands.setTextSelection({ from: safeFrom, to: safeTo })
+            editor.commands.focus()
+          }
+        }, 0)
       }
     }
-  }, [content, editor])
+  }, [content, editorContent, editor])
 
   /* ---------- 4. clean up ---------- */
   useEffect(() => {

@@ -79,7 +79,7 @@ export default function Home() {
   const [editingNoteTitle, setEditingNoteTitle] = useState(false)
   
   /* 5. content + updater for the active node */
-  const { htmlContent, updateMarkdown } = useActiveNode(
+  const { htmlContent, editorContent, updateMarkdown, updateContent } = useActiveNode(
     currentCampaign?.slug ?? '',
     activeId ?? '',
     isTyping
@@ -601,7 +601,8 @@ export default function Home() {
                       <Tiptap
                         key={activeId}
                         content={htmlContent}
-                        onContentChange={updateMarkdown}
+                        editorContent={editorContent}
+                        onContentChange={updateContent}
                         onTypingStateChange={setIsTyping}
                       />
                     </div>

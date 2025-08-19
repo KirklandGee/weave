@@ -1,8 +1,8 @@
 # Use Node.js 20 alpine image
 FROM node:20-alpine
 
-# Install bash for debugging
-RUN apk add --no-cache bash
+# Install bash and git for debugging and GitHub package installation
+RUN apk add --no-cache bash git
 
 # Set working directory
 WORKDIR /app

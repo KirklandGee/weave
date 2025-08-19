@@ -1,0 +1,1 @@
+- Always update the relevant linear issues or create new ones for any work that you do
