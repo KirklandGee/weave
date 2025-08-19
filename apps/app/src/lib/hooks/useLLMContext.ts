@@ -1,14 +1,13 @@
-import { useActiveNode } from './useActiveNode'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getDb } from '@/lib/db/campaignDB'
-import { htmlToMd } from '../md'
 
 export function useLLMContext(campaign: string, nodeId: string) {
-  // 1. content of the active node
-  const { htmlContent, title } = useActiveNode(campaign, nodeId)
+  // 1. database connection and current node
+  const db = getDb(campaign)
+  const currentNode = useLiveQuery(() => db.nodes.get(nodeId), [nodeId])
+  const title = currentNode?.title ?? 'Untitled'
 
   // 2. edges from Dexie (already in camelCase)
-  const db = getDb(campaign)
   const edges = useLiveQuery(() => 
     db.edges.where('fromId').equals(nodeId)
       .or('toId').equals(nodeId)
@@ -40,9 +39,8 @@ export function useLLMContext(campaign: string, nodeId: string) {
       context += `Current Note: ${title}\n`
     }
     
-    if (htmlContent) {
-      const markdown = htmlToMd(htmlContent)
-      context += `<currentNote>${markdown}\n</currentNote>`
+    if (currentNode?.markdown) {
+      context += `<currentNote>${currentNode.markdown}\n</currentNote>`
     }
 
     if (relatedNodes.length > 0) {

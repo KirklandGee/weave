@@ -20,14 +20,13 @@ const NODE_TYPES = [
 
 interface DocumentHeaderProps {
   node: Note
-  htmlContent: string
   onTitleChange: (id: string, newTitle: string) => void
   onTypeChange?: (id: string, newType: string) => void
   startEditing?: boolean
   onStartEditingHandled?: () => void
 }
 
-export default function DocumentHeader({ node, htmlContent, onTitleChange, onTypeChange, startEditing, onStartEditingHandled }: DocumentHeaderProps) {
+export default function DocumentHeader({ node, onTitleChange, onTypeChange, startEditing, onStartEditingHandled }: DocumentHeaderProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editingTitle, setEditingTitle] = useState(node.title)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
@@ -178,7 +177,7 @@ export default function DocumentHeader({ node, htmlContent, onTitleChange, onTyp
       <div className="flex items-center gap-2 text-zinc-500 text-sm">
         <span>Last updated {new Date(node.updatedAt).toLocaleDateString()}</span>
         <div className="w-1 h-1 bg-zinc-600 rounded-full"></div>
-        <span>{htmlContent.split(' ').length} words</span>
+        <span>{node.markdown ? node.markdown.split(' ').filter(word => word.trim().length > 0).length : 0} words</span>
       </div>
     </div>
   )

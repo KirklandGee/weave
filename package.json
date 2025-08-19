@@ -17,6 +17,8 @@
     "format": "npm run format --workspaces && cd backend && uv run black .",
     "format:check": "npm run format:check --workspaces && cd backend && uv run black --check .",
     "dev:proxy": "node scripts/dev-proxy.js",
+    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up --build",
     "docker:up": "docker-compose up",
     "docker:up:build": "docker-compose up --build",
     "docker:down": "docker-compose down",

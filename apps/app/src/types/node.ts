@@ -6,6 +6,7 @@ export interface Note {
   type: string
   title: string
   markdown: string
+  editorJson?: object              // Tiptap JSON format for editor content
   updatedAt: number
   createdAt: number
   hasEmbedding?: boolean

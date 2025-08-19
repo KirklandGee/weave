@@ -1,11 +1,51 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getDb } from '@/lib/db/campaignDB'
 import { pushPull } from '@/lib/db/sync'
-import { mdToHtml } from '@/lib/md'
 import { useEffect, useCallback } from 'react'
 import { USER_ID } from '@/lib/constants'
 import { useAuthFetch } from '@/utils/authFetch.client'
 import { updateLastActivity, updateLastLocalChange, getSyncInterval, getLastActivity } from '@/lib/utils/activityTracker'
+import { Editor } from '@tiptap/core'
+import StarterKit from '@tiptap/starter-kit'
+import { Markdown } from '@kirklandgee/tiptap-markdown'
+
+// Interface for the markdown storage extension
+interface MarkdownStorage {
+  getMarkdown(): string
+}
+
+interface EditorWithMarkdown extends Editor {
+  storage: Editor['storage'] & {
+    markdown: MarkdownStorage
+  }
+}
+
+// Helper function to convert Tiptap JSON to markdown
+function jsonToMarkdown(json: object): string {
+  try {
+    // Create a temporary editor instance to convert JSON to markdown
+    const tempEditor = new Editor({
+      extensions: [
+        StarterKit,
+        Markdown.configure({
+          html: false,
+          tightLists: true,
+          bulletListMarker: '-',
+          linkify: false,
+          breaks: false,
+        })
+      ],
+      content: json,
+    }) as EditorWithMarkdown
+    
+    const markdown = tempEditor.storage.markdown.getMarkdown()
+    tempEditor.destroy()
+    return markdown
+  } catch (error) {
+    console.error('Failed to convert JSON to markdown:', error)
+    return ''
+  }
+}
 
 export function useActiveNode(campaign: string, nodeId: string, isTyping: boolean = false) {
 
@@ -15,23 +55,62 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
   const node = useLiveQuery(() =>
     db.nodes.get(nodeId), [nodeId])
 
-  // Convert markdown → html for the editor
-  const htmlContent = node ? mdToHtml(node.markdown ?? '') : ''
+  // Return editorJson for the editor (JSON-first approach)
+  const editorContent = node?.editorJson || null
   const title = node?.title ?? 'Untitled'
   
+  // Migration: If we have a node with markdown but no editorJson, create editorJson from markdown
+  useEffect(() => {
+    if (node && node.markdown && !node.editorJson && nodeId && campaign) {
+      // Convert existing markdown to JSON format for future use
+      try {
+        const tempEditor = new Editor({
+          extensions: [
+            StarterKit,
+            Markdown.configure({
+              html: true,
+              tightLists: true,
+              bulletListMarker: '-',
+              linkify: false,
+              breaks: false,
+            })
+          ],
+          content: node.markdown,
+        })
+        
+        const editorJson = tempEditor.getJSON()
+        tempEditor.destroy()
+        
+        // Update the node with the JSON version
+        db.nodes.update(nodeId, { editorJson }).catch(error => {
+          console.error('Failed to migrate node to JSON format:', error)
+        })
+      } catch (error) {
+        console.error('Failed to convert markdown to JSON during migration:', error)
+      }
+    }
+  }, [node, nodeId, campaign, db])
+  
 
-  const updateMarkdown = useCallback(async (md: string) => {
-    // Defensive check: ensure we have a valid nodeId before attempting to update
+  const updateContent = useCallback(async (editorJson: object) => {
+    // Defensive check: ensure we have a valid nodeId before attempted to update
     if (!nodeId || !campaign) {
-      console.warn('updateMarkdown called without valid nodeId or campaign')
+      console.warn('updateContent called without valid nodeId or campaign')
       return
     }
+    
+    // Generate markdown from JSON using tiptap-markdown
+    const markdown = jsonToMarkdown(editorJson)
     
     const ts = Date.now()
 
     await db.transaction('rw', db.nodes, db.changes, async () => {
 
-      const patch = { markdown: md, updatedAt: ts }
+      const patch = { 
+        markdown, 
+        editorJson,
+        updatedAt: ts 
+      }
 
       const touched = await db.nodes.update(nodeId, patch)
 
@@ -71,6 +150,39 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
     await updateLastLocalChange(campaign)
   }, [db, nodeId, campaign])
 
+  // Backward compatibility function for markdown-only updates
+  const updateMarkdown = useCallback(async (md: string) => {
+    // For backward compatibility, just update markdown without JSON
+    const ts = Date.now()
+    const patch = { markdown: md, updatedAt: ts }
+    
+    await db.transaction('rw', db.nodes, db.changes, async () => {
+      const touched = await db.nodes.update(nodeId, patch)
+      if (touched === 0) {
+        await db.nodes.put({
+          id: nodeId,
+          createdAt: ts,
+          title: 'Untitled',
+          ...patch,
+          type: 'Note',
+          attributes: {},
+          ownerId: USER_ID,
+          campaignId: campaign,
+          campaignIds: [campaign]
+        })
+      }
+      await db.changes.add({
+        op: 'update',
+        entityId: nodeId,
+        entity: 'node',
+        payload: patch,
+        ts,
+      })
+    })
+    await updateLastActivity(campaign)
+    await updateLastLocalChange(campaign)
+  }, [db, nodeId, campaign])
+
   // background sync with adaptive intervals - pause when typing
   useEffect(() => {
     if (isTyping) {
@@ -98,5 +210,5 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
     }
   }, [campaign, authFetch, isTyping])
 
-  return { title, htmlContent, updateMarkdown }
+  return { title, editorContent, updateMarkdown, updateContent }
 }

@@ -108,6 +108,17 @@ class CampaignDB extends Dexie {
       chats: 'id, campaignId, ownerId, title, createdAt, updatedAt, [ownerId+campaignId]',
       chatMessages: 'id, chatId, campaignId, ownerId, role, createdAt, [chatId+createdAt]'
     })
+
+    // Version 9: Add editorJson field for dual storage
+    this.version(9).stores({
+      nodes:   'id, ownerId, campaignId, type, updatedAt, hasEmbedding, [ownerId+campaignId]',
+      edges: 'id, fromId, toId, relType, updatedAt, [ownerId+campaignId]',
+      changes: '++id, entity, entityId, op, ts',
+      metadata: 'id, updatedAt',
+      folders: 'id, parentId, campaignId, ownerId, position, updatedAt, [ownerId+campaignId]',
+      chats: 'id, campaignId, ownerId, title, createdAt, updatedAt, [ownerId+campaignId]',
+      chatMessages: 'id, chatId, campaignId, ownerId, role, createdAt, [chatId+createdAt]'
+    })
   
   }
 }
