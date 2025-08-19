@@ -13,6 +13,7 @@
   "dependencies": {
     "@babel/runtime": "^7.27.6",
     "@clerk/nextjs": "^6.25.0",
+    "@kirklandgee/tiptap-markdown": "^0.8.10",
     "@tiptap/extension-bubble-menu": "^3.0.0-beta.24",
     "@tiptap/pm": "^3.0.0-beta.24",
     "@tiptap/react": "^3.0.0-beta.24",
@@ -35,7 +36,6 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
-    "@kirklandgee/tiptap-markdown": "^0.8.10",
     "tslib": "^2.8.1",
     "turndown": "^7.2.0",
     "zustand": "^5.0.6"

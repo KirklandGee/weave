@@ -9,6 +9,17 @@ import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@kirklandgee/tiptap-markdown'
 
+// Interface for the markdown storage extension
+interface MarkdownStorage {
+  getMarkdown(): string
+}
+
+interface EditorWithMarkdown extends Editor {
+  storage: Editor['storage'] & {
+    markdown: MarkdownStorage
+  }
+}
+
 // Helper function to convert Tiptap JSON to markdown
 function jsonToMarkdown(json: object): string {
   try {
@@ -25,7 +36,7 @@ function jsonToMarkdown(json: object): string {
         })
       ],
       content: json,
-    })
+    }) as EditorWithMarkdown
     
     const markdown = tempEditor.storage.markdown.getMarkdown()
     tempEditor.destroy()
