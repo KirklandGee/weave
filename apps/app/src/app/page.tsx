@@ -79,7 +79,7 @@ export default function Home() {
   const [editingNoteTitle, setEditingNoteTitle] = useState(false)
   
   /* 5. content + updater for the active node */
-  const { editorContent, updateContent } = useActiveNode(
+  const { editorContent, updateContent, isMigrating } = useActiveNode(
     currentCampaign?.slug ?? '',
     activeId ?? '',
     isTyping
@@ -597,13 +597,22 @@ export default function Home() {
                   {/* Document Content */}
                   <div className="h-[calc(100%-64px)] overflow-auto">
                     <div className="max-w-4xl mx-auto p-8">
-                      <Tiptap
-                        key={activeId}
-                        nodeId={activeId}
-                        editorContent={editorContent}
-                        onContentChange={updateContent}
-                        onTypingStateChange={setIsTyping}
-                      />
+                      {isMigrating ? (
+                        <div className="flex items-center justify-center h-64">
+                          <div className="flex items-center gap-3 text-zinc-400">
+                            <div className="w-4 h-4 border border-zinc-500 border-t-amber-500 rounded-full animate-spin"></div>
+                            <span>Loading content...</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <Tiptap
+                          key={activeId}
+                          nodeId={activeId}
+                          editorContent={editorContent}
+                          onContentChange={updateContent}
+                          onTypingStateChange={setIsTyping}
+                        />
+                      )}
                     </div>
                   </div>
                   

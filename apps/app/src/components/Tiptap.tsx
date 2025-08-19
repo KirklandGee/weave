@@ -254,13 +254,20 @@ export default function Tiptap({
   const isTyping = useRef<boolean>(false)
   const typingTimer = useRef<NodeJS.Timeout | null>(null)
   const previousNodeId = useRef<string>('')
+  const previousContent = useRef<object | null>(null)
+  const currentNodeId = useRef<string>(nodeId)
   
-  // Simple debounced save - no content comparison needed
+  // Simple debounced save with node validation
   const debouncedSave = useMemo(() => {
     return debounce((editor: Editor) => {
-      onContentChange(editor.getJSON())
+      // Validate we're still on the same note before saving
+      if (currentNodeId.current === nodeId) {
+        onContentChange(editor.getJSON())
+      } else {
+        console.warn('Prevented save to wrong node:', { expected: nodeId, actual: currentNodeId.current })
+      }
     }, 400)
-  }, [onContentChange])
+  }, [onContentChange, nodeId])
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -306,24 +313,35 @@ export default function Tiptap({
     shouldRerenderOnTransaction: false,
   });
 
-  /* ---------- 3. Load content only on note switch ---------- */
+  /* ---------- 3. Load content on note switch OR content change ---------- */
   useEffect(() => {
     if (!editor) return
     
-    // Only load content when switching to a different note
-    if (nodeId !== previousNodeId.current) {
-      // Clear typing state when switching notes
-      isTyping.current = false
-      if (typingTimer.current) {
-        clearTimeout(typingTimer.current)
-        typingTimer.current = null
+    const hasNodeChanged = nodeId !== previousNodeId.current
+    const hasContentChanged = editorContent !== previousContent.current
+    
+    // Load content when switching notes OR when content loads for same note
+    if (hasNodeChanged || (hasContentChanged && nodeId === previousNodeId.current)) {
+      
+      if (hasNodeChanged) {
+        // Cancel all pending operations when switching notes
+        debouncedSave.cancel()
+        isTyping.current = false
+        if (typingTimer.current) {
+          clearTimeout(typingTimer.current)
+          typingTimer.current = null
+        }
+        currentNodeId.current = nodeId
       }
       
       const contentToLoad = editorContent || { type: 'doc', content: [] }
+      console.log(`[Tiptap] Loading content for nodeId: ${nodeId}, hasContent: ${!!editorContent}, contentType: ${typeof editorContent}`)
       editor.commands.setContent(contentToLoad, { emitUpdate: false })
+      
       previousNodeId.current = nodeId
+      previousContent.current = editorContent
     }
-  }, [nodeId, editor, editorContent])
+  }, [nodeId, editor, editorContent, debouncedSave])
 
   /* ---------- 4. clean up ---------- */
   useEffect(() => {
@@ -336,6 +354,12 @@ export default function Tiptap({
       }
     }
   }, [editor, debouncedSave])
+  
+  /* ---------- 5. Cleanup on node change ---------- */
+  useEffect(() => {
+    // Update current node ref for validation
+    currentNodeId.current = nodeId
+  }, [nodeId])
 
   return (
     <>

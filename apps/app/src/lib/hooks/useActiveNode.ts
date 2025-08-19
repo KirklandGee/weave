@@ -59,6 +59,9 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
   const editorContent = node?.editorJson || null
   const title = node?.title ?? 'Untitled'
   
+  // Track migration status to help with loading states
+  const isMigrating = !!(node && node.markdown && !node.editorJson)
+  
   // Migration: If we have a node with markdown but no editorJson, create editorJson from markdown
   useEffect(() => {
     if (node && node.markdown && !node.editorJson && nodeId && campaign) {
@@ -210,5 +213,5 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
     }
   }, [campaign, authFetch, isTyping])
 
-  return { title, editorContent, updateMarkdown, updateContent }
+  return { title, editorContent, updateMarkdown, updateContent, isMigrating }
 }
