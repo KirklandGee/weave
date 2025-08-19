@@ -254,7 +254,7 @@ export default function Tiptap({
   const isTyping = useRef<boolean>(false)
   const typingTimer = useRef<NodeJS.Timeout | null>(null)
   const previousNodeId = useRef<string>('')
-  const previousContent = useRef<object | null>(null)
+  const previousContent = useRef<object | null | undefined>(null)
   const currentNodeId = useRef<string>(nodeId)
   
   // Simple debounced save with node validation
