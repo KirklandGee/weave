@@ -1,12 +1,17 @@
 'use client'
 
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { useMemo, useRef, useEffect, useState, useCallback } from 'react'
 import { EditorContent, useEditor, Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@kirklandgee/tiptap-markdown'
 import debounce from 'lodash.debounce'
 import React from 'react'
+import { createMentionExtension, MentionNodeData } from './MentionExtension'
+import { useMentionSearch } from '@/lib/hooks/useMentionSearch'
+import { useRelationships } from '@/lib/hooks/useRelationships'
+import { useCampaign } from '@/contexts/AppContext'
+import { Note } from '@/types/node'
 import { 
   Bold, 
   Italic, 
@@ -245,12 +250,129 @@ export default function Tiptap({
   editorContent,
   onContentChange,
   onTypingStateChange,
+  onNavigateToNode,
 }: {
   nodeId: string;
   editorContent?: object | null;
-  onContentChange: (editorJson: object) => void;
+  onContentChange: (editorJson: object, markdown?: string) => void;
   onTypingStateChange?: (isTyping: boolean) => void;
+  onNavigateToNode?: (nodeId: string) => void;
 }) {
+  const { currentCampaign } = useCampaign()
+  
+  // Get current note from nodeId for relationships
+  const [currentNote, setCurrentNote] = useState<Note | null>(null)
+
+  // Load current note data when nodeId changes
+  useEffect(() => {
+    const loadCurrentNote = async () => {
+      if (!nodeId || !currentCampaign?.slug) {
+        setCurrentNote(null)
+        return
+      }
+
+      try {
+        // Import the database helper
+        const { getDb } = await import('@/lib/db/campaignDB')
+        const db = getDb(currentCampaign.slug)
+        
+        const note = await db.nodes.get(nodeId)
+        if (note) {
+          setCurrentNote(note)
+        }
+      } catch (error) {
+        console.error('Failed to load current note:', error)
+        setCurrentNote(null)
+      }
+    }
+
+    loadCurrentNote()
+  }, [nodeId, currentCampaign?.slug])
+  
+  // Initialize mention search hook
+  const { searchForMentions } = useMentionSearch({
+    campaignSlug: currentCampaign?.slug,
+    currentNodeId: nodeId,
+  })
+
+  // Initialize relationships hook for auto-creating relationships
+  // Create a placeholder note to avoid conditional hooks
+  const placeholderNote = {
+    id: '',
+    title: '',
+    type: '',
+    markdown: '',
+    ownerId: '',
+    campaignId: null,
+    campaignIds: [],
+    updatedAt: 0,
+    createdAt: 0,
+    attributes: {}
+  } as Note
+
+  const relationshipsHook = useRelationships({
+    currentNote: currentNote || placeholderNote,
+    campaignSlug: currentCampaign?.slug,
+  })
+
+  // Handle mention creation - auto-create MENTIONS relationship
+  const handleMentionCreate = useCallback(async (mention: MentionNodeData) => {
+    console.log('[Tiptap] handleMentionCreate called with:', mention)
+    console.log('[Tiptap] currentNote:', currentNote)
+    console.log('[Tiptap] relationshipsHook:', relationshipsHook)
+    
+    if (!currentNote || !relationshipsHook) {
+      console.warn('[Tiptap] Missing currentNote or relationshipsHook, skipping relationship creation')
+      return
+    }
+    
+    try {
+      // Create a MENTIONS relationship FROM current note TO mentioned node
+      // This means "Current note MENTIONS the mentioned node"
+      const targetNote = {
+        id: mention.id,
+        title: mention.label,
+        type: mention.type || 'Unknown',
+        markdown: '',
+        ownerId: '',
+        campaignId: null,
+        campaignIds: [],
+        updatedAt: 0,
+        createdAt: 0,
+        attributes: {}
+      } as Note // Create proper Note object
+      
+      console.log('[Tiptap] Creating relationship from:', currentNote.title, 'to:', mention.label)
+      await relationshipsHook.addRelationship(targetNote, 'MENTIONS')
+      console.log(`[Tiptap] ✅ Created relationship: "${currentNote.title}" MENTIONS "${mention.label}"`)
+    } catch (error) {
+      console.error('[Tiptap] ❌ Failed to create mention relationship:', error)
+    }
+  }, [currentNote, relationshipsHook])
+
+  // Handle mention clicks - navigate to mentioned node
+  const handleMentionClick = useCallback((mention: MentionNodeData) => {
+    if (onNavigateToNode) {
+      onNavigateToNode(mention.id)
+    }
+  }, [onNavigateToNode])
+
+  // Create mention extension with our configuration
+  const mentionExtension = useMemo(() => {
+    if (!currentCampaign?.slug) return null
+    
+    return createMentionExtension({
+      searchNodes: searchForMentions,
+      currentNodeId: nodeId,
+      onMentionCreate: handleMentionCreate,
+      onMentionClick: handleMentionClick,
+      onMentionDelete: (mention) => {
+        console.log('Mention deleted:', mention.label)
+        // Could implement relationship cleanup here if needed
+      },
+    })
+  }, [currentCampaign?.slug, nodeId, searchForMentions, handleMentionCreate, handleMentionClick])
+
   const isTyping = useRef<boolean>(false)
   const typingTimer = useRef<NodeJS.Timeout | null>(null)
   const previousNodeId = useRef<string>('')
@@ -262,7 +384,13 @@ export default function Tiptap({
     return debounce((editor: Editor) => {
       // Validate we're still on the same note before saving
       if (currentNodeId.current === nodeId) {
-        onContentChange(editor.getJSON())
+        const editorJson = editor.getJSON()
+        // Get markdown from the editor's markdown extension
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const markdown = (editor.storage as any).markdown?.getMarkdown?.() || ''
+        console.log('[Tiptap] Extracted markdown:', markdown)
+        console.log('[Tiptap] Saving content for nodeId:', nodeId, 'with markdown length:', markdown.length)
+        onContentChange(editorJson, markdown)
       } else {
         console.warn('Prevented save to wrong node:', { expected: nodeId, actual: currentNodeId.current })
       }
@@ -274,7 +402,7 @@ export default function Tiptap({
     extensions: [
       StarterKit, 
       Markdown.configure({
-        html: true,                 // Enable HTML input/output
+        html: true,                 // Enable HTML input/output to preserve mention HTML
         tightLists: true,          // Tight list formatting
         tightListClass: 'tight',   // Class for tight lists
         bulletListMarker: '-',     // Use dashes for bullet lists
@@ -282,7 +410,9 @@ export default function Tiptap({
         breaks: false,             // Don't convert line breaks to <br>
         transformPastedText: false, // Don't transform pasted text
         transformCopiedText: false, // Don't transform copied text
-      })
+      }),
+      // Add mention extension if campaign is available
+      ...(mentionExtension ? [mentionExtension] : []),
     ],
     content: editorContent || { type: 'doc', content: [] },
     onUpdate({ editor }) {
@@ -336,6 +466,7 @@ export default function Tiptap({
       
       const contentToLoad = editorContent || { type: 'doc', content: [] }
       console.log(`[Tiptap] Loading content for nodeId: ${nodeId}, hasContent: ${!!editorContent}, contentType: ${typeof editorContent}`)
+      console.log('[Tiptap] Content being loaded:', JSON.stringify(contentToLoad, null, 2))
       editor.commands.setContent(contentToLoad, { emitUpdate: false })
       
       previousNodeId.current = nodeId
@@ -360,6 +491,33 @@ export default function Tiptap({
     // Update current node ref for validation
     currentNodeId.current = nodeId
   }, [nodeId])
+
+  /* ---------- 6. Add mention click handler ---------- */
+  useEffect(() => {
+    if (!editor) return
+
+    const handleMentionClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      
+      // Check if clicked element is a mention or contains mention data
+      const mentionElement = target.closest('.mention')
+      if (mentionElement) {
+        const id = mentionElement.getAttribute('data-id')
+        const label = mentionElement.getAttribute('data-label')
+        
+        if (id && label && onNavigateToNode) {
+          onNavigateToNode(id)
+        }
+      }
+    }
+
+    // Add click listener to editor
+    editor.view.dom.addEventListener('click', handleMentionClick)
+    
+    return () => {
+      editor.view.dom.removeEventListener('click', handleMentionClick)
+    }
+  }, [editor, onNavigateToNode])
 
   return (
     <>

@@ -611,6 +611,7 @@ export default function Home() {
                           editorContent={editorContent}
                           onContentChange={updateContent}
                           onTypingStateChange={setIsTyping}
+                          onNavigateToNode={setActiveId}
                         />
                       )}
                     </div>
