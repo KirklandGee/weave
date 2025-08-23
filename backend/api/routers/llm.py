@@ -5,6 +5,7 @@ from backend.services.llm.template_manager import template_manager
 from backend.models.schemas import ChatRequest, TemplateInfo, AsyncTemplateRequest
 from backend.api.auth import get_current_user
 from backend.services.queue_service import get_task_queue
+from backend.services.usage_service import UsageService
 from datetime import datetime
 import asyncio
 
@@ -14,6 +15,13 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 @router.post("/chat/stream")
 async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_user)):
     try:
+        # Check if user has AI access based on subscription plan
+        if not UsageService.check_ai_access(user_id):
+            raise HTTPException(
+                status_code=403,
+                detail="AI features require a paid subscription. Please upgrade your plan to access AI chat."
+            )
+        
         return StreamingResponse(
             call_llm(
                 messages=req.messages,
@@ -25,7 +33,7 @@ async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_u
             media_type="text/plain",
         )
     except HTTPException:
-        # Re-raise HTTP exceptions (like 429 for usage limits)
+        # Re-raise HTTP exceptions (like 403 for plan restrictions or 429 for usage limits)
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -39,6 +47,13 @@ async def execute_template_async(
 ):
     """Execute a template asynchronously using Redis Queue."""
     try:
+        # Check if user has AI access based on subscription plan
+        if not UsageService.check_ai_access(user_id):
+            raise HTTPException(
+                status_code=403,
+                detail="AI features require a paid subscription. Please upgrade your plan to access AI templates."
+            )
+        
         queue = get_task_queue()
 
         # Enqueue the background task

@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Activity, DollarSign, MessageSquare, Brain, TrendingUp } from 'lucide-react'
+import { X, Activity, DollarSign, MessageSquare, Brain, TrendingUp, Crown } from 'lucide-react'
 import { useUsage } from '@/lib/hooks/useUsage'
+import { useSubscription } from '@/lib/hooks/useSubscription'
+import { Protect } from '@clerk/nextjs'
+import { InlineUpgradePrompt } from './UpgradePrompt'
 
 interface UsageModalProps {
   isOpen: boolean
@@ -11,6 +14,7 @@ interface UsageModalProps {
 
 export default function UsageModal({ isOpen, onClose }: UsageModalProps) {
   const { summary, history, loading, error, fetchUsageHistory } = useUsage()
+  const { displayName, monthlyCredits } = useSubscription()
   const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
@@ -80,8 +84,45 @@ export default function UsageModal({ isOpen, onClose }: UsageModalProps) {
 
           {summary && (
             <>
-              {/* Usage Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {/* Subscription Information */}
+              <div className="bg-zinc-800/30 border border-zinc-700 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Crown className="w-5 h-5 text-blue-400" />
+                    <div>
+                      <h3 className="font-semibold text-white">Current Plan</h3>
+                      <p className="text-sm text-zinc-400">{displayName}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Protect
+                      plan="player"
+                      fallback={
+                        <a 
+                          href="/pricing"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                        >
+                          Upgrade for AI
+                        </a>
+                      }
+                    >
+                      <p className="font-semibold text-white">${monthlyCredits} AI Credits</p>
+                      <p className="text-sm text-zinc-400">per month</p>
+                    </Protect>
+                  </div>
+                </div>
+              </div>
+
+              {/* Usage Overview with Protect component */}
+              <Protect
+                plan="player"
+                fallback={
+                  <div className="mb-6">
+                    <InlineUpgradePrompt feature="AI Usage Analytics" />
+                  </div>
+                }
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <DollarSign className="w-4 h-4 text-green-400" />
@@ -129,35 +170,35 @@ export default function UsageModal({ isOpen, onClose }: UsageModalProps) {
                 </div>
               </div>
 
-              {/* Usage Progress Bar */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-zinc-300 font-medium">Monthly Usage Progress</span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getUsageColor(summary.usage_percentage)}`}>
-                    {formatCurrency(summary.remaining_budget)} remaining
-                  </span>
+                {/* Usage Progress Bar */}
+                <div className="mb-8">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-zinc-300 font-medium">Monthly Usage Progress</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getUsageColor(summary.usage_percentage)}`}>
+                      {formatCurrency(summary.remaining_budget)} remaining
+                    </span>
+                  </div>
+                  <div className="w-full bg-zinc-800 rounded-full h-3">
+                    <div
+                      className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(summary.usage_percentage)}`}
+                      style={{ width: `${Math.min(Number(summary.usage_percentage), 100)}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-zinc-800 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(summary.usage_percentage)}`}
-                    style={{ width: `${Math.min(Number(summary.usage_percentage), 100)}%` }}
-                  ></div>
+
+                {/* History Toggle */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                  >
+                    {showHistory ? 'Hide Details' : 'Show Details'}
+                  </button>
                 </div>
-              </div>
 
-              {/* History Toggle */}
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
-                <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                >
-                  {showHistory ? 'Hide Details' : 'Show Details'}
-                </button>
-              </div>
-
-              {/* Usage History Table */}
-              {showHistory && history && (
+                {/* Usage History Table */}
+                {showHistory && history && (
                 <div className="bg-zinc-800/30 border border-zinc-700 rounded-lg overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -193,7 +234,8 @@ export default function UsageModal({ isOpen, onClose }: UsageModalProps) {
                     </div>
                   )}
                 </div>
-              )}
+                )}
+              </Protect>
             </>
           )}
         </div>

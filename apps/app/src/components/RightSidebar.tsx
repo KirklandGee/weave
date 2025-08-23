@@ -4,6 +4,7 @@ import { RelationshipsSection } from './Relationships';
 import LLMChatPanel from './LLMChatPanel';
 import { useLLMChat } from '@/lib/hooks/useLLMChat';
 import { MessageSquare, Network, ChevronRight } from 'lucide-react';
+import { AIFeatureProtection } from './AIFeatureProtection';
 
 type RightSidebarMode = 'relationships' | 'ai-chat';
 
@@ -88,17 +89,19 @@ export default function RightSidebar({
               <Network size={14} />
               Relationships
             </button>
-            <button
-              onClick={() => handleModeChange('ai-chat')}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                mode === 'ai-chat'
-                  ? 'bg-zinc-800 text-zinc-200 border border-zinc-700'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              }`}
-            >
-              <MessageSquare size={14} />
-              AI Chat
-            </button>
+            <AIFeatureProtection feature="AI Chat" fallbackType="none">
+              <button
+                onClick={() => handleModeChange('ai-chat')}
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  mode === 'ai-chat'
+                    ? 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                }`}
+              >
+                <MessageSquare size={14} />
+                AI Chat
+              </button>
+            </AIFeatureProtection>
           </div>
         </div>
       </div>
@@ -113,23 +116,25 @@ export default function RightSidebar({
             />
           </div>
         ) : (
-          <LLMChatPanel
-            messages={messages}
-            input={input}
-            setInput={setInput}
-            isLoading={isLoading}
-            isCompacting={isCompacting}
-            messagesEndRef={messagesEndRef}
-            onSubmit={handleSubmit}
-            onClear={clearChat}
-            chatSessions={chatSessions}
-            currentChatId={currentChatId}
-            onNewChat={onNewChat}
-            onSwitchChat={onSwitchChat}
-            onDeleteChat={onDeleteChat}
-            onCompactChat={onCompactChat}
-            checkCompactionStatus={checkCompactionStatus}
-          />
+          <AIFeatureProtection feature="AI Chat" fallbackType="full">
+            <LLMChatPanel
+              messages={messages}
+              input={input}
+              setInput={setInput}
+              isLoading={isLoading}
+              isCompacting={isCompacting}
+              messagesEndRef={messagesEndRef}
+              onSubmit={handleSubmit}
+              onClear={clearChat}
+              chatSessions={chatSessions}
+              currentChatId={currentChatId}
+              onNewChat={onNewChat}
+              onSwitchChat={onSwitchChat}
+              onDeleteChat={onDeleteChat}
+              onCompactChat={onCompactChat}
+              checkCompactionStatus={checkCompactionStatus}
+            />
+          </AIFeatureProtection>
         )}
       </div>
     </aside>

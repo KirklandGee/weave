@@ -11,10 +11,31 @@
   - [ ] Gate LLM access behind payments
   - [ ] Add some kind of payment tracking to the user nodes in some way
 - [ ] Build prompt injection detection
-
+- [ ] The simple relationship based retrieval is likely not going to be sufficient. I need some semantic/take all the "lore" notes or something at all times, know what location a given session is in, something like that. Maybe I do just have to rely on RAG, but that depends on notes being similar, which they may not always be. I also need to have some core settings by campaign that I can give the AI like system/level for encounters (so probably need a dedicated "player character" note type with some required fields there). Tone of the campaig, etc. If I have that player character note,I need to be able to  
+- [ ] Need to add PDF support as files you can store (somehow)
+- [ ] The relationships need to be @ mentionable both in the text of a note and also in the AI chat. I already have all the search functionality, so it shouldn't be that hard.
+- [ ] A basic to-do/checklist could be good. Not tied to notes, but just a way to keep track of little things you want to do. Need some UI for it.  
+- [ ] For any ideas, things the AI comes up with, having the assistant make sure each things comes with a simple "dm reference" could be useful. 
 
 ## BUGS
 - [ ] For markdown imports, handle Obsidian internal links. So if it is [[word]] without any link after, just remove that. And a bunch of other formatting stuff
+- [ ] There's still a lot of small bugs with TipTap and the way we debounce/handle sync. It doesn't quite feel right to use between all the text conversion, saving, etc. Makes it really weird from a UX perspective. Mostly it seems like newlines are where the problems come up most often. I should probably handle the HTML conversion better. Also seem to be mostly related to headings, in most cases.
+- [ ] For the AI chat, we should add more context by default, not just direct relationships. We need a way to mark certain documents as "core", to always be considered, and to @mention specific notes or folders when chatting, I think.
+- [ ] On import, notes are uncategorized but don't show up in the sidebar until a refresh
+- [ ] I've now removed all access to templates in the UI outside of the command pallete, and those don't work. I guess eventually having an agent will remove the need for those in some ways, too. 
+- [ ] Should support adding multiple relationships simultaneously
+- [ ] On pasting, the sync doesn't really work for some reason. I don't think it registers a change if you don't sit on the note long enough? Probably need to shorten the idle window. Could also be some kind of race condition. Actually, it does look like it just requires some kind of typing to verify that a change has been made. 
+- [ ] We HAVE to store the AI chats. We keep all the message logs anyways, so it shouldn't be that hard to keep those in an extra Dexie table and just keep nodes in the graph. I think these will also need to belong to a "campaign" though, so will have to exclude them from other queries. I'm almost tempted to just use a separate postgres table for that, but I'm not sure it's worth it. Probably still easier to just use the graph and make sure those notes aren't embedded, searched, etc. in the same way. Almost makes me think I need to just change my labels to NOTES with some 'type' prop, and then use other labels for other things to make my searching and stuff easier. 
+  - [ ] This also means we need to implement the same compacting/summarizing like claude code would use to keep context from getting enormous. 
+- [ ] On sending a message, should jump the AI chat down to where that message sent, but not keep going.
+- [ ] LLMs are FAR too wordy. Need to add some instructions around brevity and being concise in the system prompts, and in general work on the default one that defines it's personality, etc.
+- [ ] There's often a lot of latency on the LLM requests. I don't know if it's OpenAI, Railway, or what, but it's super noticeable. 
+- [ ] When highlighting an AI chat message, you are not able to start anywhere but the start of the message
+- [ ] There are a lot of words here that are not English. I should basically disable the spell checking in the tiptap editor.
+- [ ] Seeing some duplicate sync API calls that can probably be avoided. 
+- [ ] New notes still are not getting embedd3ed through the background job. 
+
+]
 
 ## TODO
 

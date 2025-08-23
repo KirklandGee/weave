@@ -6,6 +6,7 @@ import time
 from backend.services.neo4j import query
 from backend.models.schemas import UsageEvent, UsageLimit, UsageSummary
 from backend.services.llm.config import MODEL_PRICING, DEFAULT_MONTHLY_LIMIT
+from backend.services.subscription_service import SubscriptionService
 
 
 class UsageService:
@@ -163,67 +164,19 @@ class UsageService:
 
     @staticmethod
     def get_user_limit(user_id: str) -> UsageLimit:
-        """Get or create a user's usage limit. Uses cache to reduce DB queries."""
+        """Get user's usage limit based on their subscription plan. Uses cache to reduce queries."""
         # Check cache first
         cached_limit = UsageService._get_cached_limit(user_id)
         if cached_limit is not None:
             return cached_limit
             
         now = datetime.now(timezone.utc)
+        
+        # Get monthly limit from subscription plan (not database)
+        monthly_limit = SubscriptionService.get_monthly_limit(user_id)
+        reset_date = UsageService._get_next_month_reset_date(now)
 
-        # Check if user has a custom limit
-        result = query(
-            """
-            MATCH (l:UsageLimit)
-            WHERE l.user_id = $user_id
-            RETURN l.monthly_limit as monthly_limit, l.reset_date as reset_date
-        """,
-            user_id=user_id,
-        )
-
-        if result:
-            limit_data = result[0]
-            monthly_limit = Decimal(str(limit_data["monthly_limit"]))
-            reset_date_value = limit_data["reset_date"]
-
-            # Handle Neo4j datetime object or string
-            if isinstance(reset_date_value, str):
-                reset_date = datetime.fromisoformat(reset_date_value)
-            else:
-                # Neo4j datetime object - convert to Python datetime
-                reset_date = reset_date_value.to_native()
-
-            # Check if we need to reset for new month
-            if now.month != reset_date.month or now.year != reset_date.year:
-                next_month_reset = UsageService._get_next_month_reset_date(now)
-                query(
-                    """
-                    MATCH (l:UsageLimit)
-                    WHERE l.user_id = $user_id
-                    SET l.reset_date = datetime($reset_date)
-                """,
-                    user_id=user_id,
-                    reset_date=next_month_reset.isoformat(),
-                )
-                reset_date = next_month_reset
-        else:
-            # Create default limit for user
-            monthly_limit = DEFAULT_MONTHLY_LIMIT
-            reset_date = UsageService._get_next_month_reset_date(now)
-
-            query(
-                """
-                CREATE (l:UsageLimit {
-                    user_id: $user_id,
-                    monthly_limit: $monthly_limit,
-                    reset_date: datetime($reset_date)
-                })
-            """,
-                user_id=user_id,
-                monthly_limit=float(monthly_limit),
-                reset_date=reset_date.isoformat(),
-            )
-
+        # Get current usage for this month
         current_usage = UsageService.get_current_month_usage(user_id)
 
         usage_limit = UsageLimit(
@@ -243,6 +196,11 @@ class UsageService:
         """Check if a user can make a request without exceeding their limit."""
         usage_limit = UsageService.get_user_limit(user_id)
         return (usage_limit.current_usage + estimated_cost) <= usage_limit.monthly_limit
+
+    @staticmethod
+    def check_ai_access(user_id: str) -> bool:
+        """Check if user has access to AI features based on subscription plan."""
+        return SubscriptionService.has_ai_access(user_id)
 
     @staticmethod
     def set_user_limit(user_id: str, monthly_limit: Decimal) -> UsageLimit:
