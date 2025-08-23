@@ -60,7 +60,7 @@ export default function PricingPage() {
                   <li>• AI credits = actual dollars spent on AI processing</li>
                   <li>• $10 plan = $10 worth of AI interactions per month</li>
                   <li>• $25 plan = $25 worth of AI interactions per month</li>
-                  <li>• Unused credits don't roll over</li>
+                  <li>• Unused credits don&apos;t roll over</li>
                   <li>• No hidden fees or surprise charges</li>
                 </ul>
               </div>
@@ -91,7 +91,7 @@ export default function PricingPage() {
             
             <div>
               <h4 className="font-semibold mb-2">What happens if I go over my AI credits?</h4>
-              <p className="text-zinc-400">AI features will be temporarily disabled until your next billing cycle. We'll notify you before you reach your limit.</p>
+              <p className="text-zinc-400">AI features will be temporarily disabled until your next billing cycle. We&apos;ll notify you before you reach your limit.</p>
             </div>
             
             <div>

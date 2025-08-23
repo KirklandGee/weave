@@ -104,10 +104,9 @@ async def call_llm(
     
     if not is_safe:
         print(f"🚨 Request blocked by security service for user {user_id}")
-        # Return security error as a generator to match expected interface
-        async def security_response():
-            yield security_error
-        return security_response()
+        # Yield security error directly since this is an async generator
+        yield security_error
+        return
     
     # Use sanitized messages if provided
     if sanitized_messages:
