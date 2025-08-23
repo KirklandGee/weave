@@ -6,6 +6,7 @@ from .token_counter import TokenCounter
 from .prompts.base_chat import get_base_system_prompt
 from backend.observability.trace import traced
 from backend.services.usage_service import UsageService
+from backend.services.security.security_service import security_service
 from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
 from fastapi import HTTPException
 from decimal import Decimal
@@ -84,6 +85,36 @@ async def call_llm(
 ):
     start_time = time.time()
     print(f"🚀 Starting LLM call for user {user_id}")
+    
+    # SECURITY: Check rate limits first
+    if user_id:
+        rate_allowed, rate_error = security_service.check_rate_limits(user_id)
+        if not rate_allowed:
+            raise HTTPException(status_code=429, detail=rate_error)
+    
+    # SECURITY: Validate request for prompt injection and other threats
+    security_start = time.time()
+    is_safe, security_error, sanitized_messages = security_service.validate_llm_request(
+        messages=messages,
+        context=context,
+        user_id=user_id
+    )
+    security_time = time.time()
+    print(f"🛡️ Security validation completed in {(security_time - security_start)*1000:.1f}ms")
+    
+    if not is_safe:
+        print(f"🚨 Request blocked by security service for user {user_id}")
+        # Return security error as a generator to match expected interface
+        async def security_response():
+            yield security_error
+        return security_response()
+    
+    # Use sanitized messages if provided
+    if sanitized_messages:
+        messages = sanitized_messages
+        print(f"🧹 Using sanitized messages for user {user_id}")
+    
+    print(f"🔒 Total security overhead: {(security_time - start_time)*1000:.1f}ms")
     
     if isinstance(messages, LLMMessage):
         messages = [messages]
