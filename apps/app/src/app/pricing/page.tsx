@@ -1,76 +1,10 @@
 'use client'
 
 import React from 'react'
-import { Check, Crown, Zap } from 'lucide-react'
-import { useSubscription } from '@/lib/hooks/useSubscription'
-
-const plans = [
-  {
-    id: 'free_user',
-    name: 'Storyteller',
-    price: '$0',
-    period: 'forever',
-    description: 'Perfect for getting started with campaign organization',
-    features: [
-      'Unlimited campaigns and notes',
-      'Rich text editor',
-      'Character sheets and NPC tracking',
-      'Session planning templates',
-      'Local device storage'
-    ],
-    limitations: [
-      'No AI assistance',
-      'No cloud sync',
-      'No AI content generation'
-    ],
-    ctaText: 'Current Plan',
-    ctaDisabled: true
-  },
-  {
-    id: 'player',
-    name: 'Player',
-    price: '$10',
-    period: 'month',
-    description: 'AI-powered campaign management for active DMs',
-    popular: true,
-    features: [
-      'Everything in Storyteller',
-      '$10 monthly AI credits',
-      'AI campaign assistant chat',
-      'NPC and location generation',
-      'Plot hook suggestions',
-      'Cloud sync across devices',
-      'Advanced search with AI',
-      'Priority customer support'
-    ],
-    ctaText: 'Upgrade to Player',
-    ctaDisabled: false
-  },
-  {
-    id: 'game_master',
-    name: 'Game Master',
-    price: '$25',
-    period: 'month',
-    description: 'Maximum AI power for serious campaign creators',
-    features: [
-      'Everything in Player',
-      '$25 monthly AI credits',
-      'Bulk content generation',
-      'Complex campaign arc planning',
-      'Advanced AI templates',
-      'Custom AI prompts',
-      'Usage analytics and insights',
-      'API access for integrations',
-      'Early access to new features'
-    ],
-    ctaText: 'Upgrade to Game Master',
-    ctaDisabled: false
-  }
-]
+import { Zap } from 'lucide-react'
+import { PricingTable } from '@clerk/nextjs'
 
 export default function PricingPage() {
-  const { tier } = useSubscription()
-  
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <div className="container mx-auto px-6 py-16">
@@ -84,80 +18,28 @@ export default function PricingPage() {
           </p>
         </div>
         
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan) => (
-            <div 
-              key={plan.id}
-              className={`relative rounded-2xl p-8 border ${
-                plan.popular 
-                  ? 'border-blue-500 bg-gradient-to-b from-blue-500/10 to-transparent' 
-                  : 'border-zinc-800 bg-zinc-900/50'
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-                    <Crown className="w-3 h-3" />
-                    Most Popular
-                  </div>
-                </div>
-              )}
-              
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                <p className="text-zinc-400 mb-4">{plan.description}</p>
-                
-                <div className="mb-6">
-                  <span className="text-4xl font-bold">{plan.price}</span>
-                  {plan.period !== 'forever' && (
-                    <span className="text-zinc-400">/{plan.period}</span>
-                  )}
-                </div>
-                
-                <button
-                  className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                    tier === plan.id || plan.ctaDisabled
-                      ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
-                      : plan.popular
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600'
-                  }`}
-                  disabled={tier === plan.id || plan.ctaDisabled}
-                >
-                  {tier === plan.id ? 'Current Plan' : plan.ctaText}
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-3 text-green-400">What's included:</h4>
-                  <ul className="space-y-2">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-3 text-sm">
-                        <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-zinc-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                {plan.limitations && (
-                  <div>
-                    <h4 className="font-medium mb-3 text-zinc-500">Limitations:</h4>
-                    <ul className="space-y-2">
-                      {plan.limitations.map((limitation, index) => (
-                        <li key={index} className="flex items-start gap-3 text-sm">
-                          <div className="w-4 h-4 mt-0.5 flex-shrink-0 rounded-full bg-zinc-600" />
-                          <span className="text-zinc-500">{limitation}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+        {/* Clerk Pricing Table */}
+        <div className="mb-16">
+          <PricingTable 
+            appearance={{
+              elements: {
+                card: 'bg-zinc-900/50 border border-zinc-800 text-white',
+                cardHeader: 'text-white',
+                cardBody: 'text-zinc-300',
+                cardActions: 'text-white',
+                button: 'bg-blue-600 hover:bg-blue-700 text-white',
+                buttonSecondary: 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600',
+              },
+              variables: {
+                colorPrimary: '#3b82f6',
+                colorText: '#ffffff',
+                colorTextSecondary: '#a1a1aa',
+                colorBackground: '#18181b',
+                colorInputBackground: '#27272a',
+                colorInputText: '#ffffff',
+              }
+            }}
+          />
         </div>
         
         {/* AI Credits Explainer */}
