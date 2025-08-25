@@ -49,5 +49,5 @@ ENV PYTHONPATH=/app:/app/backend
 # Expose port
 EXPOSE $PORT
 
-# Production command
-CMD uv run python -m fastapi run api/index.py --host 0.0.0.0 --port 8000
+# Production command with concurrency tuning for ~20+ simultaneous streams
+CMD cd backend && uv run uvicorn api.index:app --host 0.0.0.0 --port 8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker --limit-concurrency 1000 --limit-max-requests 1000 --timeout-keep-alive 5

@@ -18,11 +18,24 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     const chatId = crypto.randomUUID();
     const now = Date.now();
     
+    // Auto-generate title based on context node if no title provided
+    let chatTitle = title || 'New Chat';
+    if (!title && contextNodeId) {
+      try {
+        const contextNode = await db.nodes.get(contextNodeId);
+        if (contextNode && contextNode.title) {
+          chatTitle = `Chat: ${contextNode.title}`;
+        }
+      } catch {
+        // If node lookup fails, keep default title
+      }
+    }
+    
     const newChat: ChatSession = {
       id: chatId,
       campaignId: campaign,
       ownerId,
-      title: title || 'New Chat',
+      title: chatTitle,
       contextNodeId,
       createdAt: now,
       updatedAt: now,
@@ -46,7 +59,7 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     setMessages([]);
     
     return chatId;
-  }, [campaign, ownerId, db.chats, db.changes, setChatSessions, setCurrentChatId, setMessages]);
+  }, [campaign, ownerId, db.chats, db.changes, setChatSessions, setCurrentChatId, setMessages, db.nodes]);
 
   // Load chat sessions on mount
   useEffect(() => {
@@ -352,6 +365,31 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     return await getStatus(chatId);
   };
 
+  const renameChat = async (chatId: string, newTitle: string) => {
+    const now = Date.now();
+    
+    try {
+      // Update chat in database
+      await db.chats.where('id').equals(chatId).modify({ title: newTitle, updatedAt: now });
+      
+      // Add to changes for sync
+      await db.changes.add({
+        op: 'update',
+        entity: 'chats',
+        entityId: chatId,
+        payload: { title: newTitle, updatedAt: now },
+        ts: now
+      });
+
+      // Update local state
+      setChatSessions(prev => prev.map(chat => 
+        chat.id === chatId ? { ...chat, title: newTitle, updatedAt: now } : chat
+      ));
+    } catch {
+      // Rename failed - ignore silently
+    }
+  };
+
   return {
     chatSessions,
     currentChatId,
@@ -365,6 +403,7 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     deleteChat,
     clearCurrentChat,
     compactCurrentChat,
-    checkCompactionStatus
+    checkCompactionStatus,
+    renameChat
   };
 }

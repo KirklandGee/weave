@@ -23,15 +23,15 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
         .processSync(content);
       
       return String(result);
-    } catch (error) {
-      console.error('Failed to render markdown:', error);
-      return content; // Fallback to plain text
+    } catch {
+      // Failed to render markdown - fallback to plain text
+      return content;
     }
   }, [content]);
 
   return (
     <div 
-      className={`markdown-content ${className}`}
+      className={`markdown-content markdown-selectable ${className}`}
       dangerouslySetInnerHTML={{ __html: htmlContent }}
     />
   );

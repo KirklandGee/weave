@@ -41,8 +41,8 @@ function jsonToMarkdown(json: object): string {
     const markdown = tempEditor.storage.markdown.getMarkdown()
     tempEditor.destroy()
     return markdown
-  } catch (error) {
-    console.error('Failed to convert JSON to markdown:', error)
+  } catch {
+    // Failed to convert JSON to markdown - return empty string as fallback
     return ''
   }
 }
@@ -85,11 +85,11 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
         tempEditor.destroy()
         
         // Update the node with the JSON version
-        db.nodes.update(nodeId, { editorJson }).catch(error => {
-          console.error('Failed to migrate node to JSON format:', error)
+        db.nodes.update(nodeId, { editorJson }).catch(() => {
+          // Failed to migrate node to JSON format - ignore silently
         })
-      } catch (error) {
-        console.error('Failed to convert markdown to JSON during migration:', error)
+      } catch {
+        // Failed to convert markdown to JSON during migration - ignore silently
       }
     }
   }, [node, nodeId, campaign, db])
@@ -98,7 +98,6 @@ export function useActiveNode(campaign: string, nodeId: string, isTyping: boolea
   const updateContent = useCallback(async (editorJson: object) => {
     // Defensive check: ensure we have a valid nodeId before attempted to update
     if (!nodeId || !campaign) {
-      console.warn('updateContent called without valid nodeId or campaign')
       return
     }
     

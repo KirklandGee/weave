@@ -63,7 +63,7 @@ export async function pushPull(
       if (res.ok) {
         await db.changes.clear()
       } else {
-        console.error('Push failed:', await res.text())
+        // Push failed
         await setSyncState(campaignSlug, 'error')
         return                     // keep changes for the next attempt
       }
@@ -116,8 +116,8 @@ export async function pushPull(
     if (freshChatMessages.length) await db.chatMessages.bulkPut(freshChatMessages);
 
     await setSyncState(campaignSlug, 'idle')
-  } catch (error) {
-    console.error('Sync failed:', error)
+  } catch {
+    // Sync failed
     await setSyncState(campaignSlug, 'error')
   }
 }

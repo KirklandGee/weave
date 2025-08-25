@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Chat message text selection styles */
+.chat-message-content {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.markdown-selectable {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;  
+  -ms-user-select: text;
+}

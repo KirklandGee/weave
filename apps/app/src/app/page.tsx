@@ -173,8 +173,8 @@ export default function Home() {
                     frontmatter[key] = value.replace(/^["']|["']$/g, '') // Remove quotes
                   }
                 })
-              } catch (e) {
-                console.warn('Failed to parse frontmatter:', e)
+              } catch {
+                // Failed to parse frontmatter - ignore and continue
               }
             }
           }
@@ -238,7 +238,6 @@ export default function Home() {
           results.push(createdNote)
 
         } catch (error) {
-          console.error(`Error importing ${file.name}:`, error)
           errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
       }
@@ -261,7 +260,6 @@ export default function Home() {
       }
 
     } catch (error) {
-      console.error('Import error:', error)
       throw error
     }
   }
@@ -292,7 +290,7 @@ export default function Home() {
         setIsImportModalOpen(true)
         break
       default:
-        console.log('Unknown action:', action)
+        // Unknown action - ignore
     }
   }
 

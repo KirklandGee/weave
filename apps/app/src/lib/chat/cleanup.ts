@@ -75,7 +75,7 @@ export class ChatCleanupService {
 
       deletedChats = expiredChats.length;
 
-      console.log(`Cleaned up ${deletedChats} expired chats and ${deletedMessages} messages`);
+      // Cleaned up expired chats and messages
       
       // Store last cleanup timestamp
       await db.metadata.put({
@@ -86,8 +86,8 @@ export class ChatCleanupService {
 
       return { deletedChats, deletedMessages };
 
-    } catch (error) {
-      console.error('Chat cleanup failed:', error);
+    } catch {
+      // Chat cleanup failed - ignore silently
       return { deletedChats: 0, deletedMessages: 0 };
     }
   }
@@ -104,8 +104,8 @@ export class ChatCleanupService {
       const timeSinceLastCleanup = Date.now() - (lastCleanup.value as number);
       return timeSinceLastCleanup >= CLEANUP_INTERVAL_MS;
 
-    } catch (error) {
-      console.error('Error checking cleanup status:', error);
+    } catch {
+      // Error checking cleanup status
       return true; // Run cleanup on error to be safe
     }
   }
@@ -132,8 +132,8 @@ export class ChatCleanupService {
 
       return { expiredChatsCount, nextCleanupIn };
 
-    } catch (error) {
-      console.error('Error getting cleanup stats:', error);
+    } catch {
+      // Error getting cleanup stats
       return { expiredChatsCount: 0 };
     }
   }
@@ -167,22 +167,22 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
       const timeSinceLastCleanup = Date.now() - (lastBackendCleanup.value as number);
       return timeSinceLastCleanup >= CLEANUP_INTERVAL_MS;
 
-    } catch (error) {
-      console.error('Error checking backend cleanup status:', error);
+    } catch {
+      // Error checking backend cleanup status
       return true; // Run cleanup on error to be safe
     }
   };
 
   const runBackendCleanup = async (): Promise<{ deletedChats: number; deletedMessages: number }> => {
     if (!authFetch) {
-      console.warn('AuthFetch not available, skipping backend cleanup');
+      // AuthFetch not available, skipping backend cleanup
       return { deletedChats: 0, deletedMessages: 0 };
     }
 
     // Check if backend cleanup should run
     const shouldCleanup = await shouldRunBackendCleanup();
     if (!shouldCleanup) {
-      console.log('Skipping backend cleanup - ran within last 24 hours');
+      // Skipping backend cleanup - ran within last 24 hours
       return { deletedChats: 0, deletedMessages: 0 };
     }
 
@@ -190,20 +190,19 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
     const now = Date.now();
 
     try {
-      console.log(`Running backend cleanup for campaign: ${campaign}`);
+      // Running backend cleanup
       const response = await authFetch(`/api/chat-cleanup/cleanup/${campaign}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Backend cleanup failed: ${response.status} - ${errorText}`);
+        // Backend cleanup failed
         return { deletedChats: 0, deletedMessages: 0 };
       }
 
       const result = await response.json();
-      console.log('Backend cleanup successful:', result);
+      // Backend cleanup successful
       
       // Store last backend cleanup timestamp
       await db.metadata.put({
@@ -216,8 +215,8 @@ export function useChatCleanup(campaign: string, ownerId: string, authFetch?: (u
         deletedChats: result.deleted_chats || 0,
         deletedMessages: result.deleted_messages || 0
       };
-    } catch (error) {
-      console.error('Backend cleanup error:', error);
+    } catch {
+      // Backend cleanup error
       return { deletedChats: 0, deletedMessages: 0 };
     }
   };

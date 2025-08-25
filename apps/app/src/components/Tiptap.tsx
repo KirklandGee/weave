@@ -263,9 +263,8 @@ export default function Tiptap({
       // Validate we're still on the same note before saving
       if (currentNodeId.current === nodeId) {
         onContentChange(editor.getJSON())
-      } else {
-        console.warn('Prevented save to wrong node:', { expected: nodeId, actual: currentNodeId.current })
       }
+      // Silently prevent save to wrong node
     }, 400)
   }, [onContentChange, nodeId])
 
@@ -335,7 +334,6 @@ export default function Tiptap({
       }
       
       const contentToLoad = editorContent || { type: 'doc', content: [] }
-      console.log(`[Tiptap] Loading content for nodeId: ${nodeId}, hasContent: ${!!editorContent}, contentType: ${typeof editorContent}`)
       editor.commands.setContent(contentToLoad, { emitUpdate: false })
       
       previousNodeId.current = nodeId

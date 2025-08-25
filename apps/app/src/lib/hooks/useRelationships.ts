@@ -51,8 +51,7 @@ export function useRelationships({ currentNote, campaignSlug }: UseRelationships
       const relationships = [...outgoingRelationships, ...incomingRelationships]
 
       return relationships.filter(rel => rel.relType !== 'PART_OF');
-    } catch (error) {
-      console.error('Error getting relationships for note:', error);
+    } catch {
       return [];
     }
   }, [db]);
@@ -83,8 +82,7 @@ export function useRelationships({ currentNote, campaignSlug }: UseRelationships
         .toArray();
 
       return allNotes.filter(note => twoHopConnections.has(note.id));
-    } catch (error) {
-      console.error('Error getting 2-hop suggestions:', error);
+    } catch {
       return [];
     }
   }, [getRelationshipsForNote, db]);
@@ -137,8 +135,8 @@ export function useRelationships({ currentNote, campaignSlug }: UseRelationships
           return sortedNotes;
         }
       }
-    } catch (error) {
-      console.warn('Vector search failed, falling back to 2-hop suggestions:', error);
+    } catch {
+      // Vector search failed, falling back to 2-hop suggestions
     }
 
     // Fallback to 2-hop suggestions
@@ -189,7 +187,6 @@ export function useRelationships({ currentNote, campaignSlug }: UseRelationships
 
       return newRelationship;
     } catch (error) {
-      console.error('Error adding relationship:', error);
       throw error;
     }
   }, [currentNote, user, campaignSlug, edgeOps]);

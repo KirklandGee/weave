@@ -232,15 +232,15 @@ export default function LLMChatPanel({
               <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium bg-zinc-700 text-zinc-300">
                 {msg.role === 'human' ? 'U' : 'A'}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 chat-message-content">
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-sm font-medium text-zinc-300">
                     {msg.role === 'human' ? 'User' : 'Assistant'}
                   </span>
                 </div>
-                <div className="text-sm text-zinc-100 leading-relaxed">
+                <div className="text-sm text-zinc-100 leading-relaxed chat-message-content">
                   {msg.role === 'human' ? (
-                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                    <span className="whitespace-pre-wrap chat-message-content">{msg.content}</span>
                   ) : (
                     <MarkdownRenderer 
                       content={msg.content} 

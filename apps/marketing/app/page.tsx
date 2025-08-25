@@ -23,7 +23,7 @@ export default function Home() {
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center mb-24">
             <a
-              href="http://app.localhost:3001"
+              href="https://use-weave.app"
               className="group tapestry-panel text-amber-100 font-semibold py-6 px-12 text-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl border-2 border-amber-500"
             >
               <span className="flex items-center justify-center gap-3 decorative-title">

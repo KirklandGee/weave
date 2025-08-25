@@ -28,7 +28,8 @@ export function useLLMChat(campaign: string, activeNodeId: string, ownerId: stri
     deleteChat,
     clearCurrentChat,
     compactCurrentChat,
-    checkCompactionStatus
+    checkCompactionStatus,
+    renameChat
   } = useChatHistory(campaign, ownerId, authFetch);
 
   // Convert chat messages to LLM format
@@ -89,8 +90,7 @@ export function useLLMChat(campaign: string, activeNodeId: string, ownerId: stri
       if (accumulated && placeholderMessageId) {
         await updateMessage(placeholderMessageId, accumulated);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       await addMessage('ai', 'Error processing request, please try again.');
     } finally {
       setIsLoading(false);
@@ -137,5 +137,6 @@ export function useLLMChat(campaign: string, activeNodeId: string, ownerId: stri
     onDeleteChat: handleDeleteChat,
     onCompactChat: handleCompactChat,
     checkCompactionStatus,
+    onRenameChat: renameChat,
   };
 }
