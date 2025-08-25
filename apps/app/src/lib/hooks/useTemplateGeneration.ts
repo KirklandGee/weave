@@ -241,9 +241,9 @@ export function useTemplateGeneration(campaignSlug: string) {
   useEffect(() => {
     startPollingForGeneratingNotes();
 
-    // Cleanup on unmount
+    // Cleanup on unmount - capture the current intervals
+    const currentIntervals = pollingIntervalsRef.current;
     return () => {
-      const currentIntervals = pollingIntervalsRef.current;
       currentIntervals.forEach((intervalId) => {
         clearInterval(intervalId);
       });

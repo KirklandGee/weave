@@ -140,7 +140,7 @@ export function useChatHistory(campaign: string, ownerId: string, authFetch?: (u
     };
     
     runInitialCleanup();
-  }, [campaign, ownerId]); // Only depend on stable values - runs once per campaign/owner
+  }, [campaign, ownerId, runCleanup]); // Include runCleanup dependency
 
 
   const addMessage = async (role: 'human' | 'ai' | 'system', content: string, metadata?: Record<string, unknown>) => {

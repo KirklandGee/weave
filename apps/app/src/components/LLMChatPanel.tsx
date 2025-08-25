@@ -12,7 +12,6 @@ interface LLMChatPanelProps {
   isCompacting?: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onSubmit: (e: React.FormEvent) => void;
-  onClear: () => void;
   placeholder?: string;
   // Chat session management
   chatSessions?: ChatSession[];
@@ -32,7 +31,6 @@ export default function LLMChatPanel({
   isCompacting = false,
   messagesEndRef,
   onSubmit,
-  onClear,
   placeholder = 'Ask me anything...',
   chatSessions = [],
   currentChatId,

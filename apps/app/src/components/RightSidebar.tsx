@@ -125,7 +125,6 @@ export default function RightSidebar({
               isCompacting={isCompacting}
               messagesEndRef={messagesEndRef}
               onSubmit={handleSubmit}
-              onClear={clearChat}
               chatSessions={chatSessions}
               currentChatId={currentChatId}
               onNewChat={onNewChat}
