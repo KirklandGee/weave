@@ -47,7 +47,6 @@ export default function RightSidebar({
     isCompacting,
     messagesEndRef,
     handleSubmit,
-    clearChat,
     chatSessions,
     currentChatId,
     onNewChat,
