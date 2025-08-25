@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Command, Activity } from 'lucide-react'
+import { Search, Command, Crown } from 'lucide-react'
 import {   SignInButton,
   SignUpButton,
   SignedIn,
@@ -11,7 +11,7 @@ import {   SignInButton,
 import Image from 'next/image'
 import { CommandPalette, useCommandPalette } from './CommandPalette'
 import CampaignSelector from './CampaignSelector'
-import UsageModal from './UsageModal'
+import UpgradeModal from './UpgradeModal'
 import { Note } from '@/types/node'
 
 interface NavProps {
@@ -27,7 +27,7 @@ export default function Nav({
   onAction
 }: NavProps) {
   const commandPalette = useCommandPalette()
-  const [showUsageModal, setShowUsageModal] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   return (
     <>
@@ -76,12 +76,12 @@ export default function Nav({
             <SignedIn>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setShowUsageModal(true)}
+                  onClick={() => setShowUpgradeModal(true)}
                   className="flex items-center gap-2 px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-                  title="View usage"
+                  title="Upgrade plan"
                 >
-                  <Activity className="w-4 h-4" />
-                  <span className="text-sm">Usage</span>
+                  <Crown className="w-4 h-4" />
+                  <span className="text-sm">Upgrade</span>
                 </button>
                 <UserButton />
               </div>
@@ -99,10 +99,10 @@ export default function Nav({
         onAction={onAction}
       />
 
-      {/* Usage Modal */}
-      <UsageModal
-        isOpen={showUsageModal}
-        onClose={() => setShowUsageModal(false)}
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
       />
     </>
   )

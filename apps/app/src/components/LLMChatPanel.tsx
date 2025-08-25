@@ -83,7 +83,6 @@ export default function LLMChatPanel({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <h4 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">AI Assistant</h4>
           {chatSessions.length > 0 && (
             <div className="relative">
               <button
@@ -173,13 +172,6 @@ export default function LLMChatPanel({
               <Plus size={14} />
             </button>
           )}
-          <button 
-            onClick={onClear}
-            className="flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
-            title="Clear Current Chat"
-          >
-            <Trash2 size={14} />
-          </button>
         </div>
       </div>
 

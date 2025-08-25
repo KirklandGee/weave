@@ -69,24 +69,57 @@ export async function pushPull(
       }
     }
     
-    // 2. pull fresh nodes
+    // 2. pull fresh nodes with conflict resolution
     const lastNode = (await db.nodes.orderBy('updatedAt').last())?.updatedAt ?? 0;
     const freshNodes = await authFetch(
       `${API}/${campaignSlug}/nodes/since/${lastNode}`,
       { headers: { 'Content-Type':'application/json'} }
     ).then(r => r.json());
-    if (freshNodes.length) await db.nodes.bulkPut(freshNodes);
     
-    // 3. pull fresh edges
+    if (freshNodes.length) {
+      // Apply conflict resolution - only update if remote is newer
+      const resolvedNodes = []
+      for (const remoteNode of freshNodes) {
+        const localNode = await db.nodes.get(remoteNode.id)
+        
+        if (!localNode || remoteNode.updatedAt > localNode.updatedAt) {
+          // Remote is newer or doesn't exist locally - use remote version
+          resolvedNodes.push(remoteNode)
+        }
+        // If local is newer, skip this remote node to preserve local changes
+      }
+      
+      if (resolvedNodes.length) {
+        await db.nodes.bulkPut(resolvedNodes);
+      }
+    }
+    
+    // 3. pull fresh edges with conflict resolution
     const lastEdge = (await db.edges.orderBy('updatedAt').last())?.updatedAt ?? 0;
     const freshEdges = await authFetch(
       `${API}/${campaignSlug}/edges/since/${lastEdge}`,
       { headers: { 'Content-Type':'application/json' } }
     ).then(r => r.json());
 
-    const camelEdges = freshEdges.map(edgeSnakeToCamel);
-
-    if (freshEdges.length) await db.edges.bulkPut(camelEdges);
+    if (freshEdges.length) {
+      const camelEdges = freshEdges.map(edgeSnakeToCamel);
+      
+      // Apply conflict resolution - only update if remote is newer
+      const resolvedEdges = []
+      for (const remoteEdge of camelEdges) {
+        const localEdge = await db.edges.get(remoteEdge.id)
+        
+        if (!localEdge || remoteEdge.updatedAt > localEdge.updatedAt) {
+          // Remote is newer or doesn't exist locally - use remote version
+          resolvedEdges.push(remoteEdge)
+        }
+        // If local is newer, skip this remote edge to preserve local changes
+      }
+      
+      if (resolvedEdges.length) {
+        await db.edges.bulkPut(resolvedEdges);
+      }
+    }
     
     // 4. pull fresh folders
     const lastFolder = (await db.folders.orderBy('updatedAt').last())?.updatedAt ?? 0;

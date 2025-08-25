@@ -4,7 +4,6 @@ import { useMemo, useRef, useEffect, useState } from 'react'
 import { EditorContent, useEditor, Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
-import { Markdown } from '@kirklandgee/tiptap-markdown'
 import debounce from 'lodash.debounce'
 import React from 'react'
 import { 
@@ -257,7 +256,7 @@ export default function Tiptap({
   const previousContent = useRef<object | null | undefined>(null)
   const currentNodeId = useRef<string>(nodeId)
   
-  // Simple debounced save with node validation
+  // Fast debounced save with node validation
   const debouncedSave = useMemo(() => {
     return debounce((editor: Editor) => {
       // Validate we're still on the same note before saving
@@ -265,23 +264,13 @@ export default function Tiptap({
         onContentChange(editor.getJSON())
       }
       // Silently prevent save to wrong node
-    }, 400)
+    }, 250) // Much faster save - 100ms instead of 400ms
   }, [onContentChange, nodeId])
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit, 
-      Markdown.configure({
-        html: true,                 // Enable HTML input/output
-        tightLists: true,          // Tight list formatting
-        tightListClass: 'tight',   // Class for tight lists
-        bulletListMarker: '-',     // Use dashes for bullet lists
-        linkify: false,            // Don't auto-convert URLs to links
-        breaks: false,             // Don't convert line breaks to <br>
-        transformPastedText: false, // Don't transform pasted text
-        transformCopiedText: false, // Don't transform copied text
-      })
+      StarterKit,
     ],
     content: editorContent || { type: 'doc', content: [] },
     onUpdate({ editor }) {
@@ -333,8 +322,13 @@ export default function Tiptap({
         currentNodeId.current = nodeId
       }
       
-      const contentToLoad = editorContent || { type: 'doc', content: [] }
-      editor.commands.setContent(contentToLoad, { emitUpdate: false })
+      const contentToLoad = editorContent || { type: 'doc', content: [{ type: 'paragraph' }] }
+      const currentContent = editor.getJSON()
+      
+      // Only call setContent if the content is actually different
+      if (JSON.stringify(contentToLoad) !== JSON.stringify(currentContent)) {
+        editor.commands.setContent(contentToLoad, { emitUpdate: false })
+      }
       
       previousNodeId.current = nodeId
       previousContent.current = editorContent

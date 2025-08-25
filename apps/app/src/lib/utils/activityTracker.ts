@@ -3,9 +3,10 @@ import { getDb } from '../db/campaignDB'
 export const getSyncInterval = (lastUserActivity: Date): number => {
   const timeSinceActivity = Date.now() - lastUserActivity.getTime()
   
-  if (timeSinceActivity < 30000) return 3000   // 3s when active
-  if (timeSinceActivity < 300000) return 15000 // 15s when idle
-  if (timeSinceActivity < 1800000) return 60000 // 1m when away
+  if (timeSinceActivity < 5000) return 1000    // 1s when very active (just stopped typing)
+  if (timeSinceActivity < 30000) return 2000   // 2s when active
+  if (timeSinceActivity < 300000) return 10000 // 10s when idle
+  if (timeSinceActivity < 1800000) return 30000 // 30s when away
   return 300000 // 5m when inactive
 }
 
