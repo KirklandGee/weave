@@ -1,36 +1,42 @@
-import type { Metadata } from "next";
-import { Cinzel, Cinzel_Decorative } from "next/font/google";
-import "./globals.css";
-
-const cinzel = Cinzel({
-  variable: "--font-cinzel",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const cinzelDecorative = Cinzel_Decorative({
-  variable: "--font-cinzel-decorative",
-  subsets: ["latin"],
-  weight: ["400", "700", "900"],
-});
+import type React from "react"
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "AI RPG Manager - Transform Your Tabletop Campaigns",
-  description: "Intelligent note-taking, character management, and AI-powered storytelling assistance for tabletop RPG campaigns. Clean, minimal interface that gets out of your way.",
-};
+  title: "Weave - AI-Powered TTRPG Campaign Management",
+  description:
+    "Streamline your RPG campaigns with relationship-first AI that keeps context of your world, characters, and stories interconnected.",
+  generator: "v0.app",
+}
+
+const geistSans = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+})
+
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${cinzel.variable} ${cinzelDecorative.variable} antialiased`}
-      >
-        {children}
-      </body>
+    <html lang="en" className="dark">
+      <head>
+        <style>{`
+html {
+  font-family: ${geistSans.style.fontFamily};
+  --font-sans: ${geistSans.variable};
+  --font-mono: ${geistMono.variable};
+}
+        `}</style>
+      </head>
+      <body>{children}</body>
     </html>
-  );
+  )
 }
