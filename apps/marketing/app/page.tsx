@@ -52,14 +52,14 @@ export default function HomePage() {
               Features
             </a>
             <a
-              href="https://use-weave.app/pricing"
+              href="https://my.use-weave.app/pricing"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Pricing
             </a>
           </nav>
           <Button className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-            <a href="https://use-weave.app">Get Started</a>
+            <a href="https://my.use-weave.app">Get Started</a>
           </Button>
         </div>
       </header>
@@ -78,10 +78,10 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg px-8" asChild>
-              <a href="https://use-weave.app">Start Weaving</a>
+              <a href="https://my.use-weave.app">Start Weaving</a>
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 bg-transparent" asChild>
-              <a href="https://use-weave.app/pricing">View Pricing</a>
+              <a href="https://my.use-weave.app/pricing">View Pricing</a>
             </Button>
           </div>
 
@@ -224,7 +224,7 @@ export default function HomePage() {
             storytelling.
           </p>
           <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg px-8" asChild>
-            <a href="https://use-weave.app">Begin Your Campaign</a>
+            <a href="https://my.use-weave.app">Begin Your Campaign</a>
           </Button>
         </div>
       </section>
