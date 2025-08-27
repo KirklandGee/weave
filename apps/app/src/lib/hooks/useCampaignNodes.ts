@@ -18,7 +18,10 @@ export const useCampaignNodes = (campaignSlug?: string) => {
     if (!campaignSlug) {
       return []
     }
-    return db.nodes.toArray()
+    // Protection against showing chat nodes in the sidebar
+    return db.nodes.toArray().then(nodes => 
+      nodes.filter(node => !node.title?.startsWith('Chat:'))
+    )
   }, [campaignSlug, db])
 
   // 1. First-load seed

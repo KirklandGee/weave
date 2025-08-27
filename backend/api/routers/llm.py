@@ -6,6 +6,7 @@ from backend.models.schemas import ChatRequest, TemplateInfo, AsyncTemplateReque
 from backend.api.auth import get_current_user
 from backend.services.queue_service import get_task_queue
 from backend.services.usage_service import UsageService
+from backend.services.subscription_service import SubscriptionService
 from datetime import datetime
 import asyncio
 
@@ -13,10 +14,10 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 
 
 @router.post("/chat/stream")
-async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_user)):
+async def llm_chat_stream(req: ChatRequest, request: Request, user_id: str = Depends(get_current_user)):
     try:
-        # Check if user has AI access based on subscription plan
-        if not UsageService.check_ai_access(user_id):
+        # Check if user has AI access based on subscription plan using request auth
+        if not SubscriptionService.has_ai_access_from_request(request):
             raise HTTPException(
                 status_code=403,
                 detail="AI features require a paid subscription. Please upgrade your plan to access AI chat."
@@ -29,6 +30,7 @@ async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_u
                 user_id=user_id,
                 stream=True,
                 verbosity=req.verbosity,
+                request=request,
             ),
             media_type="text/plain",
         )
@@ -43,12 +45,13 @@ async def llm_chat_stream(req: ChatRequest, user_id: str = Depends(get_current_u
 async def execute_template_async(
     template_name: str,
     req: AsyncTemplateRequest,
+    request: Request,
     user_id: str = Depends(get_current_user),
 ):
     """Execute a template asynchronously using Redis Queue."""
     try:
-        # Check if user has AI access based on subscription plan
-        if not UsageService.check_ai_access(user_id):
+        # Check if user has AI access based on subscription plan using request auth
+        if not SubscriptionService.has_ai_access_from_request(request):
             raise HTTPException(
                 status_code=403,
                 detail="AI features require a paid subscription. Please upgrade your plan to access AI templates."

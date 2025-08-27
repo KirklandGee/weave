@@ -3,10 +3,13 @@ from decimal import Decimal
 from calendar import monthrange
 from typing import Optional
 import time
+import logging
 from backend.services.neo4j import query
 from backend.models.schemas import UsageEvent, UsageLimit, UsageSummary
 from backend.services.llm.config import MODEL_PRICING, DEFAULT_MONTHLY_LIMIT
 from backend.services.subscription_service import SubscriptionService
+
+logger = logging.getLogger(__name__)
 
 
 class UsageService:
@@ -163,6 +166,51 @@ class UsageService:
         return usage
 
     @staticmethod
+    def get_user_limit_from_request(request) -> UsageLimit:
+        """Get user's usage limit based on their subscription plan from request. Uses cache to reduce queries."""
+        from fastapi import Request
+        from backend.services.subscription_service import SubscriptionService
+        
+        # Get user_id from request auth
+        user_id = "unknown"  # fallback
+        try:
+            # Extract user_id from auth header (similar to get_current_user)
+            auth_header = request.headers.get("authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                import jwt
+                token = auth_header.split(" ")[1]
+                decoded = jwt.decode(token, options={"verify_signature": False})
+                user_id = decoded.get("sub", "unknown")
+        except:
+            pass
+            
+        # Check cache first
+        cached_limit = UsageService._get_cached_limit(user_id)
+        if cached_limit is not None:
+            return cached_limit
+            
+        now = datetime.now(timezone.utc)
+        
+        # Get monthly limit from subscription plan using request (not user_id)
+        monthly_limit = SubscriptionService.get_monthly_limit_from_request(request)
+        reset_date = UsageService._get_next_month_reset_date(now)
+
+        # Get current usage for this month
+        current_usage = UsageService.get_current_month_usage(user_id)
+
+        usage_limit = UsageLimit(
+            user_id=user_id,
+            monthly_limit=monthly_limit,
+            current_usage=current_usage,
+            reset_date=reset_date,
+        )
+        
+        # Cache the result
+        UsageService._cache_limit(user_id, usage_limit)
+        
+        return usage_limit
+
+    @staticmethod
     def get_user_limit(user_id: str) -> UsageLimit:
         """Get user's usage limit based on their subscription plan. Uses cache to reduce queries."""
         # Check cache first
@@ -173,6 +221,7 @@ class UsageService:
         now = datetime.now(timezone.utc)
         
         # Get monthly limit from subscription plan (not database)
+        # Try to get from subscription service - this will use the updated logic
         monthly_limit = SubscriptionService.get_monthly_limit(user_id)
         reset_date = UsageService._get_next_month_reset_date(now)
 
@@ -190,6 +239,12 @@ class UsageService:
         UsageService._cache_limit(user_id, usage_limit)
         
         return usage_limit
+
+    @staticmethod
+    def check_usage_limit_from_request(request, estimated_cost: Decimal) -> bool:
+        """Check if a user can make a request without exceeding their limit (using request auth)."""
+        usage_limit = UsageService.get_user_limit_from_request(request)
+        return (usage_limit.current_usage + estimated_cost) <= usage_limit.monthly_limit
 
     @staticmethod
     def check_usage_limit(user_id: str, estimated_cost: Decimal) -> bool:

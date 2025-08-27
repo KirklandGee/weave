@@ -55,7 +55,6 @@ async def _count_tokens_async(langchain_messages, model):
     """Async wrapper for token counting to enable parallelization."""
     start = time.time()
     result = TokenCounter.count_tokens_in_langchain_messages(langchain_messages, model)
-    print(f"🔢 Token counting took {(time.time() - start)*1000:.1f}ms")
     return result
 
 
@@ -63,7 +62,6 @@ async def _get_llm_instance_async(config):
     """Async wrapper for LLM instance creation to enable parallelization."""
     start = time.time()
     result = get_llm_instance(config)
-    print(f"🤖 LLM instance creation took {(time.time() - start)*1000:.1f}ms")
     return result
 
 
@@ -81,10 +79,10 @@ async def call_llm(
     campaign_id: Optional[str] = None,
     session_id: Optional[str] = None,
     verbosity: str = "normal",
+    request=None,
     **overrides,
 ):
     start_time = time.time()
-    print(f"🚀 Starting LLM call for user {user_id}")
     
     # SECURITY: Check rate limits first
     if user_id:
@@ -100,7 +98,6 @@ async def call_llm(
         user_id=user_id
     )
     security_time = time.time()
-    print(f"🛡️ Security validation completed in {(security_time - security_start)*1000:.1f}ms")
     
     if not is_safe:
         print(f"🚨 Request blocked by security service for user {user_id}")
@@ -111,9 +108,7 @@ async def call_llm(
     # Use sanitized messages if provided
     if sanitized_messages:
         messages = sanitized_messages
-        print(f"🧹 Using sanitized messages for user {user_id}")
     
-    print(f"🔒 Total security overhead: {(security_time - start_time)*1000:.1f}ms")
     
     if isinstance(messages, LLMMessage):
         messages = [messages]
@@ -123,29 +118,16 @@ async def call_llm(
     model = config.get("model", DEFAULT_LLM_CONFIG["model"])
     
     setup_time = time.time()
-    print(f"⚙️ Setup completed in {(setup_time - start_time)*1000:.1f}ms")
 
     # Convert to langchain messages
     langchain_messages = to_langchain_messages(messages, context=context, verbosity=verbosity)
     
     message_time = time.time()
-    print(f"📝 Message conversion completed in {(message_time - setup_time)*1000:.1f}ms")
 
-    # OPTIMISTIC APPROACH: Start LLM call immediately, do validation in parallel
-    llm = get_llm_instance(config)
-    llm_ready_time = time.time()
-    print(f"🤖 LLM instance ready in {(llm_ready_time - message_time)*1000:.1f}ms")
-    
-    # Start the LLM stream IMMEDIATELY (optimistic)
-    stream_start_time = time.time()
-    llm_stream = llm.astream(langchain_messages)
-    print(f"🚀 LLM stream started in {(time.time() - stream_start_time)*1000:.1f}ms")
-    
-    # Do validation in parallel while LLM is processing
+    # Do validation first before starting LLM stream
     validation_start = time.time()
     input_tokens = await _count_tokens_async(langchain_messages, model)
     validation_time = time.time()
-    print(f"🔍 Validation completed in {(validation_time - validation_start)*1000:.1f}ms")
 
     # Check usage limits if user_id is provided
     if user_id:
@@ -158,26 +140,42 @@ async def call_llm(
             model, input_tokens, estimated_output_tokens
         )
 
-        # If usage exceeded, we need to cancel the stream
-        if not UsageService.check_usage_limit(user_id, estimated_cost):
-            # Try to cancel the stream (may not work with all providers)
-            try:
-                await llm_stream.aclose()
-            except:
-                pass
-            
-            usage_summary = UsageService.get_usage_summary(user_id)
-            raise HTTPException(
-                status_code=429,
-                detail=f"Usage limit exceeded. Current usage: ${usage_summary.current_month_usage:.4f}, "
-                f"Limit: ${usage_summary.monthly_limit:.2f}, "
-                f"Estimated cost: ${estimated_cost:.4f}",
-            )
+        # Use request-based usage limit checking if request is available, otherwise fall back to user_id
+        usage_check_passed = False
+        if request:
+            usage_check_passed = UsageService.check_usage_limit_from_request(request, estimated_cost)
+        else:
+            usage_check_passed = UsageService.check_usage_limit(user_id, estimated_cost)
+
+        # If usage exceeded, raise exception before starting stream
+        if not usage_check_passed:
+            # Get usage summary using the appropriate method
+            if request:
+                usage_limit = UsageService.get_user_limit_from_request(request)
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Usage limit exceeded. Current usage: ${usage_limit.current_usage:.4f}, "
+                    f"Limit: ${usage_limit.monthly_limit:.2f}, "
+                    f"Estimated cost: ${estimated_cost:.4f}",
+                )
+            else:
+                usage_summary = UsageService.get_usage_summary(user_id)
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Usage limit exceeded. Current usage: ${usage_summary.current_month_usage:.4f}, "
+                    f"Limit: ${usage_summary.monthly_limit:.2f}, "
+                    f"Estimated cost: ${estimated_cost:.4f}",
+                )
+    
+    # Now start LLM after all validation passes
+    llm = get_llm_instance(config)
+    llm_ready_time = time.time()
+    
+    # Start the LLM stream after validation
+    stream_start_time = time.time()
+    llm_stream = llm.astream(langchain_messages)
     
     usage_check_time = time.time()
-    print(f"💰 Usage check completed in {(usage_check_time - validation_time)*1000:.1f}ms")
-    print(f"⏱️ Total validation time: {(usage_check_time - validation_start)*1000:.1f}ms")
-    print(f"📊 Stream started at: {(stream_start_time - start_time)*1000:.1f}ms from request start")
     
     full_response = ""
 
@@ -187,8 +185,6 @@ async def call_llm(
             async for chunk in llm_stream:
                 if first_chunk:
                     first_chunk_time = time.time()
-                    print(f"🎯 First chunk received in {(first_chunk_time - stream_start_time)*1000:.1f}ms from stream start")
-                    print(f"📊 Total time to first response: {(first_chunk_time - start_time)*1000:.1f}ms")
                     first_chunk = False
                 
                 chunk_text = chunk.text()

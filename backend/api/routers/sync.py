@@ -61,7 +61,7 @@ async def get_sidebar_nodes(
             OPTIONAL MATCH (u)-[:PART_OF]->(n2)
             WHERE $cid IS NULL
 
-            WITH coalesce(n1,n2) AS n WHERE n IS NOT NULL AND NOT n:FOLDER
+            WITH coalesce(n1,n2) AS n WHERE n IS NOT NULL AND NOT n:FOLDER AND NOT n:ChatSession
             WITH n, properties(n) AS props
             RETURN {
               id:        props.id,
