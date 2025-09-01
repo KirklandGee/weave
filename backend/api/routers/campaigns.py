@@ -27,10 +27,10 @@ async def add_campaign(
 
         campaign = Campaign(content=campaign_data, metadata=metadata)
 
-        # Create campaign and link to user
+        # Create campaign and link to user (create user if doesn't exist)
         result = query(
             """
-            MATCH (u:User {id: $user_id})
+            MERGE (u:User {id: $user_id})
             CREATE (c:Campaign {
                 id: $campaign_id,
                 title: $title,
@@ -102,7 +102,7 @@ async def get_user_campaigns(current_user: str = Depends(get_current_user)):
     try:
         result = query(
             """
-            MATCH (u:User {id: $user_id})-[:OWNS]->(c:Campaign)
+            OPTIONAL MATCH (u:User {id: $user_id})-[:OWNS]->(c:Campaign)
             RETURN c.id as id, c.title as title, c.createdAt as createdAt, c.updatedAt as updatedAt
             ORDER BY c.updatedAt DESC
             """,

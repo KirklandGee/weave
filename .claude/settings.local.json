@@ -11,7 +11,9 @@
       "mcp__linear-server__list_issues",
       "mcp__linear-server__list_comments",
       "mcp__linear-server__create_comment",
-      "mcp__linear-server__update_issue"
+      "mcp__linear-server__update_issue",
+      "Read(/Users/kirklandgee/repos/neo4j-template/**)",
+      "Read(/Users/kirklandgee/repos/neo4j-template/**)"
     ],
     "deny": []
   },

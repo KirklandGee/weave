@@ -7,6 +7,18 @@ from .routers import campaigns, notes, sync, llm, embed, search, admin, chat_cle
 
 app = FastAPI()
 
+# Add startup event to verify Neo4j connection
+@app.on_event("startup")
+async def startup_event():
+    print("🚀 FastAPI starting up...")
+    try:
+        from backend.services.neo4j import verify
+        verify()
+        print("✅ Neo4j connection verified successfully!")
+    except Exception as e:
+        print(f"❌ Neo4j connection failed during startup: {e}")
+        # Don't raise here - let the app start but log the issue
+
 # Configure CORS for multiple origins
 import os
 
