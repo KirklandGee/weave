@@ -55,6 +55,7 @@ class SubscriptionService:
                         "https://localhost:3001",
                         "https://use-weave.app",
                         "https://www.use-weave.app",
+                        "https://my.use-weave.app",
                         "https://weave-app-git-main-kirkland-gees-projects.vercel.app",
                     ]
                 ),

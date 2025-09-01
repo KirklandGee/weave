@@ -29,6 +29,7 @@ origins = [
     "http://localhost:3080",  # Proxy server
     "http://app.localhost:3080",  # Proxy server with subdomain
     "https://use-weave.app",  # Production frontend
+    "https://my.use-weave.app",  # App subdomain
     "https://weave-app-backend-production.up.railway.app",  # Railway backend (for any internal calls)
 ]
 

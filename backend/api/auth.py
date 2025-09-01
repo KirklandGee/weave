@@ -99,6 +99,7 @@ async def get_current_user(request: Request) -> str:
                     "https://localhost:3001",
                     "https://use-weave.app",  # Production frontend
                     "https://www.use-weave.app",  # Production frontend
+                    "https://my.use-weave.app",  # App subdomain
                     "https://weave-app-git-main-kirkland-gees-projects.vercel.app",  # Git preview deployments
                 ]
             ),
