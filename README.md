@@ -4,7 +4,7 @@
 
 # Weave
 
-A comprehensive campaign management tool for tabletop RPGs, built with Next.js and FastAPI. Organize your campaigns, characters, locations, lore, and their interconnected relationships through an intuitive markdown editor, built on top of a graph database for the best AI assistance. Check it out here: [Weave](https://use-weave.app)
+A comprehensive campaign management tool for tabletop RPGs, built with Next.js and FastAPI. Organize your campaigns, characters, locations, lore, and their interconnected relationships through an intuitive markdown editor, built on top of a graph database for the best AI assistance. Check out the hosted version here to see it in action before hosting yourself: [Weave](https://use-weave.app)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-0.1.0-green.svg)
@@ -300,8 +300,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙋‍♂️ Support
 
 ### Community
-- **Issues**: [GitHub Issues](https://github.com/your-org/ai-rpg-manager/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/ai-rpg-manager/discussions)
+- **Issues**: [GitHub Issues](https://github.com/KirklandGee/weave/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/KirklandGee/weave/discussions)
 
 ### Hosted Service
 Looking for a hassle-free experience? We offer a fully managed hosted version at [use-weave.app](https://use-weave.app) with:
