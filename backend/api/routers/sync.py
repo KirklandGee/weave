@@ -73,9 +73,10 @@ async def get_sidebar_nodes(
               editorJson: props.editorJson,
               updatedAt: props.updatedAt,
               createdAt: props.createdAt,
-              attributes: apoc.map.removeKeys(
-                 props,['id','type','title','name','markdown','editorJson','updatedAt','createdAt']
-              )
+              attributes: props {.*, 
+                id: null, type: null, title: null, name: null, 
+                markdown: null, editorJson: null, updatedAt: null, createdAt: null
+              }
             } AS node
             """,
             user_id=user_id,
@@ -370,9 +371,10 @@ async def get_updates(
               editorJson: props.editorJson,
               updatedAt: props.updatedAt,
               createdAt: props.createdAt,
-              attributes: apoc.map.removeKeys(
-                 props,['id','type','title','name','markdown','editorJson','updatedAt','createdAt']
-              )
+              attributes: props {.*, 
+                id: null, type: null, title: null, name: null, 
+                markdown: null, editorJson: null, updatedAt: null, createdAt: null
+              }
             } AS node
             """,
             user_id=user_id,
@@ -424,10 +426,9 @@ async def get_edges(
               relType:    type(r),
               updatedAt:  props.updatedAt,
               createdAt:  props.createdAt,
-              attributes: apoc.map.removeKeys(
-                             props,
-                             ['id','updatedAt','createdAt']
-                          )
+              attributes: props {.*, 
+                id: null, updatedAt: null, createdAt: null
+              }
             } AS edge
             """,
             user_id=user_id,
@@ -473,7 +474,9 @@ async def get_node_edges(
             relType:   type(r),
             createdAt: properties(r).createdAt,
             updatedAt: r.updatedAt,
-            props:     apoc.map.removeKeys(properties(r), ['id','createdAt','updatedAt']),
+            props:     properties(r) {.*, 
+              id: null, createdAt: null, updatedAt: null
+            },
             target: {
                 id:    m.id,
                 title: m.title,
