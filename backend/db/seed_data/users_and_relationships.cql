@@ -1,9 +1,10 @@
 // Create Users and proper relationships for tool-calling functionality
 
-// Create sample users (using your actual Clerk user ID if available)
-MERGE (u:User {id: 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ'})
+// REPLACE WITH YOUR OWN USER: Change 'YOUR_CLERK_USER_ID' to your actual Clerk user ID
+// You can find this in your Clerk dashboard or by checking the user object in your app
+MERGE (u:User {id: 'YOUR_CLERK_USER_ID'})
 ON CREATE SET 
-  u.clerk_id = 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ',
+  u.clerk_id = 'YOUR_CLERK_USER_ID', // ← Replace this with your actual Clerk user ID
   u.created_at = datetime(),
   u.updated_at = datetime()
 ON MATCH SET 
@@ -20,7 +21,7 @@ ON MATCH SET
 
 // Update existing campaigns to have ownership relationships
 MATCH (c:Campaign {id: 'camp-faerun-crisis'})
-MATCH (u:User {id: 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ'})
+MATCH (u:User {id: 'YOUR_CLERK_USER_ID'}) // ← Make sure this matches your user ID above
 MERGE (u)-[:OWNS]->(c);
 
 MATCH (c:Campaign {id: 'camp-storm-lords'})
@@ -70,7 +71,7 @@ MERGE (n)-[:PART_OF]->(c);
 // Create sample usage events for testing usage tracking
 CREATE (ue1:UsageEvent {
   id: 'usage-1',
-  user_id: 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ',
+  user_id: 'YOUR_CLERK_USER_ID', // ← Replace with your actual Clerk user ID
   model: 'claude-3-sonnet',
   timestamp: datetime('2024-01-15T10:30:00Z'),
   tokens: 1250,
@@ -79,7 +80,7 @@ CREATE (ue1:UsageEvent {
 
 CREATE (ue2:UsageEvent {
   id: 'usage-2',
-  user_id: 'user_2zuz2VA3QK8ZC2hwwUorixDQqsZ',
+  user_id: 'YOUR_CLERK_USER_ID', // ← Replace with your actual Clerk user ID
   model: 'claude-3-haiku',
   timestamp: datetime('2024-01-15T14:20:00Z'),
   tokens: 800,

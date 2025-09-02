@@ -121,9 +121,11 @@ async def push_changes(
                         "props": props,
                         "ts": ch.ts,
                     }
-                    cypher = """
-                    MATCH (a {id:$from_id}), (b {id:$to_id})
-                    CALL apoc.merge.relationship(a, $relType, {}, {}, b) YIELD rel AS r
+                    # Use dynamic Cypher since relationship type must be literal in MERGE
+                    relType = ch.payload["relType"]
+                    cypher = f"""
+                    MATCH (a {{id:$from_id}}), (b {{id:$to_id}})
+                    MERGE (a)-[r:{relType}]->(b)
                     SET  r += $props,
                         r.createdAt = coalesce(r.createdAt,$ts),
                         r.updatedAt = $ts
@@ -235,23 +237,26 @@ async def push_changes(
                         if isinstance(props["editorJson"], dict):
                             props["editorJson"] = json.dumps(props["editorJson"])
 
-                    _ = query(
-                        """
-                        CALL apoc.merge.node([$label], {id:$nid}, $props) YIELD node
-                        SET  node.createdAt = coalesce(node.createdAt, $ts),
-                            node.updatedAt = $ts
+                    # Use dynamic Cypher since node label must be literal in MERGE
+                    cypher = f"""
+                        MERGE (node:{label} {{id:$nid}})
+                        SET  node += $props,
+                             node.createdAt = coalesce(node.createdAt, $ts),
+                             node.updatedAt = $ts
                         WITH node
-                        MATCH (u:User {id:$user_id})
-                        OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {id:$cid})
+                        MATCH (u:User {{id:$user_id}})
+                        OPTIONAL MATCH (u)-[:OWNS]->(c:Campaign {{id:$cid}})
                         FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
                         MERGE (node)-[:PART_OF]->(c)
                         )
                         MERGE (u)-[:PART_OF]->(node)
-                        """,
+                        """
+                    
+                    _ = query(
+                        cypher,
                         user_id=user_id,
                         cid=cid,
                         nid=ch.entityId,
-                        label=label,
                         ts=ch.ts,
                         props=props,
                     )
