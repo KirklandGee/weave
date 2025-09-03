@@ -30,8 +30,15 @@ export class FolderService {
     
     // Calculate position if not provided
     if (position === undefined) {
-      const allFolders = await this.db.folders.toArray()
-      const siblings = allFolders.filter(f => 
+      const folders = await this.db.folders
+        .filter(folder => 
+          // Campaign folders belonging to this campaign
+          (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId) ||
+          // Legacy folders without campaign association
+          (!folder.campaignId && !folder.ownerId)
+        )
+        .toArray()
+      const siblings = folders.filter(f => 
         (parentId && f.parentId === parentId) || (!parentId && !f.parentId)
       )
       position = siblings.length
@@ -72,6 +79,14 @@ export class FolderService {
   async updateFolder(id: string, updates: Partial<Pick<Folder, 'name' | 'position' | 'parentId'>>): Promise<void> {
     const folder = await this.db.folders.get(id)
     if (!folder) throw new Error('Folder not found')
+    
+    // Verify folder belongs to this campaign or is legacy data
+    const belongsToCampaign = (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId)
+    const isLegacyFolder = (!folder.campaignId && !folder.ownerId)
+    
+    if (!belongsToCampaign && !isLegacyFolder) {
+      throw new Error('Folder does not belong to current campaign')
+    }
 
     const updatedFolder = {
       ...folder,
@@ -94,16 +109,33 @@ export class FolderService {
   async deleteFolder(id: string, moveContentsToParent = true): Promise<void> {
     const folder = await this.db.folders.get(id)
     if (!folder) throw new Error('Folder not found')
+    
+    // Verify folder belongs to this campaign or is legacy data
+    const belongsToCampaign = (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId)
+    const isLegacyFolder = (!folder.campaignId && !folder.ownerId)
+    
+    if (!belongsToCampaign && !isLegacyFolder) {
+      throw new Error('Folder does not belong to current campaign')
+    }
 
     if (moveContentsToParent) {
       // Move all child folders to parent
-      const childFolders = await this.db.folders.where({ parentId: id }).toArray()
+      const childFolders = await this.db.folders
+        .filter(folder => 
+          folder.parentId === id && (
+            // Campaign folders belonging to this campaign
+            (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId) ||
+            // Legacy folders without campaign association
+            (!folder.campaignId && !folder.ownerId)
+          )
+        )
+        .toArray()
       for (const child of childFolders) {
         await this.updateFolder(child.id, { parentId: folder.parentId })
       }
 
-      // Move all notes to parent folder or uncategorized
-      const targetParentId = folder.parentId || await this.ensureUncategorizedFolder()
+      // Move all notes to parent folder or leave uncategorized (no folder)
+      const targetParentId = folder.parentId || null
       for (const noteId of folder.noteIds) {
         await this.moveNoteToFolder(noteId, targetParentId)
       }
@@ -122,8 +154,15 @@ export class FolderService {
   }
 
   async moveNoteToFolder(noteId: string, folderId: string | null): Promise<void> {
-    // Remove note from all folders
-    const folders = await this.db.folders.toArray()
+    // Remove note from all relevant folders (campaign folders OR legacy folders)
+    const folders = await this.db.folders
+      .filter(folder => 
+        // Campaign folders belonging to this campaign
+        (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId) ||
+        // Legacy folders without campaign association
+        (!folder.campaignId && !folder.ownerId)
+      )
+      .toArray()
     for (const folder of folders) {
       if (folder.noteIds.includes(noteId)) {
         folder.noteIds = folder.noteIds.filter(id => id !== noteId)
@@ -160,7 +199,15 @@ export class FolderService {
   }
 
   async getFolderTree(): Promise<FolderTreeNode[]> {
-    const folders = await this.db.folders.toArray()
+    // Get folders for this campaign OR legacy folders without campaign association
+    const folders = await this.db.folders
+      .filter(folder => 
+        // Campaign folders belonging to this campaign
+        (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId) ||
+        // Legacy folders without campaign association
+        (!folder.campaignId && !folder.ownerId)
+      )
+      .toArray()
     
     // Build tree structure
     const rootNodes: FolderTreeNode[] = []
@@ -201,9 +248,16 @@ export class FolderService {
   }
 
   async ensureUncategorizedFolder(): Promise<string> {
-    // Check if uncategorized folder exists - get all and filter
-    const allFolders = await this.db.folders.toArray()
-    const existing = allFolders.find(f => 
+    // Check if uncategorized folder exists - campaign folders OR legacy folders
+    const folders = await this.db.folders
+      .filter(folder => 
+        // Campaign folders belonging to this campaign
+        (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId) ||
+        // Legacy folders without campaign association
+        (!folder.campaignId && !folder.ownerId)
+      )
+      .toArray()
+    const existing = folders.find(f => 
       f.name === UNCATEGORIZED_FOLDER_NAME && !f.parentId
     )
     
@@ -217,10 +271,28 @@ export class FolderService {
   }
 
   async getUncategorizedNotes(): Promise<string[]> {
-    const folders = await this.db.folders.toArray()
+    // Get all folders (campaign + legacy)
+    const folders = await this.db.folders
+      .filter(folder => 
+        // Campaign folders belonging to this campaign
+        (folder.campaignId === this.campaignId && folder.ownerId === this.ownerId) ||
+        // Legacy folders without campaign association
+        (!folder.campaignId && !folder.ownerId)
+      )
+      .toArray()
     const allFolderNoteIds = new Set(folders.flatMap(f => f.noteIds))
     
-    const allNotes = await this.db.nodes.toArray()
+    // Get ALL notes (campaign + legacy) - same pattern as folders
+    const allNotes = await this.db.nodes
+      .filter(note => 
+        // Campaign notes belonging to this campaign
+        (note.campaignId === this.campaignId && note.ownerId === this.ownerId) ||
+        // Legacy notes without campaign association
+        (!note.campaignId && !note.ownerId)
+      )
+      .toArray()
+    
+    // Return notes that aren't in any folder
     return allNotes
       .filter(note => !allFolderNoteIds.has(note.id))
       .map(note => note.id)
@@ -234,4 +306,5 @@ export class FolderService {
       })
     }
   }
+
 }

@@ -132,6 +132,7 @@ export function useFolders(
     }
   }, [folderService])
 
+
   const moveFolder = useCallback(async (folderId: string, newParentId?: string) => {
     try {
       await folderService.updateFolder(folderId, { parentId: newParentId })

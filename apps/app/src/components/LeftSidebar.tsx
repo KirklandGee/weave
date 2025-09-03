@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import type { Note } from '@/types/node'
 import { ChevronDown, ChevronRight, Trash, Pencil, Map, Users, Calendar, AlertCircle, Folder, FileText, FolderPlus, Copy } from 'lucide-react'
 import React from 'react'
@@ -135,6 +136,7 @@ export default function LeftSidebar({
   /* ---------- context-menu state ---------- */
   const [contextMenu, setContextMenu] = useState<{
     id?: string  // Optional - only present when right-clicking on a specific item
+    type?: 'note' | 'folder' // Type of item being right-clicked
     top: number
     left: number
   } | null>(null)
@@ -167,29 +169,39 @@ export default function LeftSidebar({
     setRenaming(id)
   }
 
-  /* helper: calculate menu position to avoid main content area */
+  /* helper: calculate menu position at exact cursor location */
   const calculateMenuPosition = (clientX: number, clientY: number) => {
     const menuWidth = 160  // Approximate menu width
-    const menuHeight = 220 // Approximate menu height
+    const menuHeight = 300 // Increased height estimate for better positioning
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
+    const padding = 8 // Padding from viewport edges
     
+    // Start at exact cursor position
     let left = clientX
     let top = clientY
     
-    // If menu would go off right edge, show it to the left of cursor
-    if (left + menuWidth > viewportWidth - 10) {
+    // Adjust if menu would go off right edge
+    if (left + menuWidth > viewportWidth - padding) {
       left = clientX - menuWidth
     }
     
-    // If menu would go off bottom, show it above cursor
-    if (top + menuHeight > viewportHeight - 10) {
+    // Adjust if menu would go off bottom edge
+    if (top + menuHeight > viewportHeight - padding) {
       top = clientY - menuHeight
     }
     
-    // Ensure minimum distances from edges
-    left = Math.max(10, left)
-    top = Math.max(10, top)
+    // Ensure we don't go off the left or top edges
+    left = Math.max(padding, left)
+    top = Math.max(padding, top)
+    
+    // Final bounds check to ensure menu fits in viewport
+    if (left + menuWidth > viewportWidth - padding) {
+      left = viewportWidth - menuWidth - padding
+    }
+    if (top + menuHeight > viewportHeight - padding) {
+      top = viewportHeight - menuHeight - padding
+    }
     
     return { left, top }
   }
@@ -358,8 +370,19 @@ export default function LeftSidebar({
             onDragLeave={handleDragLeave}
             onContextMenu={(id, clientX, clientY) => {
               const position = calculateMenuPosition(clientX, clientY)
+              // Determine if this is a folder or note
+              const isFolder = folderTree.some(folderNode => {
+                const findInTree = (node: typeof folderNode): boolean => {
+                  if (node.folder.id === id) return true
+                  return node.children.some(findInTree)
+                }
+                return findInTree(folderNode)
+              })
+              const isNote = nodes.some(note => note.id === id)
+              
               setContextMenu({
                 id,
+                type: isFolder ? 'folder' : (isNote ? 'note' : undefined),
                 top: position.top,
                 left: position.left,
               })
@@ -417,6 +440,7 @@ export default function LeftSidebar({
                     const position = calculateMenuPosition(e.clientX, e.clientY)
                     setContextMenu({
                       id: note.id,
+                      type: 'note',
                       top: position.top,
                       left: position.left,
                     })
@@ -439,18 +463,23 @@ export default function LeftSidebar({
       
 
 
-      {/* Unified Context Menu - rendered outside sidebar to avoid positioning issues */}
-      {contextMenu && (
+      {/* Unified Context Menu - rendered as portal at document root */}
+      {contextMenu && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed z-[9999]"
-          style={{
-            top: `${contextMenu.top}px`,
-            left: `${contextMenu.left}px`,
-          }}
+          className="fixed inset-0 z-[999999]"
+          onClick={() => setContextMenu(null)}
           onMouseDown={e => e.stopPropagation()}
-          onClick={e => e.stopPropagation()}
         >
-          <div className="flex flex-col bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[160px]">
+          <div
+            className="absolute"
+            style={{
+              top: `${contextMenu.top}px`,
+              left: `${contextMenu.left}px`,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex flex-col bg-zinc-800 border border-zinc-700 rounded-lg shadow-2xl py-1 min-w-[160px] backdrop-blur-sm"
+                 style={{ filter: 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.5))' }}>
             {/* Create Actions */}
             <button
               onClick={async () => {
@@ -482,49 +511,98 @@ export default function LeftSidebar({
                 {/* Separator */}
                 <div className="h-px bg-zinc-700 my-1 mx-2"></div>
                 
-                {/* Note Actions */}
-                <button
-                  onClick={() => {
-                    const note = nodes.find(n => n.id === contextMenu.id)
-                    if (note) {
-                      // Create a duplicate with a new title
-                      onCreate(note.type, `${note.title} (Copy)`)
-                    }
-                    setContextMenu(null)
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
-                >
-                  <Copy size={14} />
-                  Duplicate
-                </button>
+                {/* Note-specific Actions */}
+                {contextMenu.type === 'note' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        const note = nodes.find(n => n.id === contextMenu.id)
+                        if (note) {
+                          // Create a duplicate with a new title
+                          onCreate(note.type, `${note.title} (Copy)`)
+                        }
+                        setContextMenu(null)
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                    >
+                      <Copy size={14} />
+                      Duplicate
+                    </button>
+                    
+                    <button
+                      onClick={() => triggerRename(contextMenu.id!)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                    >
+                      <Pencil size={14} />
+                      Rename
+                    </button>
+                    
+                    {/* Separator */}
+                    <div className="h-px bg-zinc-700 my-1 mx-2"></div>
+                    
+                    {/* Delete Note */}
+                    <button
+                      onClick={() => {
+                        const note = nodes.find(n => n.id === contextMenu.id)
+                        if (note) onDelete(note)
+                        setContextMenu(null)
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
+                    >
+                      <Trash size={14} />
+                      Delete
+                    </button>
+                  </>
+                )}
                 
-                <button
-                  onClick={() => triggerRename(contextMenu.id!)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
-                >
-                  <Pencil size={14} />
-                  Rename
-                </button>
-                
-                {/* Separator */}
-                <div className="h-px bg-zinc-700 my-1 mx-2"></div>
-                
-                {/* Destructive Actions */}
-                <button
-                  onClick={() => {
-                    const note = nodes.find(n => n.id === contextMenu.id)
-                    if (note) onDelete(note)
-                    setContextMenu(null)
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
-                >
-                  <Trash size={14} />
-                  Delete
-                </button>
+                {/* Folder-specific Actions */}
+                {contextMenu.type === 'folder' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        handleCreateFolder(contextMenu.id!)
+                        setContextMenu(null)
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 hover:bg-amber-900/30 hover:text-amber-300 transition-colors"
+                    >
+                      <FolderPlus size={14} />
+                      Add Subfolder
+                    </button>
+                    
+                    <button
+                      onClick={() => triggerRename(contextMenu.id!)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                    >
+                      <Pencil size={14} />
+                      Rename
+                    </button>
+                    
+                    {/* Separator */}
+                    <div className="h-px bg-zinc-700 my-1 mx-2"></div>
+                    
+                    {/* Delete Folder */}
+                    <button
+                      onClick={async () => {
+                        try {
+                          await deleteFolder(contextMenu.id!)
+                          setContextMenu(null)
+                        } catch (error) {
+                          console.error('Error deleting folder:', error)
+                        }
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-600 hover:text-white transition-colors"
+                    >
+                      <Trash size={14} />
+                      Delete Folder
+                    </button>
+                  </>
+                )}
               </>
             )}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </aside>
   )
