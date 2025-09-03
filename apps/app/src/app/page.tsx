@@ -21,7 +21,7 @@ import "allotment/dist/style.css"
 import { updateLastActivity } from '@/lib/utils/activityTracker'
 
 export default function Home() {
-  const { currentCampaign, campaigns, isLoading } = useCampaign()
+  const { currentCampaign, isLoading, hasNoCampaigns } = useCampaign()
   // Only load nodes if we have a campaign - this prevents loading from 'default' database
   const dbNodes = useCampaignNodes(currentCampaign?.slug)
   const nodeOps = currentCampaign ? createNodeOps(currentCampaign.slug) : null
@@ -335,7 +335,12 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [rightSidebarMode, showRightSidebar, handleCreateNote]);
 
-  // Handle campaigns loading state
+  // Handle no campaigns state - redirect immediately when detected
+  if (hasNoCampaigns) {
+    return <EmptyCampaignsState />
+  }
+
+  // Handle campaigns loading state (only show if we haven't detected no campaigns yet)
   if (isLoading) {
     return (
       <div className="h-screen bg-zinc-900 text-zinc-100 sticky">
@@ -376,11 +381,6 @@ export default function Home() {
         </div>
       </div>
     )
-  }
-
-  // Handle no campaigns state  
-  if (!isLoading && campaigns.length === 0) {
-    return <EmptyCampaignsState />
   }
 
   // Handle campaign loading but no current campaign selected

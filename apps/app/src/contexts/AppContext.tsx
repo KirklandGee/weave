@@ -18,6 +18,7 @@ interface CampaignContextType {
   currentCampaign: Campaign | null
   campaigns: Campaign[]
   isLoading: boolean
+  hasNoCampaigns: boolean
   switchCampaign: (campaign: Campaign) => void
   refreshCampaigns: () => Promise<void>
   createCampaign: (title: string) => Promise<Campaign>
@@ -44,6 +45,7 @@ export function AppProvider({ children }: AppProviderProps) {
   const [currentCampaign, setCurrentCampaign] = useState<Campaign | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [hasNoCampaigns, setHasNoCampaigns] = useState(false)
 
   // Template state
   const [templates, setTemplates] = useState<TemplateInfo[]>([])
@@ -80,13 +82,18 @@ export function AppProvider({ children }: AppProviderProps) {
         updated_at?: string
       }
       
-      const campaigns: Campaign[] = (data || []).map((campaign: RawCampaign) => ({
-        id: campaign.id,
-        title: campaign.title,
-        slug: campaign.slug || campaign.id,
-        createdAt: campaign.created_at ? new Date(campaign.created_at).getTime() : Date.now(),
-        updatedAt: campaign.updated_at ? new Date(campaign.updated_at).getTime() : Date.now(),
-      }))
+      const campaigns: Campaign[] = (data || [])
+        .filter((campaign: RawCampaign) => {
+          // Filter out campaigns with null/undefined id or title
+          return campaign.id && campaign.title
+        })
+        .map((campaign: RawCampaign) => ({
+          id: campaign.id,
+          title: campaign.title,
+          slug: campaign.slug || campaign.id,
+          createdAt: campaign.created_at ? new Date(campaign.created_at).getTime() : Date.now(),
+          updatedAt: campaign.updated_at ? new Date(campaign.updated_at).getTime() : Date.now(),
+        }))
       
       // Deduplicate campaigns by ID
       const uniqueCampaigns = campaigns.filter((campaign, index, self) => 
@@ -102,9 +109,17 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const refreshCampaigns = async () => {
     setIsLoading(true)
+    setHasNoCampaigns(false)
     try {
       const fetchedCampaigns = await fetchCampaigns()
       setCampaigns(fetchedCampaigns)
+      
+      // Set hasNoCampaigns if we have no campaigns
+      if (fetchedCampaigns.length === 0) {
+        setHasNoCampaigns(true)
+        setIsLoading(false) // Stop loading immediately when we know there are no campaigns
+        return
+      }
       
       // If no current campaign but we have campaigns, find the best one to select
       if (!currentCampaign && fetchedCampaigns.length > 0) {
@@ -175,6 +190,10 @@ export function AppProvider({ children }: AppProviderProps) {
         createdAt: data.campaign.created_at || Date.now(),
         updatedAt: data.campaign.updated_at || Date.now(),
       }
+      
+      // Reset hasNoCampaigns since we now have a campaign
+      setHasNoCampaigns(false)
+      
       await refreshCampaigns()
       switchCampaign(newCampaign)
       
@@ -221,6 +240,7 @@ export function AppProvider({ children }: AppProviderProps) {
         currentCampaign,
         campaigns,
         isLoading,
+        hasNoCampaigns,
         switchCampaign,
         refreshCampaigns,
         createCampaign,
@@ -244,6 +264,7 @@ export function useCampaign() {
     currentCampaign: context.currentCampaign,
     campaigns: context.campaigns,
     isLoading: context.isLoading,
+    hasNoCampaigns: context.hasNoCampaigns,
     switchCampaign: context.switchCampaign,
     refreshCampaigns: context.refreshCampaigns,
     createCampaign: context.createCampaign,
