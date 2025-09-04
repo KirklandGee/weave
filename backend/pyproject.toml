@@ -21,6 +21,7 @@ dependencies = [
     "langchain-google-genai>=2.1.8",
     "langchain-tavily>=0.2.11",
     "nanoid>=2.0.0",
+    "pydantic-ai>=0.8.1",
 ]
 
 [dependency-groups]
