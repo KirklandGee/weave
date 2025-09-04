@@ -275,7 +275,7 @@ class EmbeddingSystemTester:
             # Test environment variables are readable
             background_enabled = os.getenv("EMBEDDING_BACKGROUND_ENABLED", "true")
             sync_threshold = os.getenv("SYNC_EMBEDDING_THRESHOLD", "5")
-            embedding_model = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+            embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
             
             # Create hook to test config loading
             hook = get_sync_embedding_hook()
