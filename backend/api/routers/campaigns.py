@@ -79,22 +79,35 @@ async def add_campaign(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.delete("/")
-async def delete_campaign(campaign_id: str):
-
+@router.delete("/{campaign_id}")
+async def delete_campaign(
+    campaign_id: str, 
+    current_user: str = Depends(get_current_user)
+):
     try:
-        _ = query(
+        # Verify ownership and delete
+        result = query(
             """
-        MATCH (n:Campaign {id: $campaign_id})
-        DELETE n
-      """,
+            MATCH (u:User {id: $user_id})-[:OWNS]->(c:Campaign {id: $campaign_id})
+            DELETE c
+            RETURN c.id as deleted_id
+            """,
+            user_id=current_user,
             campaign_id=campaign_id,
         )
-
-        return {"message": f"Campaign: {campaign_id} deleted"}
-
-    except HTTPException as exc:
-        raise exc
+        
+        if not result:
+            raise HTTPException(
+                status_code=404, 
+                detail="Campaign not found or you don't have permission to delete it"
+            )
+        
+        return {"message": f"Campaign {campaign_id} deleted successfully"}
+    
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 @router.get("/user")
 async def get_user_campaigns(current_user: str = Depends(get_current_user)):

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Plus } from 'lucide-react'
+import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { useCampaign } from '@/contexts/AppContext'
 
 interface CampaignSelectorProps {
@@ -9,10 +9,11 @@ interface CampaignSelectorProps {
 }
 
 export default function CampaignSelector({ className = '' }: CampaignSelectorProps) {
-  const { currentCampaign, campaigns, isLoading, switchCampaign, createCampaign } = useCampaign()
+  const { currentCampaign, campaigns, isLoading, switchCampaign, createCampaign, deleteCampaign } = useCampaign()
   const [isOpen, setIsOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [newCampaignTitle, setNewCampaignTitle] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const handleCreateCampaign = async () => {
     if (!newCampaignTitle.trim()) return
@@ -35,6 +36,16 @@ export default function CampaignSelector({ className = '' }: CampaignSelectorPro
     } else if (e.key === 'Escape') {
       setNewCampaignTitle('')
       setIsOpen(false)
+    }
+  }
+
+  const handleDeleteCampaign = async (campaignId: string) => {
+    try {
+      await deleteCampaign(campaignId)
+      setDeleteConfirm(null)
+    } catch (error) {
+      console.error('Failed to delete campaign:', error)
+      // Could add toast notification here
     }
   }
 
@@ -74,20 +85,54 @@ export default function CampaignSelector({ className = '' }: CampaignSelectorPro
           <div className="absolute top-full mt-1 left-0 w-full bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-[9999] max-h-64 overflow-y-auto">
             {/* Existing Campaigns */}
             {campaigns.map((campaign) => (
-              <button
-                key={campaign.id}
-                onClick={() => {
-                  switchCampaign(campaign)
-                  setIsOpen(false)
-                }}
-                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                  currentCampaign?.id === campaign.id
-                    ? 'bg-zinc-700 text-white'
-                    : 'text-zinc-300 hover:bg-zinc-700/50'
-                }`}
-              >
-                {campaign.title}
-              </button>
+              <div key={campaign.id} className="flex items-center group hover:bg-zinc-700/30 transition-colors">
+                <button
+                  onClick={() => {
+                    switchCampaign(campaign)
+                    setIsOpen(false)
+                  }}
+                  className={`flex-1 text-left px-3 py-2 text-sm transition-colors ${
+                    currentCampaign?.id === campaign.id
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-300'
+                  }`}
+                >
+                  {campaign.title}
+                </button>
+                
+                {/* Delete button - always show for all campaigns */}
+                <div className="px-2 py-2">
+                    {deleteConfirm === campaign.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDeleteCampaign(campaign.id)}
+                          className="px-2 py-1 text-red-400 hover:text-red-300 text-xs font-medium"
+                          title="Confirm delete"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="px-2 py-1 text-zinc-500 hover:text-zinc-400 text-xs font-medium"
+                          title="Cancel"
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirm(campaign.id)
+                        }}
+                        className="p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        title="Delete campaign"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                </div>
+              </div>
             ))}
             
             {campaigns.length > 0 && (

@@ -12,7 +12,8 @@ import Nav from '@/components/Nav'
 import Tiptap from '@/components/Tiptap'
 import DocumentHeader from '@/components/DocumentHeader'
 import { ImportMarkdownModal } from '@/components/ImportMarkdownModal'
-import EmptyCampaignsState from '@/components/EmptyCampaignsState'
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
+import { WelcomeTutorial } from '@/components/onboarding/WelcomeTutorial'
 import { nanoid } from 'nanoid'
 import { Note } from '@/types/node'
 import { USER_ID } from '@/lib/constants'
@@ -21,7 +22,7 @@ import "allotment/dist/style.css"
 import { updateLastActivity } from '@/lib/utils/activityTracker'
 
 export default function Home() {
-  const { currentCampaign, isLoading, hasNoCampaigns } = useCampaign()
+  const { currentCampaign, isLoading, hasNoCampaigns, shouldShowTutorial, markTutorialComplete } = useCampaign()
   // Only load nodes if we have a campaign - this prevents loading from 'default' database
   const dbNodes = useCampaignNodes(currentCampaign?.slug)
   const nodeOps = currentCampaign ? createNodeOps(currentCampaign.slug) : null
@@ -337,7 +338,7 @@ export default function Home() {
 
   // Handle no campaigns state - redirect immediately when detected
   if (hasNoCampaigns) {
-    return <EmptyCampaignsState />
+    return <OnboardingWizard />
   }
 
   // Handle campaigns loading state (only show if we haven't detected no campaigns yet)
@@ -538,22 +539,24 @@ export default function Home() {
                   showLeftSidebar ? 'translate-x-0' : '-translate-x-full'
                 }`}
               >
-                <LeftSidebar
-                  nodes={nodes}
-                  activeId={activeId}
-                  onSelect={async (node) => {
-                    setActiveId(node.id)
-                    if (currentCampaign?.slug) {
-                      await updateLastActivity(currentCampaign.slug)
-                    }
-                  }}
-                  onCreate={handleCreate}
-                  onDelete={handleDelete}
-                  onHide={() => setShowLeftSidebar(false)}
-                  campaignSlug={currentCampaign?.slug || ''}
-                  campaignId={currentCampaign?.id || ''}
-                  ownerId={USER_ID}
-                />
+                <div data-testid="left-sidebar">
+                  <LeftSidebar
+                    nodes={nodes}
+                    activeId={activeId}
+                    onSelect={async (node) => {
+                      setActiveId(node.id)
+                      if (currentCampaign?.slug) {
+                        await updateLastActivity(currentCampaign.slug)
+                      }
+                    }}
+                    onCreate={handleCreate}
+                    onDelete={handleDelete}
+                    onHide={() => setShowLeftSidebar(false)}
+                    campaignSlug={currentCampaign?.slug || ''}
+                    campaignId={currentCampaign?.id || ''}
+                    ownerId={USER_ID}
+                  />
+                </div>
               </div>
               <div 
                 className={`absolute inset-0 transition-transform duration-300 ease-out ${
@@ -594,7 +597,7 @@ export default function Home() {
                   
                   {/* Document Content */}
                   <div className="h-[calc(100%-64px)] overflow-auto">
-                    <div className="max-w-4xl mx-auto p-8">
+                    <div className="max-w-4xl mx-auto p-8" data-testid="editor-area">
                       {isMigrating ? (
                         <div className="flex items-center justify-center h-64">
                           <div className="flex items-center gap-3 text-zinc-400">
@@ -624,20 +627,22 @@ export default function Home() {
                       showRightSidebar ? 'translate-x-0' : 'translate-x-full'
                     }`}
                   >
-                    <RightSidebar
-                      node={node}
-                      campaign={currentCampaign.slug}
-                      activeNodeId={activeId}
-                      initialMode={rightSidebarMode}
-                      onModeChange={(mode) => setRightSidebarMode(mode)}
-                      onNavigateToNote={async (noteId) => {
-                        setActiveId(noteId);
-                        if (currentCampaign?.slug) {
-                          await updateLastActivity(currentCampaign.slug)
-                        }
-                      }}
-                      onHide={() => setShowRightSidebar(false)}
-                    />
+                    <div data-testid="relationships-panel">
+                      <RightSidebar
+                        node={node}
+                        campaign={currentCampaign.slug}
+                        activeNodeId={activeId}
+                        initialMode={rightSidebarMode}
+                        onModeChange={(mode) => setRightSidebarMode(mode)}
+                        onNavigateToNote={async (noteId) => {
+                          setActiveId(noteId);
+                          if (currentCampaign?.slug) {
+                            await updateLastActivity(currentCampaign.slug)
+                          }
+                        }}
+                        onHide={() => setShowRightSidebar(false)}
+                      />
+                    </div>
                   </div>
                   <div 
                     className={`absolute inset-0 transition-transform duration-300 ease-out ${
@@ -668,6 +673,12 @@ export default function Home() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportMarkdown}
+      />
+      
+      {/* Welcome Tutorial */}
+      <WelcomeTutorial
+        isOpen={shouldShowTutorial}
+        onClose={markTutorialComplete}
       />
     </div>
   )

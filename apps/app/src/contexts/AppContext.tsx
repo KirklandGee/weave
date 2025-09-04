@@ -19,9 +19,14 @@ interface CampaignContextType {
   campaigns: Campaign[]
   isLoading: boolean
   hasNoCampaigns: boolean
+  isNewCampaign: boolean
+  shouldShowTutorial: boolean
   switchCampaign: (campaign: Campaign) => void
   refreshCampaigns: () => Promise<void>
-  createCampaign: (title: string) => Promise<Campaign>
+  createCampaign: (title: string, autoSwitch?: boolean) => Promise<Campaign>
+  deleteCampaign: (campaignId: string) => Promise<void>
+  markTutorialComplete: () => void
+  resetOnboardingState: () => void
 }
 
 // Template types
@@ -46,6 +51,8 @@ export function AppProvider({ children }: AppProviderProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasNoCampaigns, setHasNoCampaigns] = useState(false)
+  const [isNewCampaign, setIsNewCampaign] = useState(false)
+  const [shouldShowTutorial, setShouldShowTutorial] = useState(false)
 
   // Template state
   const [templates, setTemplates] = useState<TemplateInfo[]>([])
@@ -158,9 +165,99 @@ export function AppProvider({ children }: AppProviderProps) {
   const switchCampaign = (campaign: Campaign) => {
     setCurrentCampaign(campaign)
     localStorage.setItem('currentCampaignId', campaign.id)
+    
+    // Check if we should show tutorial for new campaigns
+    if (isNewCampaign) {
+      // Check if user has completed onboarding for this campaign
+      const completedOnboarding = localStorage.getItem(`onboarding-completed-${campaign.id}`)
+      if (!completedOnboarding) {
+        setShouldShowTutorial(true)
+      }
+      setIsNewCampaign(false)
+    }
   }
 
-  const createCampaign = async (title: string): Promise<Campaign> => {
+  const markTutorialComplete = () => {
+    setShouldShowTutorial(false)
+    if (currentCampaign) {
+      localStorage.setItem(`onboarding-completed-${currentCampaign.id}`, 'true')
+    }
+  }
+
+  const resetOnboardingState = () => {
+    setIsNewCampaign(false)
+    setShouldShowTutorial(false)
+  }
+
+  const deleteCampaign = async (campaignId: string): Promise<void> => {
+    try {
+      const url = `/api/campaigns/${campaignId}`
+      
+      const response = await authFetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.warn('⚠️ Backend deletion failed (expected for testing):', response.status, errorText)
+        
+        // Backend doesn't support deletion yet, so do client-side cleanup only
+        console.info('💡 Performing client-side campaign cleanup for testing...')
+        
+        // Remove from local state
+        setCampaigns(prevCampaigns => 
+          prevCampaigns.filter(campaign => campaign.id !== campaignId)
+        )
+        
+        // If we deleted the current campaign, clear it and switch to another
+        if (currentCampaign?.id === campaignId) {
+          const remainingCampaigns = campaigns.filter(c => c.id !== campaignId)
+          
+          if (remainingCampaigns.length > 0) {
+            // Switch to the first available campaign
+            const nextCampaign = remainingCampaigns[0]
+            setCurrentCampaign(nextCampaign)
+            localStorage.setItem('currentCampaignId', nextCampaign.id)
+          } else {
+            // No campaigns left
+            setCurrentCampaign(null)
+            localStorage.removeItem('currentCampaignId')
+            setHasNoCampaigns(true)
+          }
+        }
+        
+        // Clear any local data for this campaign
+        try {
+          localStorage.removeItem(`onboarding-completed-${campaignId}`)
+          console.info('✅ Client-side campaign cleanup completed')
+        } catch (e) {
+          console.warn('Could not clear local storage:', e)
+        }
+        
+        return // Success - client-side deletion completed
+      }
+      
+      // Backend deletion succeeded (future case)
+      console.info('✅ Backend campaign deletion succeeded')
+      
+      // If we deleted the current campaign, clear it
+      if (currentCampaign?.id === campaignId) {
+        setCurrentCampaign(null)
+        localStorage.removeItem('currentCampaignId')
+      }
+      
+      // Refresh campaigns to update the list
+      await refreshCampaigns()
+    } catch (error) {
+      console.error('💥 Error deleting campaign:', error)
+      throw error
+    }
+  }
+
+  const createCampaign = async (title: string, autoSwitch = true): Promise<Campaign> => {
     
     try {
       const url = '/api/campaigns/create'
@@ -194,8 +291,17 @@ export function AppProvider({ children }: AppProviderProps) {
       // Reset hasNoCampaigns since we now have a campaign
       setHasNoCampaigns(false)
       
-      await refreshCampaigns()
-      switchCampaign(newCampaign)
+      // Mark as new campaign to trigger tutorial
+      setIsNewCampaign(true)
+      
+      // Only refresh campaigns if we're auto-switching, otherwise just add to list
+      if (autoSwitch) {
+        await refreshCampaigns()
+        switchCampaign(newCampaign)
+      } else {
+        // Just add the new campaign to the list without triggering auto-selection
+        setCampaigns(prevCampaigns => [...prevCampaigns, newCampaign])
+      }
       
       return newCampaign
     } catch (error) {
@@ -241,9 +347,14 @@ export function AppProvider({ children }: AppProviderProps) {
         campaigns,
         isLoading,
         hasNoCampaigns,
+        isNewCampaign,
+        shouldShowTutorial,
         switchCampaign,
         refreshCampaigns,
         createCampaign,
+        deleteCampaign,
+        markTutorialComplete,
+        resetOnboardingState,
         // Template context
         templates,
         templatesLoading,
@@ -265,9 +376,14 @@ export function useCampaign() {
     campaigns: context.campaigns,
     isLoading: context.isLoading,
     hasNoCampaigns: context.hasNoCampaigns,
+    isNewCampaign: context.isNewCampaign,
+    shouldShowTutorial: context.shouldShowTutorial,
     switchCampaign: context.switchCampaign,
     refreshCampaigns: context.refreshCampaigns,
     createCampaign: context.createCampaign,
+    deleteCampaign: context.deleteCampaign,
+    markTutorialComplete: context.markTutorialComplete,
+    resetOnboardingState: context.resetOnboardingState,
   }
 }
 

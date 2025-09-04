@@ -52,6 +52,7 @@ export default function Nav({
           <button
             onClick={commandPalette.open}
             className="flex items-center bg-zinc-800/50 border border-zinc-700 rounded-lg px-3 py-2 hover:border-zinc-600 hover:bg-zinc-800 transition-colors group"
+            data-testid="nav-search"
           >
             <Search size={16} className="text-zinc-400 mr-2" />
             <span className="text-zinc-400 text-sm min-w-[120px] text-left">
