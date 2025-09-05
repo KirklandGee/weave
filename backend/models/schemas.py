@@ -16,6 +16,7 @@ class ChatRequest(BaseModel):
     user_id: str
     messages: list[LLMMessage]
     context: str
+    campaign_id: str | None = None  # Campaign ID for agent context
     metadata: dict[str, Any] = {}
     model: str | None = (
         None  # Might use this at some point to hard-code specific models for things. We'll see.
