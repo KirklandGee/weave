@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { FolderService, type FolderTreeNode } from '@/lib/folders'
+import { useCampaign } from '@/contexts/AppContext'
 
 export function useFolders(
   campaignSlug: string,
@@ -11,6 +12,11 @@ export function useFolders(
   const [uncategorizedNoteIds, setUncategorizedNoteIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const { registerFolderRefresh } = useCampaign()
+  
+  // Use ref to store latest loadFolders function
+  const loadFoldersRef = useRef<() => Promise<void>>()
 
   const folderService = useMemo(
     () => new FolderService(campaignSlug, campaignId, ownerId),
@@ -36,10 +42,22 @@ export function useFolders(
     }
   }, [folderService])
 
+  // Keep ref updated with latest loadFolders
+  loadFoldersRef.current = loadFolders
+
   // Load folders on mount and when dependencies change
   useEffect(() => {
     loadFolders()
   }, [loadFolders])
+
+  // Register refresh callback with context - use stable wrapper
+  useEffect(() => {
+    const refreshWrapper = () => {
+      loadFoldersRef.current?.()
+    }
+    const unregister = registerFolderRefresh(refreshWrapper)
+    return unregister
+  }, [registerFolderRefresh])
 
   // Load expanded state from localStorage
   useEffect(() => {

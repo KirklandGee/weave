@@ -47,6 +47,8 @@ export default function RightSidebar({
     isCompacting,
     messagesEndRef,
     handleSubmit,
+    toolCalls,
+    suggestedActions,
     chatSessions,
     currentChatId,
     onNewChat,
@@ -54,6 +56,7 @@ export default function RightSidebar({
     onDeleteChat,
     onCompactChat,
     checkCompactionStatus,
+    clearSuggestedActions,
   } = useLLMChat(campaign, activeNodeId);
 
   if (!node) return null;
@@ -124,6 +127,8 @@ export default function RightSidebar({
               isCompacting={isCompacting}
               messagesEndRef={messagesEndRef}
               onSubmit={handleSubmit}
+              toolCalls={toolCalls}
+              suggestedActions={suggestedActions}
               chatSessions={chatSessions}
               currentChatId={currentChatId}
               onNewChat={onNewChat}
@@ -131,6 +136,9 @@ export default function RightSidebar({
               onDeleteChat={onDeleteChat}
               onCompactChat={onCompactChat}
               checkCompactionStatus={checkCompactionStatus}
+              onNavigateToNote={onNavigateToNote}
+              campaign={campaign}
+              clearSuggestedActions={clearSuggestedActions}
             />
           </AIFeatureProtection>
         )}

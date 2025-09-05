@@ -4,6 +4,10 @@ from backend.services.embeddings.service import get_embedding_service
 
 def create_vector_index():
     """Create vector indexes for all node types that can have embeddings."""
+    print("🗑️  Dropping existing vector indexes...")
+    drop_vector_indexes()
+    
+    print("🔧 Creating new vector indexes...")
 
     embedding_service = get_embedding_service()
     dimensions = embedding_service.dimensions
@@ -154,7 +158,7 @@ def drop_vector_indexes():
         for record in indexes:
             idx = record.get("record", record)
             index_name = idx.get("name")
-            if index_name and "Embeddings" in index_name:
+            if index_name and ("Embeddings" in index_name or "_vec_idx" in index_name):
                 try:
                     query(f"DROP INDEX {index_name}")
                     print(f"Dropped vector index: {index_name}")

@@ -423,38 +423,46 @@ export default function LeftSidebar({
               </button>
             </div>
             <div className="ml-4 space-y-1">
-              {uncategorizedNotes.map(note => (
-                <div
-                  key={note.id}
-                  data-note-item
-                  className={`flex items-center gap-2 py-1 px-2 rounded transition-colors cursor-pointer ${
-                    note.id === activeId 
-                      ? 'bg-amber-600 text-white font-medium' 
-                      : 'hover:bg-zinc-800 hover:text-white text-zinc-400'
-                  }`}
-                  draggable
-                  onDragStart={() => handleDragStart({ id: note.id, type: 'note' })}
-                  onClick={() => onSelect(note)}
-                  onContextMenu={e => {
-                    e.preventDefault()
-                    const position = calculateMenuPosition(e.clientX, e.clientY)
-                    setContextMenu({
-                      id: note.id,
-                      type: 'note',
-                      top: position.top,
-                      left: position.left,
-                    })
-                  }}
-                >
-                  {note.attributes?.generation_status === 'generating' && (
-                    <div className="w-3 h-3 border border-zinc-400 border-t-amber-500 rounded-full animate-spin flex-shrink-0" />
-                  )}
-                  {note.attributes?.generation_status === 'error' && (
-                    <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
-                  )}
-                  <span className="truncate text-sm">{note.title}</span>
-                </div>
-              ))}
+              {[...uncategorizedNotes]
+                .sort((a, b) => {
+                  const titleA = (a.title || '').toLowerCase();
+                  const titleB = (b.title || '').toLowerCase();
+                  if (titleA < titleB) return -1;
+                  if (titleA > titleB) return 1;
+                  return 0;
+                })
+                .map(note => (
+                  <div
+                    key={note.id}
+                    data-note-item
+                    className={`flex items-center gap-2 py-1 px-2 rounded transition-colors cursor-pointer ${
+                      note.id === activeId 
+                        ? 'bg-amber-600 text-white font-medium' 
+                        : 'hover:bg-zinc-800 hover:text-white text-zinc-400'
+                    }`}
+                    draggable
+                    onDragStart={() => handleDragStart({ id: note.id, type: 'note' })}
+                    onClick={() => onSelect(note)}
+                    onContextMenu={e => {
+                      e.preventDefault()
+                      const position = calculateMenuPosition(e.clientX, e.clientY)
+                      setContextMenu({
+                        id: note.id,
+                        type: 'note',
+                        top: position.top,
+                        left: position.left,
+                      })
+                    }}
+                  >
+                    {note.attributes?.generation_status === 'generating' && (
+                      <div className="w-3 h-3 border border-zinc-400 border-t-amber-500 rounded-full animate-spin flex-shrink-0" />
+                    )}
+                    {note.attributes?.generation_status === 'error' && (
+                      <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                    )}
+                    <span className="truncate text-sm">{note.title}</span>
+                  </div>
+                ))}
             </div>
           </section>
         )}

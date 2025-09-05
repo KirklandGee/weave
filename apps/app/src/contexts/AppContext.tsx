@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react'
 import { useAuthFetch } from '@/utils/authFetch.client'
 import { templateService } from '@/lib/services/templateService'
 import { TemplateInfo } from '@/lib/db/templateDB'
@@ -22,6 +22,8 @@ interface CampaignContextType {
   switchCampaign: (campaign: Campaign) => void
   refreshCampaigns: () => Promise<void>
   createCampaign: (title: string) => Promise<Campaign>
+  refreshFolders: () => void
+  registerFolderRefresh: (callback: () => void) => () => void
 }
 
 // Template types
@@ -51,6 +53,9 @@ export function AppProvider({ children }: AppProviderProps) {
   const [templates, setTemplates] = useState<TemplateInfo[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(true)
   const [templatesError, setTemplatesError] = useState<string | null>(null)
+
+  // Folder refresh callbacks - use ref to avoid re-render loops
+  const folderRefreshCallbacks = useRef<Set<() => void>>(new Set())
 
   const authFetch = useAuthFetch()
 
@@ -209,6 +214,26 @@ export function AppProvider({ children }: AppProviderProps) {
     }
   }
 
+  // Folder management functions
+  const registerFolderRefresh = useCallback((callback: () => void): (() => void) => {
+    folderRefreshCallbacks.current.add(callback)
+    
+    // Return unregister function
+    return () => {
+      folderRefreshCallbacks.current.delete(callback)
+    }
+  }, [])
+
+  const refreshFolders = useCallback(() => {
+    folderRefreshCallbacks.current.forEach(callback => {
+      try {
+        callback()
+      } catch (error) {
+        console.error('Error calling folder refresh callback:', error)
+      }
+    })
+  }, [])
+
   // Template functions
   const initializeTemplates = async () => {
     try {
@@ -244,6 +269,8 @@ export function AppProvider({ children }: AppProviderProps) {
         switchCampaign,
         refreshCampaigns,
         createCampaign,
+        refreshFolders,
+        registerFolderRefresh,
         // Template context
         templates,
         templatesLoading,
@@ -268,6 +295,8 @@ export function useCampaign() {
     switchCampaign: context.switchCampaign,
     refreshCampaigns: context.refreshCampaigns,
     createCampaign: context.createCampaign,
+    refreshFolders: context.refreshFolders,
+    registerFolderRefresh: context.registerFolderRefresh,
   }
 }
 

@@ -18,6 +18,19 @@ class ActionType(str, Enum):
     APPEND_TO_NOTE = "append_to_note"
 
 
+class NodeType(str, Enum):
+    NOTE = "Note"
+    CHARACTER = "Character"
+    LOCATION = "Location"
+    QUEST = "Quest"
+    EVENT = "Event"
+    SESSION = "Session"
+    NPC = "NPC"
+    ITEM = "Item"
+    LORE = "Lore"
+    RULE = "Rule"
+
+
 class Action(BaseModel):
     type: ActionType = Field(
         description="The type of database operation: create_note for new notes, update_note for modifying existing notes with full content, append_to_note for adding content to end of existing notes"
@@ -32,6 +45,9 @@ class Action(BaseModel):
     )
     content: str = Field(
         description="For create_note: complete markdown content for new note. For update_note: the FULL markdown content including original + all changes. For append_to_note: only the new markdown content to add at the end."
+    )
+    node_type: NodeType = Field(
+        description="The type of note to create or modify. Must be one of the valid node types: Note, Character, Location, Quest, Event, Session, NPC, Item, Lore, Rule."
     )
     reasoning: str = Field(
         description="Brief explanation of why this action makes sense and what the expected outcome will be. Keep concise but clear."

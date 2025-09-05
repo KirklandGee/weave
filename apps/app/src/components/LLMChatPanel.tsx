@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { LLMMessage } from '@/types/llm';
-import { Trash2, Send, Plus, MessageSquare, ChevronDown, Zap, AlertTriangle } from 'lucide-react';
+import { SuggestedAction } from '@/types/agent';
+import { Trash2, Send, Plus, MessageSquare, ChevronDown, Zap, AlertTriangle, Check, X } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ChatSession } from '@/lib/db/campaignDB';
+import { useActionPreview } from '@/lib/hooks/useActionPreview';
 
 interface LLMChatPanelProps {
   messages: LLMMessage[];
@@ -13,6 +15,12 @@ interface LLMChatPanelProps {
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onSubmit: (e: React.FormEvent) => void;
   placeholder?: string;
+  // Agent-specific props
+  toolCalls?: Array<{ type: string; content: string }>;
+  suggestedActions?: SuggestedAction[];
+  onNavigateToNote?: (noteId: string) => void;
+  campaign?: string;
+  clearSuggestedActions?: () => void;
   // Chat session management
   chatSessions?: ChatSession[];
   currentChatId?: string | null;
@@ -32,6 +40,11 @@ export default function LLMChatPanel({
   messagesEndRef,
   onSubmit,
   placeholder = 'Ask me anything...',
+  toolCalls = [],
+  suggestedActions = [],
+  onNavigateToNote,
+  campaign,
+  clearSuggestedActions,
   chatSessions = [],
   currentChatId,
   onNewChat,
@@ -43,6 +56,10 @@ export default function LLMChatPanel({
   const [showChatDropdown, setShowChatDropdown] = useState(false);
   const [compactionStatus, setCompactionStatus] = useState<{ needsCompaction: boolean; messageCount: number; estimatedTokens: number } | null>(null);
   
+  // Initialize action preview hook
+  const actionPreview = campaign && onNavigateToNote ? 
+    useActionPreview(campaign, onNavigateToNote) : null;
+  
   // Check compaction status when currentChatId changes
   useEffect(() => {
     if (currentChatId && checkCompactionStatus) {
@@ -53,6 +70,18 @@ export default function LLMChatPanel({
       setCompactionStatus(null);
     }
   }, [currentChatId, messages.length, checkCompactionStatus]);
+
+  // Auto-preview actions when they're received (Cursor-style)
+  useEffect(() => {
+    if (suggestedActions.length > 0 && actionPreview && !actionPreview.previewState && !actionPreview.isProcessingAction) {
+      // Only auto-preview the first action for now
+      const firstAction = suggestedActions[0];
+      // Call preview action directly to avoid dependency issues
+      actionPreview.previewAction(firstAction).catch(error => {
+        console.error('Failed to auto-preview action:', error);
+      });
+    }
+  }, [suggestedActions, actionPreview]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -71,6 +100,40 @@ export default function LLMChatPanel({
           setCompactionStatus(status);
         }
       }
+    }
+  };
+
+  // Handle action preview
+  const handlePreviewAction = async (action: SuggestedAction) => {
+    if (!actionPreview) return;
+    try {
+      await actionPreview.previewAction(action);
+    } catch (error) {
+      console.error('Failed to preview action:', error);
+    }
+  };
+
+  // Handle action approval
+  const handleApproveAction = async () => {
+    if (!actionPreview) return;
+    try {
+      // Clear the suggested actions FIRST to prevent re-triggering auto-preview
+      clearSuggestedActions?.();
+      await actionPreview.approveAction();
+    } catch (error) {
+      console.error('Failed to approve action:', error);
+    }
+  };
+
+  // Handle action rejection
+  const handleRejectAction = async () => {
+    if (!actionPreview) return;
+    try {
+      // Clear the suggested actions FIRST to prevent re-triggering auto-preview
+      clearSuggestedActions?.();
+      await actionPreview.rejectAction();
+    } catch (error) {
+      console.error('Failed to reject action:', error);
     }
   };
 
@@ -213,8 +276,9 @@ export default function LLMChatPanel({
               </p>
             </div>
           )}
+          {/* Regular chat messages */}
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex items-start gap-3 p-3 rounded-lg shadow-sm transition-colors ${
+            <div key={`msg-${idx}`} className={`flex items-start gap-3 p-3 rounded-lg shadow-sm transition-colors ${
               msg.role === 'human' 
                 ? 'bg-amber-600/10 border border-amber-600/20 hover:bg-amber-600/15' 
                 : 'bg-zinc-800/15 border border-zinc-800/25 hover:bg-zinc-800/20'
@@ -244,6 +308,83 @@ export default function LLMChatPanel({
               </div>
             </div>
           ))}
+          
+          {/* Tool calls and results */}
+          {toolCalls.map((toolCall, idx) => (
+            <div key={`tool-${idx}`} className={`p-3 rounded-lg ${
+              toolCall.type === 'tool_call' 
+                ? 'bg-blue-900/10 border border-blue-700/20' 
+                : 'bg-green-900/10 border border-green-700/20'
+            }`}>
+              <div className="text-sm font-mono text-zinc-300">
+                {toolCall.content}
+              </div>
+            </div>
+          ))}
+          
+          {/* Suggested actions */}
+          {suggestedActions.length > 0 && (
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-amber-400 border-t border-zinc-800 pt-3">
+                💡 Suggested Actions
+              </div>
+              {suggestedActions.map((action, idx) => (
+                <div key={`action-${idx}`} className="bg-amber-900/10 border border-amber-700/20 rounded-lg p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-amber-400">
+                          {action.type.replace('_', ' ').toUpperCase()}: {action.title}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-amber-700/20 text-amber-300 rounded">
+                          {action.node_type}
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-200/70 mb-3">
+                        {action.reasoning}
+                      </p>
+                      {action.content && (
+                        <div className="bg-amber-950/30 border border-amber-800/30 rounded p-2 mb-3">
+                          <div className="text-xs text-amber-200/90 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                            {action.content.length > 200 
+                              ? action.content.substring(0, 200) + '...' 
+                              : action.content
+                            }
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Action buttons - show approve/reject if this action is being previewed */}
+                  {actionPreview?.previewState?.action === action ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleApproveAction}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                      >
+                        <Check size={12} />
+                        Approve
+                      </button>
+                      <button
+                        onClick={handleRejectAction}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                      >
+                        <X size={12} />
+                        Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <span className="text-xs text-amber-300/70 px-3 py-1.5">
+                        {actionPreview?.isProcessingAction ? 'Applying preview...' : 'Preview will apply automatically'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
